@@ -7,6 +7,7 @@ import { ChefHat, BookOpen, Brain, Package, CalendarDays, ShoppingCart, Settings
 import RecipeManager from "@/components/recipes/RecipeManager";
 import AIRecipeGenerator from "@/components/recipes/AIRecipeGenerator";
 import InventoryManager from "@/components/inventory/InventoryManager";
+import MealPlanner from "@/components/meal-planner/MealPlanner";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
