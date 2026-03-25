@@ -158,7 +158,7 @@ const GroceryList = () => {
     });
   }, [mealPlans, inventory]);
 
-  // Group by category
+  // Group by store category in aisle order
   const groupedItems = useMemo(() => {
     const groups: Record<string, GroceryItem[]> = {};
     groceryItems.forEach(item => {
@@ -166,7 +166,9 @@ const GroceryList = () => {
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
     });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    return STORE_CATEGORIES
+      .filter(cat => groups[cat]?.length > 0)
+      .map(cat => [cat, groups[cat]] as [string, GroceryItem[]]);
   }, [groceryItems]);
 
   const toggleCheck = (name: string) => {
