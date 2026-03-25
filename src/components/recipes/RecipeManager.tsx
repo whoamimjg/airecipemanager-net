@@ -31,6 +31,7 @@ const RecipeManager = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
 
   const { data: recipes = [], isLoading } = useQuery({
