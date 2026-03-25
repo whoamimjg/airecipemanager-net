@@ -127,7 +127,7 @@ const RecipeManager = () => {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((recipe) => (
-            <Card key={recipe.id} className="group border-border bg-card hover:shadow-md transition-shadow overflow-hidden">
+            <Card key={recipe.id} className="group border-border bg-card hover:shadow-md transition-shadow overflow-hidden cursor-pointer" onClick={() => setViewingRecipe(recipe)}>
               {recipe.image_url && (
                 <div className="aspect-video w-full overflow-hidden">
                   <img
@@ -146,7 +146,7 @@ const RecipeManager = () => {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => setEditingRecipe(recipe)}
+                      onClick={(e) => { e.stopPropagation(); setEditingRecipe(recipe); }}
                     >
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
@@ -154,7 +154,7 @@ const RecipeManager = () => {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive"
-                      onClick={() => deleteMutation.mutate(recipe.id)}
+                      onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(recipe.id); }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
