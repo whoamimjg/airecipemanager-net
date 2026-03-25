@@ -77,11 +77,7 @@ const Dashboard = () => {
             <InventoryManager />
           </TabsContent>
           <TabsContent value="planner">
-            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
-              <CalendarDays className="h-12 w-12 mb-4 opacity-40" />
-              <h3 className="text-lg font-semibold text-foreground">Meal Planner</h3>
-              <p>Coming in Phase 3 — Plan your meals with a drag-and-drop calendar.</p>
-            </div>
+            <MealPlanner />
           </TabsContent>
           <TabsContent value="grocery">
             <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
