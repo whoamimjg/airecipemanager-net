@@ -10,6 +10,7 @@ import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe } from "lucide
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
 import ImportRecipe from "./ImportRecipe";
+import RecipeDetailDialog from "./RecipeDetailDialog";
 
 interface Recipe {
   id: string;
@@ -34,6 +35,7 @@ const RecipeManager = () => {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
 
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ["recipes", user?.id],
@@ -125,7 +127,7 @@ const RecipeManager = () => {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((recipe) => (
-            <Card key={recipe.id} className="group border-border bg-card hover:shadow-md transition-shadow overflow-hidden">
+            <Card key={recipe.id} className="group border-border bg-card hover:shadow-md transition-shadow overflow-hidden cursor-pointer" onClick={() => setViewingRecipe(recipe)}>
               {recipe.image_url && (
                 <div className="aspect-video w-full overflow-hidden">
                   <img
@@ -144,7 +146,7 @@ const RecipeManager = () => {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => setEditingRecipe(recipe)}
+                      onClick={(e) => { e.stopPropagation(); setEditingRecipe(recipe); }}
                     >
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
@@ -152,7 +154,7 @@ const RecipeManager = () => {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive"
-                      onClick={() => deleteMutation.mutate(recipe.id)}
+                      onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(recipe.id); }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -185,6 +187,12 @@ const RecipeManager = () => {
           ))}
         </div>
       )}
+
+      <RecipeDetailDialog
+        recipe={viewingRecipe}
+        open={!!viewingRecipe}
+        onOpenChange={(open) => { if (!open) setViewingRecipe(null); }}
+      />
     </div>
   );
 };
