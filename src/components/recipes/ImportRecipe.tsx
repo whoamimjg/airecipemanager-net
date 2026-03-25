@@ -62,6 +62,7 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
           servings: scrapedRecipe.servings || null,
           category: scrapedRecipe.category || null,
           source_url: scrapedRecipe.source_url || url,
+          image_url: scrapedRecipe.image_url || null,
         }}
         isNew
         onClose={onClose}
