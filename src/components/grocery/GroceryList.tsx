@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,10 @@ interface GroceryItem {
   recipes: string[];
   inInventory: boolean;
 }
+
+const STORE_CATEGORIES = [
+  "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Condiments & Spices", "Other"
+];
 
 const GroceryList = () => {
   const { user } = useAuth();
@@ -72,51 +76,39 @@ const GroceryList = () => {
     enabled: !!user,
   });
 
-  const STORE_CATEGORIES = [
-    "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Condiments & Spices", "Other"
-  ];
+  // Extract raw ingredient names for AI categorization
+  const rawIngredients = useMemo(() => {
+    const names = new Set<string>();
+    mealPlans.forEach(mp => {
+      const recipe = mp.recipe;
+      if (!recipe?.ingredients || !Array.isArray(recipe.ingredients)) return;
+      recipe.ingredients.forEach((ing: any) => {
+        const name = (typeof ing === "string" ? ing : ing.name || "").trim();
+        if (name) names.add(name.toLowerCase());
+      });
+    });
+    return Array.from(names);
+  }, [mealPlans]);
 
-  const categorizeIngredient = (name: string, originalCategory: string): string => {
-    const n = name.toLowerCase();
-    const condimentKeywords = ["salt", "kosher salt", "sea salt", "black pepper", "cayenne", "chili powder", "chili flakes", "red pepper flakes", "oil", "vinegar", "sauce", "soy sauce", "mustard", "ketchup", "mayo", "mayonnaise", "honey", "syrup", "spice", "cumin", "paprika", "cinnamon", "nutmeg", "oregano", "thyme", "rosemary", "bay leaf", "turmeric", "curry", "vanilla", "extract", "seasoning", "dressing", "sriracha", "hot sauce", "worcestershire", "olive oil", "sesame", "garlic powder", "onion powder"];
-    const dryGoodsKeywords = ["flour", "bouillon", "bullion", "boulillon", "cornstarch", "baking soda", "baking powder", "yeast", "sugar", "brown sugar", "powdered sugar", "cocoa", "chocolate chips", "breadcrumb", "panko", "cracker", "chip", "pretzel", "nut", "almond", "walnut", "pecan", "peanut", "cashew", "pistachio", "seed", "dried", "raisin", "cranberr"];
-    const meatKeywords = ["chicken", "beef", "pork", "lamb", "turkey", "bacon", "sausage", "steak", "ground beef", "ground turkey", "ground pork", "meat", "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "lobster", "cod", "tilapia", "ham", "ribs", "brisket", "veal", "duck", "wing", "thigh", "breast", "drumstick", "seafood", "anchov"];
-    const dairyKeywords = ["milk", "cheese", "butter", "cream", "yogurt", "sour cream", "egg", "mozzarella", "parmesan", "cheddar", "ricotta", "cottage", "whip", "half and half", "ghee", "margarine"];
-    const cerealKeywords = ["cereal", "oat", "granola", "rice", "pasta", "noodle", "quinoa", "couscous", "barley", "farro", "grain", "wheat", "cornmeal", "polenta", "spaghetti", "penne", "macaroni", "linguine", "fettuccine", "corn flakes", "cornflakes", "cheerios", "muesli"];
-    const produceKeywords = ["lettuce", "tomato", "onion", "garlic", "bell pepper", "carrot", "potato", "celery", "cucumber", "spinach", "kale", "broccoli", "mushroom", "zucchini", "squash", "corn", "pea", "bean sprout", "avocado", "lemon", "lime", "orange", "apple", "banana", "berry", "blueberry", "strawberry", "grape", "mango", "pineapple", "peach", "pear", "melon", "ginger", "cilantro", "parsley", "basil", "mint", "dill", "scallion", "shallot", "leek", "cabbage", "radish", "beet", "asparagus", "artichoke", "jalapeño", "serrano", "habanero", "fruit", "vegetable", "salad", "herb"];
-    const beverageKeywords = ["juice", "soda", "water", "coffee", "tea", "wine", "beer", "drink", "lemonade", "kombucha", "smoothie", "cola"];
-    const cannedKeywords = ["canned", "can of", "tomato sauce", "tomato paste", "diced tomato", "crushed tomato", "broth", "stock", "soup", "beans", "chickpea", "lentil", "coconut milk", "condensed", "evaporated"];
-    const breadKeywords = ["bread", "bun", "roll", "tortilla", "pita", "naan", "bagel", "croissant", "wrap", "flatbread", "english muffin", "biscuit", "crouton"];
-    const frozenKeywords = ["frozen", "ice cream", "popsicle", "pizza"];
+  // AI-powered categorization
+  const { data: aiCategories = {} } = useQuery({
+    queryKey: ["ingredient-categories", rawIngredients.sort().join(",")],
+    queryFn: async () => {
+      if (rawIngredients.length === 0) return {};
+      const { data, error } = await supabase.functions.invoke("categorize-ingredients", {
+        body: { ingredients: rawIngredients },
+      });
+      if (error) {
+        console.error("AI categorization failed, using fallback:", error);
+        return {};
+      }
+      return (data?.categories || {}) as Record<string, string>;
+    },
+    enabled: rawIngredients.length > 0,
+    staleTime: 1000 * 60 * 30, // Cache for 30 minutes
+  });
 
-    // Check condiments & spices FIRST to prevent "pepper" in "cayenne pepper" matching produce
-    if (condimentKeywords.some(k => n.includes(k))) return "Condiments & Spices";
-    if (dryGoodsKeywords.some(k => n.includes(k))) return "Dry Goods";
-    if (meatKeywords.some(k => n.includes(k))) return "Meats";
-    if (dairyKeywords.some(k => n.includes(k))) return "Dairy";
-    if (cerealKeywords.some(k => n.includes(k))) return "Cereal";
-    if (produceKeywords.some(k => n.includes(k))) return "Produce";
-    if (beverageKeywords.some(k => n.includes(k))) return "Beverages";
-    if (cannedKeywords.some(k => n.includes(k))) return "Canned Goods";
-    if (breadKeywords.some(k => n.includes(k))) return "Bread";
-    if (frozenKeywords.some(k => n.includes(k))) return "Frozen";
-
-    // Fall back to original category mapping
-    const oc = originalCategory.toLowerCase();
-    if (["produce", "fruit", "vegetable", "fresh"].some(k => oc.includes(k))) return "Produce";
-    if (["meat", "protein", "seafood", "fish", "poultry"].some(k => oc.includes(k))) return "Meats";
-    if (["dairy", "egg"].some(k => oc.includes(k))) return "Dairy";
-    if (["beverage", "drink"].some(k => oc.includes(k))) return "Beverages";
-    if (["grain", "cereal", "pasta", "rice"].some(k => oc.includes(k))) return "Cereal";
-    if (["canned", "can"].some(k => oc.includes(k))) return "Canned Goods";
-    if (["bread", "bakery", "baked"].some(k => oc.includes(k))) return "Bread";
-    if (["frozen"].some(k => oc.includes(k))) return "Frozen";
-    if (["condiment", "spice", "seasoning", "sauce", "oil"].some(k => oc.includes(k))) return "Condiments & Spices";
-
-    return "Other";
-  };
-
-  // Build grocery list: aggregate ingredients, exclude inventory
+  // Build grocery list
   const groceryItems = useMemo(() => {
     const ingredientMap = new Map<string, GroceryItem>();
     const inventoryNames = inventory.map(i => i.name.toLowerCase());
@@ -132,9 +124,9 @@ const GroceryList = () => {
         const key = name.toLowerCase();
         const quantity = typeof ing === "object" ? (ing.quantity || ing.amount || "") : "";
         const unit = typeof ing === "object" ? (ing.unit || "") : "";
-        const originalCategory = typeof ing === "object" ? (ing.category || "Other") : "Other";
-        const category = categorizeIngredient(name, originalCategory);
-
+        
+        // Use AI category, fall back to "Other"
+        const category = aiCategories[key] || "Other";
         const inInventory = inventoryNames.some(inv => inv.includes(key) || key.includes(inv));
 
         if (ingredientMap.has(key)) {
@@ -159,7 +151,7 @@ const GroceryList = () => {
       if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
-  }, [mealPlans, inventory]);
+  }, [mealPlans, inventory, aiCategories]);
 
   // Group by store category in aisle order
   const groupedItems = useMemo(() => {
