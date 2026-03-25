@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat } from "lucide-react";
+import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe } from "lucide-react";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
+import ImportRecipe from "./ImportRecipe";
 
 interface Recipe {
   id: string;
