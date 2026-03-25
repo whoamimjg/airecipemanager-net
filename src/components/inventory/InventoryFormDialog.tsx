@@ -66,7 +66,9 @@ const InventoryFormDialog = ({ item, open, onOpenChange }: InventoryFormDialogPr
   const [category, setCategory] = useState(item?.category || "");
   const [quantity, setQuantity] = useState(item?.quantity?.toString() || "1");
   const [unit, setUnit] = useState(item?.unit || "");
-  const [storageLocation, setStorageLocation] = useState(item?.storage_location || "pantry");
+  const [storageLocation, setStorageLocation] = useState<"fridge" | "freezer" | "pantry" | "cabinet" | "counter" | "other">(
+    (item?.storage_location as any) || "pantry"
+  );
   const [barcode, setBarcode] = useState(item?.barcode || "");
   const [pricePerUnit, setPricePerUnit] = useState(item?.price_per_unit?.toString() || "");
   const [expirationDate, setExpirationDate] = useState(item?.expiration_date || "");
