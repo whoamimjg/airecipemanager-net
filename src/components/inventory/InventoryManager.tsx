@@ -23,10 +23,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Package, Trash2, Edit, AlertTriangle } from "lucide-react";
+import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
 import InventoryFormDialog from "./InventoryFormDialog";
+import BarcodeScanner from "./BarcodeScanner";
 
 interface InventoryItem {
   id: string;
@@ -66,7 +67,9 @@ const InventoryManager = () => {
   const [search, setSearch] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
   const [showForm, setShowForm] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [prefillItem, setPrefillItem] = useState<Partial<InventoryItem> | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
@@ -115,10 +118,31 @@ const InventoryManager = () => {
           <h2 className="text-2xl font-bold text-foreground">Kitchen Inventory</h2>
           <p className="text-sm text-muted-foreground">{items.length} items tracked</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Item
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowScanner(true)}>
+            <ScanLine className="mr-2 h-4 w-4" /> Scan
+          </Button>
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Item
+          </Button>
+        </div>
       </div>
+
+      {/* Barcode Scanner */}
+      {showScanner && (
+        <BarcodeScanner
+          onClose={() => setShowScanner(false)}
+          onProductFound={(product) => {
+            setShowScanner(false);
+            setPrefillItem({
+              name: product.name || "",
+              category: product.category || null,
+              barcode: product.barcode,
+            });
+            setShowForm(true);
+          }}
+        />
+      )}
 
       {/* Expiration alerts */}
       {expiringSoon.length > 0 && (
@@ -237,12 +261,13 @@ const InventoryManager = () => {
       {/* Add/Edit dialog */}
       {(showForm || editingItem) && (
         <InventoryFormDialog
-          item={editingItem}
+          item={editingItem || (prefillItem as any) || null}
           open={showForm || !!editingItem}
           onOpenChange={(open) => {
             if (!open) {
               setShowForm(false);
               setEditingItem(null);
+              setPrefillItem(null);
             }
           }}
         />
