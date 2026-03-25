@@ -187,6 +187,12 @@ const RecipeManager = () => {
           ))}
         </div>
       )}
+
+      <RecipeDetailDialog
+        recipe={viewingRecipe}
+        open={!!viewingRecipe}
+        onOpenChange={(open) => { if (!open) setViewingRecipe(null); }}
+      />
     </div>
   );
 };
