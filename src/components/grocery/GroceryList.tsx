@@ -73,30 +73,33 @@ const GroceryList = () => {
   });
 
   const STORE_CATEGORIES = [
-    "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Canned Goods", "Bread", "Frozen", "Condiments & Spices", "Other"
+    "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Condiments & Spices", "Other"
   ];
 
   const categorizeIngredient = (name: string, originalCategory: string): string => {
     const n = name.toLowerCase();
-    const produceKeywords = ["lettuce", "tomato", "onion", "garlic", "pepper", "carrot", "potato", "celery", "cucumber", "spinach", "kale", "broccoli", "mushroom", "zucchini", "squash", "corn", "pea", "bean", "avocado", "lemon", "lime", "orange", "apple", "banana", "berry", "blueberry", "strawberry", "grape", "mango", "pineapple", "peach", "pear", "melon", "ginger", "cilantro", "parsley", "basil", "mint", "dill", "scallion", "shallot", "leek", "cabbage", "radish", "beet", "asparagus", "artichoke", "jalapeño", "serrano", "habanero", "chili", "fruit", "vegetable", "salad", "herb"];
-    const meatKeywords = ["chicken", "beef", "pork", "lamb", "turkey", "bacon", "sausage", "steak", "ground", "meat", "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "lobster", "cod", "tilapia", "ham", "ribs", "brisket", "veal", "duck", "wing", "thigh", "breast", "drumstick", "seafood", "anchov"];
+    const condimentKeywords = ["salt", "kosher salt", "sea salt", "black pepper", "cayenne", "chili powder", "chili flakes", "red pepper flakes", "oil", "vinegar", "sauce", "soy sauce", "mustard", "ketchup", "mayo", "mayonnaise", "honey", "syrup", "spice", "cumin", "paprika", "cinnamon", "nutmeg", "oregano", "thyme", "rosemary", "bay leaf", "turmeric", "curry", "vanilla", "extract", "seasoning", "dressing", "sriracha", "hot sauce", "worcestershire", "olive oil", "sesame", "garlic powder", "onion powder"];
+    const dryGoodsKeywords = ["flour", "bouillon", "bullion", "boulillon", "cornstarch", "baking soda", "baking powder", "yeast", "sugar", "brown sugar", "powdered sugar", "cocoa", "chocolate chips", "breadcrumb", "panko", "cracker", "chip", "pretzel", "nut", "almond", "walnut", "pecan", "peanut", "cashew", "pistachio", "seed", "dried", "raisin", "cranberr"];
+    const meatKeywords = ["chicken", "beef", "pork", "lamb", "turkey", "bacon", "sausage", "steak", "ground beef", "ground turkey", "ground pork", "meat", "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "lobster", "cod", "tilapia", "ham", "ribs", "brisket", "veal", "duck", "wing", "thigh", "breast", "drumstick", "seafood", "anchov"];
     const dairyKeywords = ["milk", "cheese", "butter", "cream", "yogurt", "sour cream", "egg", "mozzarella", "parmesan", "cheddar", "ricotta", "cottage", "whip", "half and half", "ghee", "margarine"];
+    const cerealKeywords = ["cereal", "oat", "granola", "rice", "pasta", "noodle", "quinoa", "couscous", "barley", "farro", "grain", "wheat", "cornmeal", "polenta", "spaghetti", "penne", "macaroni", "linguine", "fettuccine", "corn flakes", "cornflakes", "cheerios", "muesli"];
+    const produceKeywords = ["lettuce", "tomato", "onion", "garlic", "bell pepper", "carrot", "potato", "celery", "cucumber", "spinach", "kale", "broccoli", "mushroom", "zucchini", "squash", "corn", "pea", "bean sprout", "avocado", "lemon", "lime", "orange", "apple", "banana", "berry", "blueberry", "strawberry", "grape", "mango", "pineapple", "peach", "pear", "melon", "ginger", "cilantro", "parsley", "basil", "mint", "dill", "scallion", "shallot", "leek", "cabbage", "radish", "beet", "asparagus", "artichoke", "jalapeño", "serrano", "habanero", "fruit", "vegetable", "salad", "herb"];
     const beverageKeywords = ["juice", "soda", "water", "coffee", "tea", "wine", "beer", "drink", "lemonade", "kombucha", "smoothie", "cola"];
-    const cerealKeywords = ["cereal", "oat", "granola", "rice", "pasta", "noodle", "flour", "quinoa", "couscous", "barley", "farro", "grain", "wheat", "cornmeal", "polenta", "spaghetti", "penne", "macaroni", "linguine", "fettuccine"];
     const cannedKeywords = ["canned", "can of", "tomato sauce", "tomato paste", "diced tomato", "crushed tomato", "broth", "stock", "soup", "beans", "chickpea", "lentil", "coconut milk", "condensed", "evaporated"];
     const breadKeywords = ["bread", "bun", "roll", "tortilla", "pita", "naan", "bagel", "croissant", "wrap", "flatbread", "english muffin", "biscuit", "crouton"];
     const frozenKeywords = ["frozen", "ice cream", "popsicle", "pizza"];
-    const condimentKeywords = ["salt", "pepper", "sugar", "oil", "vinegar", "sauce", "soy sauce", "mustard", "ketchup", "mayo", "mayonnaise", "honey", "syrup", "spice", "cumin", "paprika", "cinnamon", "nutmeg", "oregano", "thyme", "rosemary", "bay leaf", "turmeric", "cayenne", "chili powder", "curry", "vanilla", "extract", "seasoning", "dressing", "sriracha", "hot sauce", "worcestershire", "olive oil", "sesame", "cornstarch", "baking soda", "baking powder", "yeast"];
 
-    if (produceKeywords.some(k => n.includes(k))) return "Produce";
+    // Check condiments & spices FIRST to prevent "pepper" in "cayenne pepper" matching produce
+    if (condimentKeywords.some(k => n.includes(k))) return "Condiments & Spices";
+    if (dryGoodsKeywords.some(k => n.includes(k))) return "Dry Goods";
     if (meatKeywords.some(k => n.includes(k))) return "Meats";
     if (dairyKeywords.some(k => n.includes(k))) return "Dairy";
-    if (beverageKeywords.some(k => n.includes(k))) return "Beverages";
     if (cerealKeywords.some(k => n.includes(k))) return "Cereal";
+    if (produceKeywords.some(k => n.includes(k))) return "Produce";
+    if (beverageKeywords.some(k => n.includes(k))) return "Beverages";
     if (cannedKeywords.some(k => n.includes(k))) return "Canned Goods";
     if (breadKeywords.some(k => n.includes(k))) return "Bread";
     if (frozenKeywords.some(k => n.includes(k))) return "Frozen";
-    if (condimentKeywords.some(k => n.includes(k))) return "Condiments & Spices";
 
     // Fall back to original category mapping
     const oc = originalCategory.toLowerCase();
