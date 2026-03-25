@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat } from "lucide-react";
+import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe } from "lucide-react";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
+import ImportRecipe from "./ImportRecipe";
 
 interface Recipe {
   id: string;
@@ -30,6 +31,7 @@ const RecipeManager = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
 
   const { data: recipes = [], isLoading } = useQuery({
@@ -63,6 +65,10 @@ const RecipeManager = () => {
       (r.category?.toLowerCase().includes(search.toLowerCase()) ?? false)
   );
 
+  if (showImport) {
+    return <ImportRecipe onClose={() => setShowImport(false)} />;
+  }
+
   if (showForm || editingRecipe) {
     return (
       <RecipeForm
@@ -82,9 +88,14 @@ const RecipeManager = () => {
           <h2 className="text-2xl font-bold text-foreground">My Recipes</h2>
           <p className="text-sm text-muted-foreground">{recipes.length} recipes in your collection</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" /> Add Recipe
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowImport(true)}>
+            <Globe className="mr-2 h-4 w-4" /> Import URL
+          </Button>
+          <Button onClick={() => setShowForm(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Plus className="mr-2 h-4 w-4" /> Add Recipe
+          </Button>
+        </div>
       </div>
 
       <div className="relative">

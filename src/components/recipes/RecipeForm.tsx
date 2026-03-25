@@ -23,13 +23,14 @@ interface RecipeFormProps {
     category: string | null;
     source_url: string | null;
   } | null;
+  isNew?: boolean;
   onClose: () => void;
 }
 
-const RecipeForm = ({ recipe, onClose }: RecipeFormProps) => {
+const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const isEditing = !!recipe;
+  const isEditing = !!recipe && !isNew;
 
   const [title, setTitle] = useState(recipe?.title || "");
   const [description, setDescription] = useState(recipe?.description || "");
