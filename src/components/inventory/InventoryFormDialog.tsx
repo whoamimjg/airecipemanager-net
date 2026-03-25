@@ -138,7 +138,7 @@ const InventoryFormDialog = ({ item, open, onOpenChange }: InventoryFormDialogPr
             </div>
             <div className="space-y-2">
               <Label>Storage</Label>
-              <Select value={storageLocation} onValueChange={setStorageLocation}>
+              <Select value={storageLocation} onValueChange={(v) => setStorageLocation(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {STORAGE_LOCATIONS.map((loc) => (
