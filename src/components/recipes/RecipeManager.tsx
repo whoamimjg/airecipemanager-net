@@ -65,6 +65,10 @@ const RecipeManager = () => {
       (r.category?.toLowerCase().includes(search.toLowerCase()) ?? false)
   );
 
+  if (showImport) {
+    return <ImportRecipe onClose={() => setShowImport(false)} />;
+  }
+
   if (showForm || editingRecipe) {
     return (
       <RecipeForm
