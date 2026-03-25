@@ -10,6 +10,7 @@ import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe } from "lucide
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
 import ImportRecipe from "./ImportRecipe";
+import RecipeDetailDialog from "./RecipeDetailDialog";
 
 interface Recipe {
   id: string;
