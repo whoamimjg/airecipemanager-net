@@ -40,7 +40,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const [cookTime, setCookTime] = useState(recipe?.cook_time?.toString() || "");
   const [servings, setServings] = useState(recipe?.servings?.toString() || "");
   const [sourceUrl, setSourceUrl] = useState(recipe?.source_url || "");
-  const [imageUrl, setImageUrl] = useState((recipe as any)?.image_url || "");
+  const [imageUrl, setImageUrl] = useState(recipe?.image_url || "");
   const [ingredients, setIngredients] = useState<string[]>(
     Array.isArray(recipe?.ingredients) ? recipe.ingredients : [""]
   );
