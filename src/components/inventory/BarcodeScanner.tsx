@@ -38,8 +38,12 @@ const BarcodeScanner = ({ onProductFound, onClose }: BarcodeScannerProps) => {
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: { width: 280, height: 150 },
-          aspectRatio: 1.5,
+          qrbox: { width: 250, height: 150 },
+          videoConstraints: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
         },
         async (decodedText) => {
           // Stop scanning immediately on detection
@@ -128,8 +132,11 @@ const BarcodeScanner = ({ onProductFound, onClose }: BarcodeScannerProps) => {
             <div
               ref={containerRef}
               id="barcode-reader"
-              className="w-full overflow-hidden rounded-lg bg-muted min-h-[200px]"
-              style={{ display: scanning ? "block" : "none" }}
+              className="w-full overflow-hidden rounded-lg bg-muted"
+              style={{
+                display: scanning ? "block" : "none",
+                minHeight: scanning ? "300px" : "0px",
+              }}
             />
 
             {!scanning && (
