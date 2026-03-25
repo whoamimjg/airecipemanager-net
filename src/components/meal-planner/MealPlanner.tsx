@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { format, startOfWeek, addDays, addWeeks, subWeeks, isToday, isSameDay } from "date-fns";
+import {
+  format, startOfWeek, addDays, addWeeks, subWeeks, isToday, isSameDay,
+  startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth, getDay
+} from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,21 +53,30 @@ const MealPlanner = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [recipeSearch, setRecipeSearch] = useState("");
   const [draggedRecipe, setDraggedRecipe] = useState<Recipe | null>(null);
-  const [view, setView] = useState<"week" | "day">("week");
+  const [view, setView] = useState<"week" | "day" | "month">("week");
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(new Date());
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
 
-  // Fetch meal plans for current week
+  // Compute date range based on view
+  const queryStart = view === "month"
+    ? format(startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }), "yyyy-MM-dd")
+    : format(currentWeekStart, "yyyy-MM-dd");
+  const queryEnd = view === "month"
+    ? format(addDays(endOfMonth(currentMonth), 7), "yyyy-MM-dd")
+    : format(weekEnd, "yyyy-MM-dd");
+
+  // Fetch meal plans for current date range
   const { data: mealPlans = [] } = useQuery({
-    queryKey: ["meal-plans", format(currentWeekStart, "yyyy-MM-dd")],
+    queryKey: ["meal-plans", queryStart, queryEnd],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("meal_plans")
         .select("*")
-        .gte("date", format(currentWeekStart, "yyyy-MM-dd"))
-        .lte("date", format(weekEnd, "yyyy-MM-dd"))
+        .gte("date", queryStart)
+        .lte("date", queryEnd)
         .order("date");
       if (error) throw error;
 
@@ -257,6 +269,83 @@ const MealPlanner = () => {
     </div>
   );
 
+  const renderMonthView = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const totalDays: Date[] = [];
+    let d = calStart;
+    while (d <= monthEnd || totalDays.length % 7 !== 0) {
+      totalDays.push(d);
+      d = addDays(d, 1);
+    }
+    const weeks: Date[][] = [];
+    for (let i = 0; i < totalDays.length; i += 7) {
+      weeks.push(totalDays.slice(i, i + 7));
+    }
+
+    return (
+      <div className="flex-1 overflow-auto">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 border-b border-border">
+          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+            <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2 border-r border-border last:border-r-0">
+              {d}
+            </div>
+          ))}
+        </div>
+        {/* Weeks */}
+        {weeks.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7 border-b border-border last:border-b-0">
+            {week.map(day => {
+              const dayMeals = mealPlans.filter(mp => mp.date === format(day, "yyyy-MM-dd"));
+              const inMonth = isSameMonth(day, currentMonth);
+              return (
+                <div
+                  key={day.toISOString()}
+                  className={cn(
+                    "min-h-[90px] p-1 border-r border-border last:border-r-0 cursor-pointer hover:bg-muted/30 transition-colors",
+                    !inMonth && "opacity-40 bg-muted/10",
+                    isToday(day) && "bg-primary/5"
+                  )}
+                  onClick={() => { setSelectedDay(day); setView("day"); }}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDropEvent(e, day, "lunch")}
+                >
+                  <div className={cn(
+                    "text-xs font-medium mb-1",
+                    isToday(day) ? "text-primary font-bold" : "text-foreground"
+                  )}>
+                    {format(day, "d")}
+                  </div>
+                  <div className="space-y-0.5">
+                    {dayMeals.slice(0, 3).map(meal => {
+                      const slot = MEAL_SLOTS.find(s => s.key === meal.meal_slot);
+                      return (
+                        <div
+                          key={meal.id}
+                          className={cn("text-[10px] px-1 rounded truncate", slot?.color)}
+                        >
+                          {meal.recipe?.title || meal.notes || "Untitled"}
+                        </div>
+                      );
+                    })}
+                    {dayMeals.length > 3 && (
+                      <div className="text-[10px] text-muted-foreground px-1">
+                        +{dayMeals.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const renderDayView = () => (
     <div className="flex-1 overflow-auto">
       <div className="space-y-4 p-4">
@@ -384,15 +473,23 @@ const MealPlanner = () => {
         {/* Calendar header */}
         <div className="flex items-center justify-between p-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentWeekStart(subWeeks(currentWeekStart, 1))}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+              if (view === "month") setCurrentMonth(subMonths(currentMonth, 1));
+              else setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+            }}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h3 className="font-semibold text-sm text-foreground min-w-[180px] text-center">
-              {view === "week"
-                ? `${format(currentWeekStart, "MMM d")} – ${format(weekEnd, "MMM d, yyyy")}`
-                : format(selectedDay, "EEEE, MMMM d, yyyy")}
+              {view === "month"
+                ? format(currentMonth, "MMMM yyyy")
+                : view === "week"
+                  ? `${format(currentWeekStart, "MMM d")} – ${format(weekEnd, "MMM d, yyyy")}`
+                  : format(selectedDay, "EEEE, MMMM d, yyyy")}
             </h3>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentWeekStart(addWeeks(currentWeekStart, 1))}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+              if (view === "month") setCurrentMonth(addMonths(currentMonth, 1));
+              else setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+            }}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -403,10 +500,19 @@ const MealPlanner = () => {
               className="text-xs h-7"
               onClick={() => {
                 setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+                setCurrentMonth(new Date());
                 setSelectedDay(new Date());
               }}
             >
               Today
+            </Button>
+            <Button
+              variant={view === "month" ? "secondary" : "ghost"}
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => setView("month")}
+            >
+              Month
             </Button>
             <Button
               variant={view === "week" ? "secondary" : "ghost"}
@@ -446,6 +552,8 @@ const MealPlanner = () => {
             </div>
             {weekDays.map(day => renderDayColumn(day, true))}
           </div>
+        ) : view === "month" ? (
+          renderMonthView()
         ) : (
           renderDayView()
         )}
