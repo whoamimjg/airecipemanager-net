@@ -39,6 +39,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const [cookTime, setCookTime] = useState(recipe?.cook_time?.toString() || "");
   const [servings, setServings] = useState(recipe?.servings?.toString() || "");
   const [sourceUrl, setSourceUrl] = useState(recipe?.source_url || "");
+  const [imageUrl, setImageUrl] = useState((recipe as any)?.image_url || "");
   const [ingredients, setIngredients] = useState<string[]>(
     Array.isArray(recipe?.ingredients) ? recipe.ingredients : [""]
   );
@@ -56,6 +57,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
         cook_time: cookTime ? parseInt(cookTime) : null,
         servings: servings ? parseInt(servings) : null,
         source_url: sourceUrl || null,
+        image_url: imageUrl || null,
         ingredients: ingredients.filter(Boolean),
         instructions: instructions.filter(Boolean),
         user_id: user!.id,
@@ -109,6 +111,11 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
           }}
           className="space-y-6"
         >
+          {imageUrl && (
+            <div className="sm:col-span-2">
+              <img src={imageUrl} alt={title} className="w-full max-h-48 object-cover rounded-lg border border-border" />
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label className="text-card-foreground">Title *</Label>
