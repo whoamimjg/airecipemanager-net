@@ -128,8 +128,11 @@ const BarcodeScanner = ({ onProductFound, onClose }: BarcodeScannerProps) => {
             <div
               ref={containerRef}
               id="barcode-reader"
-              className="w-full overflow-hidden rounded-lg bg-muted min-h-[200px]"
-              style={{ display: scanning ? "block" : "none" }}
+              className="w-full overflow-hidden rounded-lg bg-muted"
+              style={{
+                display: scanning ? "block" : "none",
+                minHeight: scanning ? "300px" : "0px",
+              }}
             />
 
             {!scanning && (
