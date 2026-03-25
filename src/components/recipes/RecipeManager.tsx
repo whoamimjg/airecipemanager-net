@@ -125,7 +125,17 @@ const RecipeManager = () => {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((recipe) => (
-            <Card key={recipe.id} className="group border-border bg-card hover:shadow-md transition-shadow">
+            <Card key={recipe.id} className="group border-border bg-card hover:shadow-md transition-shadow overflow-hidden">
+              {recipe.image_url && (
+                <div className="aspect-video w-full overflow-hidden">
+                  <img
+                    src={recipe.image_url}
+                    alt={recipe.title}
+                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+              )}
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base line-clamp-2 text-card-foreground">{recipe.title}</CardTitle>

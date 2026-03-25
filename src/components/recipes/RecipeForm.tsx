@@ -111,6 +111,11 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
           }}
           className="space-y-6"
         >
+          {imageUrl && (
+            <div className="sm:col-span-2">
+              <img src={imageUrl} alt={title} className="w-full max-h-48 object-cover rounded-lg border border-border" />
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label className="text-card-foreground">Title *</Label>
