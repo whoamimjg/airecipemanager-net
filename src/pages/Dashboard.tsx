@@ -1,0 +1,111 @@
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChefHat, BookOpen, Brain, Package, CalendarDays, ShoppingCart, Settings, LogOut } from "lucide-react";
+import RecipeManager from "@/components/recipes/RecipeManager";
+
+const Dashboard = () => {
+  const { user, loading, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState("recipes");
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <ChefHat className="h-8 w-8 animate-pulse text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/auth" replace />;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Top nav */}
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="container mx-auto flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <ChefHat className="h-7 w-7 text-primary" />
+            <span className="text-lg font-bold font-serif text-foreground hidden sm:inline">AI Recipe Manager</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden md:inline">
+              {user.email}
+            </span>
+            <Button variant="ghost" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content with tabs */}
+      <div className="container mx-auto px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full justify-start overflow-x-auto flex-nowrap mb-6 bg-muted">
+            <TabsTrigger value="recipes" className="gap-1.5 text-xs sm:text-sm">
+              <BookOpen className="h-4 w-4" /> <span className="hidden sm:inline">Recipes</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="gap-1.5 text-xs sm:text-sm">
+              <Brain className="h-4 w-4" /> <span className="hidden sm:inline">AI Chef</span>
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="gap-1.5 text-xs sm:text-sm">
+              <Package className="h-4 w-4" /> <span className="hidden sm:inline">Inventory</span>
+            </TabsTrigger>
+            <TabsTrigger value="planner" className="gap-1.5 text-xs sm:text-sm">
+              <CalendarDays className="h-4 w-4" /> <span className="hidden sm:inline">Meal Plan</span>
+            </TabsTrigger>
+            <TabsTrigger value="grocery" className="gap-1.5 text-xs sm:text-sm">
+              <ShoppingCart className="h-4 w-4" /> <span className="hidden sm:inline">Grocery</span>
+            </TabsTrigger>
+            <TabsTrigger value="account" className="gap-1.5 text-xs sm:text-sm">
+              <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Account</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="recipes">
+            <RecipeManager />
+          </TabsContent>
+          <TabsContent value="ai">
+            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+              <Brain className="h-12 w-12 mb-4 opacity-40" />
+              <h3 className="text-lg font-semibold text-foreground">AI Recipe Generator</h3>
+              <p>Coming in Phase 2 — Generate recipes from your inventory and collection.</p>
+            </div>
+          </TabsContent>
+          <TabsContent value="inventory">
+            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+              <Package className="h-12 w-12 mb-4 opacity-40" />
+              <h3 className="text-lg font-semibold text-foreground">Kitchen Inventory</h3>
+              <p>Coming in Phase 2 — Track everything in your kitchen.</p>
+            </div>
+          </TabsContent>
+          <TabsContent value="planner">
+            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+              <CalendarDays className="h-12 w-12 mb-4 opacity-40" />
+              <h3 className="text-lg font-semibold text-foreground">Meal Planner</h3>
+              <p>Coming in Phase 3 — Plan your meals with a drag-and-drop calendar.</p>
+            </div>
+          </TabsContent>
+          <TabsContent value="grocery">
+            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+              <ShoppingCart className="h-12 w-12 mb-4 opacity-40" />
+              <h3 className="text-lg font-semibold text-foreground">Grocery List</h3>
+              <p>Coming in Phase 3 — Auto-generated lists from your meal plans.</p>
+            </div>
+          </TabsContent>
+          <TabsContent value="account">
+            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+              <Settings className="h-12 w-12 mb-4 opacity-40" />
+              <h3 className="text-lg font-semibold text-foreground">Account Settings</h3>
+              <p>Coming soon — Diet restrictions, payments, and calendar sync.</p>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
