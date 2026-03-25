@@ -60,15 +60,23 @@ const MealPlanner = () => {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
 
-  // Fetch meal plans for current week
+  // Compute date range based on view
+  const queryStart = view === "month"
+    ? format(startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }), "yyyy-MM-dd")
+    : format(currentWeekStart, "yyyy-MM-dd");
+  const queryEnd = view === "month"
+    ? format(addDays(endOfMonth(currentMonth), 7), "yyyy-MM-dd")
+    : format(weekEnd, "yyyy-MM-dd");
+
+  // Fetch meal plans for current date range
   const { data: mealPlans = [] } = useQuery({
-    queryKey: ["meal-plans", format(currentWeekStart, "yyyy-MM-dd")],
+    queryKey: ["meal-plans", queryStart, queryEnd],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("meal_plans")
         .select("*")
-        .gte("date", format(currentWeekStart, "yyyy-MM-dd"))
-        .lte("date", format(weekEnd, "yyyy-MM-dd"))
+        .gte("date", queryStart)
+        .lte("date", queryEnd)
         .order("date");
       if (error) throw error;
 
