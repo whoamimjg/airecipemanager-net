@@ -23,6 +23,7 @@ interface Recipe {
   category: string | null;
   tags: string[] | null;
   source_url: string | null;
+  image_url: string | null;
   created_at: string;
 }
 
