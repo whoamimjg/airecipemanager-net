@@ -67,7 +67,7 @@ ${ingredients.map((name: string, i: number) => `${i + 1}. ${name}`).join("\n")}
 
 Respond with ONLY a JSON array of objects with "name" and "category" fields. No explanation.`;
 
-    const response = await fetch("https://ai.lovable.dev/api/chat/completions", {
+    const response = await fetch("https://ai.lovable.dev/chat/v1/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
