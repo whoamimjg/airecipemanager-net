@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChefHat, BookOpen, Brain, Package, CalendarDays, ShoppingCart, Settings, LogOut } from "lucide-react";
 import RecipeManager from "@/components/recipes/RecipeManager";
+import InventoryManager from "@/components/inventory/InventoryManager";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -75,11 +76,7 @@ const Dashboard = () => {
             </div>
           </TabsContent>
           <TabsContent value="inventory">
-            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
-              <Package className="h-12 w-12 mb-4 opacity-40" />
-              <h3 className="text-lg font-semibold text-foreground">Kitchen Inventory</h3>
-              <p>Coming in Phase 2 — Track everything in your kitchen.</p>
-            </div>
+            <InventoryManager />
           </TabsContent>
           <TabsContent value="planner">
             <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
