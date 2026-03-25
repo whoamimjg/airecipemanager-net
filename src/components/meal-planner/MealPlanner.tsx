@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   format, startOfWeek, addDays, addWeeks, subWeeks, isToday, isSameDay,
-  startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth, getDay
+  startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth
 } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,20 +12,22 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ChevronLeft, ChevronRight, Calendar as CalendarIcon, Search,
-  Star, Plus, X, ChefHat, Trash2, UtensilsCrossed
+  ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search,
+  Star, Plus, X, ChefHat, Trash2, UtensilsCrossed, GripVertical
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
-const MEAL_SLOTS: { key: MealSlot; label: string; color: string }[] = [
-  { key: "breakfast", label: "Breakfast", color: "bg-warning/15 text-warning border-warning/30" },
-  { key: "lunch", label: "Lunch", color: "bg-primary/15 text-primary border-primary/30" },
-  { key: "dinner", label: "Dinner", color: "bg-accent/15 text-accent border-accent/30" },
-  { key: "snack", label: "Snack", color: "bg-info/15 text-info border-info/30" },
+const MEAL_SLOTS: { key: MealSlot; label: string; color: string; bgCard: string }[] = [
+  { key: "breakfast", label: "Breakfast", color: "bg-warning/15 text-warning border-warning/30", bgCard: "bg-warning/10 border-warning/20" },
+  { key: "lunch", label: "Lunch", color: "bg-primary/15 text-primary border-primary/30", bgCard: "bg-primary/10 border-primary/20" },
+  { key: "dinner", label: "Dinner", color: "bg-accent/15 text-accent border-accent/30", bgCard: "bg-accent/10 border-accent/20" },
+  { key: "snack", label: "Snack", color: "bg-info/15 text-info border-info/30", bgCard: "bg-info/10 border-info/20" },
 ];
+
+const DAY_HEADERS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 interface MealPlan {
   id: string;
@@ -56,6 +58,7 @@ const MealPlanner = () => {
   const [view, setView] = useState<"week" | "day" | "month">("week");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(new Date());
+  const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
@@ -68,7 +71,6 @@ const MealPlanner = () => {
     ? format(addDays(endOfMonth(currentMonth), 7), "yyyy-MM-dd")
     : format(weekEnd, "yyyy-MM-dd");
 
-  // Fetch meal plans for current date range
   const { data: mealPlans = [] } = useQuery({
     queryKey: ["meal-plans", queryStart, queryEnd],
     queryFn: async () => {
@@ -80,7 +82,6 @@ const MealPlanner = () => {
         .order("date");
       if (error) throw error;
 
-      // Fetch associated recipes
       const recipeIds = [...new Set((data || []).filter(mp => mp.recipe_id).map(mp => mp.recipe_id))];
       let recipesMap: Record<string, Recipe> = {};
       if (recipeIds.length > 0) {
@@ -101,7 +102,6 @@ const MealPlanner = () => {
     enabled: !!user,
   });
 
-  // Fetch all recipes for sidebar
   const { data: recipes = [] } = useQuery({
     queryKey: ["recipes-for-planner"],
     queryFn: async () => {
@@ -115,7 +115,6 @@ const MealPlanner = () => {
     enabled: !!user,
   });
 
-  // Fetch inventory for ingredient matching
   const { data: inventory = [] } = useQuery({
     queryKey: ["inventory-for-planner"],
     queryFn: async () => {
@@ -174,101 +173,48 @@ const MealPlanner = () => {
     (r.category?.toLowerCase().includes(recipeSearch.toLowerCase()) ?? false)
   );
 
+  // Group recipes by category for sidebar
+  const groupedRecipes = useMemo(() => {
+    const groups: Record<string, Recipe[]> = {};
+    filteredRecipes.forEach(r => {
+      const cat = r.category || "Uncategorized";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(r);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredRecipes]);
+
   const getMealsForDaySlot = (date: Date, slot: MealSlot) =>
     mealPlans.filter(mp => mp.date === format(date, "yyyy-MM-dd") && mp.meal_slot === slot);
 
-  const handleDrop = (date: Date, slot: MealSlot) => {
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.currentTarget.classList.add("ring-2", "ring-primary/50", "bg-primary/5");
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.currentTarget.classList.remove("ring-2", "ring-primary/50", "bg-primary/5");
+  };
+
+  const handleDropEvent = (e: React.DragEvent, date: Date, slot: MealSlot) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove("ring-2", "ring-primary/50", "bg-primary/5");
     if (draggedRecipe) {
       addMealPlan.mutate({ recipe_id: draggedRecipe.id, date: format(date, "yyyy-MM-dd"), meal_slot: slot });
       setDraggedRecipe(null);
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.currentTarget.classList.add("ring-2", "ring-primary");
+  const toggleWeekCollapse = (weekIndex: number) => {
+    setCollapsedWeeks(prev => {
+      const next = new Set(prev);
+      if (next.has(weekIndex)) next.delete(weekIndex);
+      else next.add(weekIndex);
+      return next;
+    });
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.currentTarget.classList.remove("ring-2", "ring-primary");
-  };
-
-  const handleDropEvent = (e: React.DragEvent, date: Date, slot: MealSlot) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove("ring-2", "ring-primary");
-    handleDrop(date, slot);
-  };
-
-  const renderDayColumn = (date: Date, compact = false) => (
-    <div
-      key={date.toISOString()}
-      className={cn(
-        "flex flex-col border-r border-border last:border-r-0",
-        compact ? "min-w-[140px] flex-1" : "flex-1"
-      )}
-    >
-      <div
-        className={cn(
-          "text-center py-2 border-b border-border font-medium text-sm cursor-pointer hover:bg-muted/50 transition-colors",
-          isToday(date) && "bg-primary/10 text-primary font-bold",
-          isSameDay(date, selectedDay) && view === "day" && "bg-primary text-primary-foreground"
-        )}
-        onClick={() => { setSelectedDay(date); setView("day"); }}
-      >
-        <div className="text-xs text-muted-foreground">{format(date, "EEE")}</div>
-        <div className={cn("text-lg", isToday(date) && "text-primary")}>{format(date, "d")}</div>
-      </div>
-
-      {MEAL_SLOTS.map(slot => {
-        const meals = getMealsForDaySlot(date, slot.key);
-        return (
-          <div
-            key={slot.key}
-            className={cn(
-              "flex-1 p-1.5 border-b border-border last:border-b-0 min-h-[70px] transition-colors",
-              compact && "min-h-[60px]"
-            )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDropEvent(e, date, slot.key)}
-          >
-            {compact && (
-              <div className={cn("text-[10px] font-medium mb-0.5 px-1 rounded", slot.color)}>
-                {slot.label}
-              </div>
-            )}
-            {meals.map(meal => (
-              <div
-                key={meal.id}
-                className={cn(
-                  "group relative rounded-md p-1.5 mb-1 text-xs border cursor-default",
-                  slot.color
-                )}
-              >
-                <div className="flex items-start justify-between gap-1">
-                  <span className="font-medium line-clamp-2 flex-1">
-                    {meal.recipe?.title || meal.notes || "Untitled"}
-                  </span>
-                  <button
-                    onClick={() => removeMealPlan.mutate(meal.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {meals.length === 0 && (
-              <div className="h-full flex items-center justify-center opacity-0 hover:opacity-40 transition-opacity">
-                <Plus className="h-4 w-4 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-
+  // ── Month View (Plan to Eat style) ──
   const renderMonthView = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
@@ -286,66 +232,202 @@ const MealPlanner = () => {
 
     return (
       <div className="flex-1 overflow-auto">
-        {/* Day headers */}
-        <div className="grid grid-cols-7 border-b border-border">
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-            <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2 border-r border-border last:border-r-0">
-              {d}
+        {/* Day name headers */}
+        <div className="grid grid-cols-[80px_repeat(7,1fr)] sticky top-0 z-10 bg-card border-b border-border">
+          <div className="border-r border-border" />
+          {DAY_HEADERS.map(day => (
+            <div key={day} className="text-center text-xs font-semibold text-foreground py-2.5 border-r border-border last:border-r-0">
+              {day}
             </div>
           ))}
         </div>
-        {/* Weeks */}
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 border-b border-border last:border-b-0">
-            {week.map(day => {
-              const dayMeals = mealPlans.filter(mp => mp.date === format(day, "yyyy-MM-dd"));
-              const inMonth = isSameMonth(day, currentMonth);
-              return (
+
+        {/* Week rows */}
+        {weeks.map((week, wi) => {
+          const isCollapsed = collapsedWeeks.has(wi);
+          return (
+            <div key={wi} className="border-b border-border last:border-b-0">
+              {/* Meal slot rows for this week */}
+              {MEAL_SLOTS.map((slot, si) => (
                 <div
-                  key={day.toISOString()}
+                  key={slot.key}
                   className={cn(
-                    "min-h-[90px] p-1 border-r border-border last:border-r-0 cursor-pointer hover:bg-muted/30 transition-colors",
-                    !inMonth && "opacity-40 bg-muted/10",
-                    isToday(day) && "bg-primary/5"
+                    "grid grid-cols-[80px_repeat(7,1fr)] border-b border-border/50 last:border-b-0",
+                    isCollapsed && si > 0 && "hidden"
                   )}
-                  onClick={() => { setSelectedDay(day); setView("day"); }}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDropEvent(e, day, "lunch")}
                 >
-                  <div className={cn(
-                    "text-xs font-medium mb-1",
-                    isToday(day) ? "text-primary font-bold" : "text-foreground"
-                  )}>
-                    {format(day, "d")}
-                  </div>
-                  <div className="space-y-0.5">
-                    {dayMeals.slice(0, 3).map(meal => {
-                      const slot = MEAL_SLOTS.find(s => s.key === meal.meal_slot);
-                      return (
-                        <div
-                          key={meal.id}
-                          className={cn("text-[10px] px-1 rounded truncate", slot?.color)}
-                        >
-                          {meal.recipe?.title || meal.notes || "Untitled"}
-                        </div>
-                      );
-                    })}
-                    {dayMeals.length > 3 && (
-                      <div className="text-[10px] text-muted-foreground px-1">
-                        +{dayMeals.length - 3} more
-                      </div>
+                  {/* Slot label + date (first slot shows date header & collapse toggle) */}
+                  <div className="border-r border-border px-2 py-1.5 flex flex-col justify-center">
+                    {si === 0 && (
+                      <button
+                        onClick={() => toggleWeekCollapse(wi)}
+                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground mb-0.5"
+                      >
+                        {isCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+                        {isCollapsed ? "Show" : "Hide"}
+                      </button>
                     )}
+                    <span className="text-xs font-medium text-muted-foreground">{slot.label}</span>
                   </div>
+
+                  {/* Day cells */}
+                  {week.map(day => {
+                    const meals = getMealsForDaySlot(day, slot.key);
+                    const inMonth = isSameMonth(day, currentMonth);
+                    const today = isToday(day);
+
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        className={cn(
+                          "border-r border-border/50 last:border-r-0 min-h-[36px] p-1 transition-colors relative",
+                          !inMonth && "bg-muted/20",
+                          today && "bg-primary/5"
+                        )}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDropEvent(e, day, slot.key)}
+                      >
+                        {/* Date badge on first slot */}
+                        {si === 0 && (
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className={cn(
+                              "text-[10px] text-muted-foreground",
+                              !inMonth && "opacity-40"
+                            )}>
+                              {format(day, "MMM").toUpperCase()}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-sm font-bold cursor-pointer hover:text-primary transition-colors",
+                                today ? "text-primary" : inMonth ? "text-foreground" : "text-muted-foreground/40"
+                              )}
+                              onClick={() => { setSelectedDay(day); setView("day"); }}
+                            >
+                              {format(day, "d")}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Meal cards */}
+                        {meals.map(meal => (
+                          <div
+                            key={meal.id}
+                            className={cn(
+                              "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-default",
+                              slot.bgCard
+                            )}
+                          >
+                            <div className="flex items-center gap-1">
+                              <GripVertical className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 opacity-0 group-hover:opacity-100" />
+                              <span className="font-medium line-clamp-1 flex-1">
+                                {meal.recipe?.title || meal.notes || "Untitled"}
+                              </span>
+                              <button
+                                onClick={() => removeMealPlan.mutate(meal.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Drop hint */}
+                        {meals.length === 0 && (
+                          <div className="h-full flex items-center justify-center opacity-0 hover:opacity-30 transition-opacity">
+                            <Plus className="h-3 w-3 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        ))}
+              ))}
+            </div>
+          );
+        })}
       </div>
     );
   };
 
+  // ── Week View ──
+  const renderWeekView = () => (
+    <div className="flex-1 flex overflow-auto">
+      <div className="w-16 flex-shrink-0 border-r border-border">
+        <div className="h-[52px] border-b border-border" />
+        {MEAL_SLOTS.map(slot => (
+          <div
+            key={slot.key}
+            className="flex-1 min-h-[70px] flex items-center justify-center border-b border-border last:border-b-0"
+          >
+            <span className="text-[10px] font-medium text-muted-foreground" style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}>
+              {slot.label}
+            </span>
+          </div>
+        ))}
+      </div>
+      {weekDays.map(date => (
+        <div
+          key={date.toISOString()}
+          className="flex flex-col border-r border-border last:border-r-0 min-w-[140px] flex-1"
+        >
+          <div
+            className={cn(
+              "text-center py-2 border-b border-border font-medium text-sm cursor-pointer hover:bg-muted/50 transition-colors",
+              isToday(date) && "bg-primary/10 text-primary font-bold",
+              isSameDay(date, selectedDay) && view === "day" && "bg-primary text-primary-foreground"
+            )}
+            onClick={() => { setSelectedDay(date); setView("day"); }}
+          >
+            <div className="text-xs text-muted-foreground">{format(date, "EEE")}</div>
+            <div className={cn("text-lg", isToday(date) && "text-primary")}>{format(date, "d")}</div>
+          </div>
+          {MEAL_SLOTS.map(slot => {
+            const meals = getMealsForDaySlot(date, slot.key);
+            return (
+              <div
+                key={slot.key}
+                className="flex-1 p-1.5 border-b border-border last:border-b-0 min-h-[60px] transition-colors"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDropEvent(e, date, slot.key)}
+              >
+                <div className={cn("text-[10px] font-medium mb-0.5 px-1 rounded", slot.color)}>
+                  {slot.label}
+                </div>
+                {meals.map(meal => (
+                  <div
+                    key={meal.id}
+                    className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-default", slot.color)}
+                  >
+                    <div className="flex items-start justify-between gap-1">
+                      <span className="font-medium line-clamp-2 flex-1">
+                        {meal.recipe?.title || meal.notes || "Untitled"}
+                      </span>
+                      <button
+                        onClick={() => removeMealPlan.mutate(meal.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {meals.length === 0 && (
+                  <div className="h-full flex items-center justify-center opacity-0 hover:opacity-40 transition-opacity">
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+
+  // ── Day View ──
   const renderDayView = () => (
     <div className="flex-1 overflow-auto">
       <div className="space-y-4 p-4">
@@ -379,11 +461,7 @@ const MealPlanner = () => {
                         className={cn("flex items-center gap-3 p-3 rounded-lg border", slot.color)}
                       >
                         {meal.recipe?.image_url && (
-                          <img
-                            src={meal.recipe.image_url}
-                            alt=""
-                            className="h-12 w-12 rounded-md object-cover flex-shrink-0"
-                          />
+                          <img src={meal.recipe.image_url} alt="" className="h-12 w-12 rounded-md object-cover flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{meal.recipe?.title || meal.notes}</p>
@@ -430,37 +508,44 @@ const MealPlanner = () => {
           </div>
         </div>
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
+          <div className="p-2 space-y-3">
             {filteredRecipes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-xs">
                 <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-30" />
                 No recipes found
               </div>
             ) : (
-              filteredRecipes.map(recipe => (
-                <div
-                  key={recipe.id}
-                  draggable
-                  onDragStart={() => setDraggedRecipe(recipe)}
-                  onDragEnd={() => setDraggedRecipe(null)}
-                  className="flex items-center gap-2 p-2 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors text-xs"
-                >
-                  {recipe.image_url ? (
-                    <img src={recipe.image_url} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="h-8 w-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                      <ChefHat className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate text-foreground">{recipe.title}</p>
-                    {recipe.category && (
-                      <p className="text-[10px] text-muted-foreground">{recipe.category}</p>
-                    )}
+              groupedRecipes.map(([category, catRecipes]) => (
+                <div key={category}>
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">
+                    {category} ({catRecipes.length})
                   </div>
-                  {hasIngredients(recipe) && (
-                    <Star className="h-3.5 w-3.5 text-warning fill-warning flex-shrink-0" />
-                  )}
+                  <div className="space-y-0.5">
+                    {catRecipes.map(recipe => (
+                      <div
+                        key={recipe.id}
+                        draggable
+                        onDragStart={() => setDraggedRecipe(recipe)}
+                        onDragEnd={() => setDraggedRecipe(null)}
+                        className="flex items-center gap-2 p-1.5 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors text-xs group"
+                      >
+                        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground flex-shrink-0" />
+                        {recipe.image_url ? (
+                          <img src={recipe.image_url} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="h-8 w-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                            <ChefHat className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate text-foreground">{recipe.title}</p>
+                        </div>
+                        {hasIngredients(recipe) && (
+                          <Star className="h-3.5 w-3.5 text-warning fill-warning flex-shrink-0" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))
             )}
@@ -475,19 +560,21 @@ const MealPlanner = () => {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
               if (view === "month") setCurrentMonth(subMonths(currentMonth, 1));
+              else if (view === "day") setSelectedDay(addDays(selectedDay, -1));
               else setCurrentWeekStart(subWeeks(currentWeekStart, 1));
             }}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h3 className="font-semibold text-sm text-foreground min-w-[180px] text-center">
               {view === "month"
-                ? format(currentMonth, "MMMM yyyy")
+                ? format(currentMonth, "MMM yyyy")
                 : view === "week"
                   ? `${format(currentWeekStart, "MMM d")} – ${format(weekEnd, "MMM d, yyyy")}`
                   : format(selectedDay, "EEEE, MMMM d, yyyy")}
             </h3>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
               if (view === "month") setCurrentMonth(addMonths(currentMonth, 1));
+              else if (view === "day") setSelectedDay(addDays(selectedDay, 1));
               else setCurrentWeekStart(addWeeks(currentWeekStart, 1));
             }}>
               <ChevronRight className="h-4 w-4" />
@@ -534,26 +621,10 @@ const MealPlanner = () => {
         </div>
 
         {/* Calendar body */}
-        {view === "week" ? (
-          <div className="flex-1 flex overflow-auto">
-            {/* Slot labels column */}
-            <div className="w-16 flex-shrink-0 border-r border-border">
-              <div className="h-[52px] border-b border-border" />
-              {MEAL_SLOTS.map(slot => (
-                <div
-                  key={slot.key}
-                  className="flex-1 min-h-[70px] flex items-center justify-center border-b border-border last:border-b-0"
-                >
-                  <span className="text-[10px] font-medium text-muted-foreground writing-vertical-lr rotate-180" style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}>
-                    {slot.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {weekDays.map(day => renderDayColumn(day, true))}
-          </div>
-        ) : view === "month" ? (
+        {view === "month" ? (
           renderMonthView()
+        ) : view === "week" ? (
+          renderWeekView()
         ) : (
           renderDayView()
         )}
