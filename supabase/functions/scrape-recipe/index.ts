@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     }
 
     // Extract recipe from JSON extraction or fallback to markdown
-    const recipe = data.data?.json || data.json;
+    const recipe = data.data?.extract || data.extract;
 
     if (!recipe || !recipe.title) {
       // Fallback: return markdown for manual parsing
