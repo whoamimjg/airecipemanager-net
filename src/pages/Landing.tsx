@@ -1,37 +1,52 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   ChefHat, BookOpen, Brain, Package, CalendarDays, ShoppingCart,
-  Check, ArrowRight, Sparkles, Star
+  Check, ArrowRight, Sparkles, Star, Utensils, Timer, Bell, BarChart3
 } from "lucide-react";
+import heroImg from "@/assets/hero-kitchen.jpg";
+import plannerImg from "@/assets/feature-planner.jpg";
+import groceryImg from "@/assets/feature-grocery.jpg";
+import inventoryImg from "@/assets/feature-inventory.jpg";
+
+const stats = [
+  { value: "10K+", label: "Recipes Managed" },
+  { value: "500+", label: "Happy Cooks" },
+  { value: "30%", label: "Less Food Waste" },
+  { value: "4.9★", label: "User Rating" },
+];
 
 const features = [
   {
     icon: BookOpen,
     title: "Recipe Manager",
-    description: "Clip recipes from any website or add them manually. Build your personal cookbook.",
+    description: "Clip recipes from any website with a URL or add them manually. Build your personal digital cookbook that goes everywhere with you.",
   },
   {
     icon: Brain,
     title: "AI Recipe Generator",
-    description: "Generate recipes from your inventory and existing collection. Smart suggestions included.",
+    description: "Our AI reads your inventory and recipe collection to generate fresh meal ideas tailored to what you already have on hand.",
   },
   {
     icon: Package,
     title: "Kitchen Inventory",
-    description: "Track everything in your fridge, pantry, and freezer. Get expiration alerts.",
+    description: "Track everything in your fridge, pantry, and freezer with categories, barcodes, quantities, and expiration date alerts.",
   },
   {
     icon: CalendarDays,
     title: "Meal Planner",
-    description: "Drag & drop recipes into a weekly calendar. Plan breakfast, lunch, dinner & snacks.",
+    description: "Drag & drop recipes into a beautiful weekly calendar. Plan breakfast, lunch, dinner & snacks with ease.",
   },
   {
     icon: ShoppingCart,
     title: "Smart Grocery Lists",
-    description: "Auto-generated from meal plans. Compare prices across major grocery stores.",
+    description: "Auto-generated from your meal plans. Compare prices across Kroger, Meijer, Walmart & Giant Eagle.",
+  },
+  {
+    icon: Bell,
+    title: "Expiration Alerts",
+    description: "Never let food go to waste again. Get notified before items expire so you can use them in time.",
   },
 ];
 
@@ -47,7 +62,7 @@ const plans = [
   {
     name: "Home Cook",
     price: "$10",
-    period: "/month",
+    period: "/mo",
     recipes: "75",
     highlight: false,
     features: ["75 recipes", "URL recipe clipping", "Full inventory tracking", "Meal planner", "Expiration alerts"],
@@ -55,7 +70,7 @@ const plans = [
   {
     name: "Chef Pro",
     price: "$25",
-    period: "/month",
+    period: "/mo",
     recipes: "250",
     highlight: true,
     features: ["250 recipes", "AI recipe generation", "Smart grocery lists", "Price comparison", "Calendar sync", "Priority support"],
@@ -63,11 +78,18 @@ const plans = [
   {
     name: "Unlimited",
     price: "$35",
-    period: "/month",
-    recipes: "Unlimited",
+    period: "/mo",
+    recipes: "∞",
     highlight: false,
-    features: ["Unlimited recipes", "Everything in Chef Pro", "Advanced AI suggestions", "Multiple household members", "API access"],
+    features: ["Unlimited recipes", "Everything in Chef Pro", "Advanced AI suggestions", "Household members", "API access"],
   },
+];
+
+const howItWorks = [
+  { step: "1", icon: Utensils, title: "Add Your Recipes", desc: "Import from any URL or type them in manually." },
+  { step: "2", icon: Package, title: "Stock Your Pantry", desc: "Log what's in your kitchen with quantities and expiration dates." },
+  { step: "3", icon: CalendarDays, title: "Plan Your Week", desc: "Drag recipes onto the calendar for each meal." },
+  { step: "4", icon: ShoppingCart, title: "Shop Smarter", desc: "Get an auto-generated grocery list with price comparisons." },
 ];
 
 const Landing = () => {
@@ -82,6 +104,7 @@ const Landing = () => {
           </div>
           <div className="hidden items-center gap-6 md:flex">
             <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
+            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
           </div>
           <div className="flex items-center gap-3">
@@ -98,53 +121,77 @@ const Landing = () => {
       </nav>
 
       {/* Hero */}
-      <section className="relative overflow-hidden py-20 md:py-32">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-        <div className="container relative mx-auto px-4 text-center">
-          <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
-            <Sparkles className="mr-1 h-3 w-3" /> AI-Powered Kitchen Management
-          </Badge>
-          <h1 className="mx-auto max-w-4xl text-4xl font-bold leading-tight md:text-6xl lg:text-7xl text-foreground">
-            Your Smart
-            <span className="text-primary"> Kitchen Companion</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
-            Manage recipes, track inventory, plan meals, and generate grocery lists — all powered by AI.
-            From your pantry to your plate, simplified.
-          </p>
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link to="/auth?mode=signup">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-base px-8 py-6">
-                Start Free — No Card Required
-              </Button>
-            </Link>
-            <a href="#features">
-              <Button size="lg" variant="outline" className="text-base px-8 py-6">
-                See How It Works
-              </Button>
-            </a>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img src={heroImg} alt="Kitchen with fresh ingredients and recipe app" width={1920} height={1080} className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/40" />
+        </div>
+        <div className="container relative mx-auto px-4 py-24 md:py-36 lg:py-44">
+          <div className="max-w-2xl">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm border border-primary/20">
+              <Sparkles className="h-4 w-4" /> AI-Powered Kitchen Management
+            </div>
+            <h1 className="text-4xl font-bold leading-[1.1] md:text-5xl lg:text-6xl text-foreground">
+              Your Smart
+              <span className="block text-primary">Kitchen Companion</span>
+            </h1>
+            <p className="mt-6 max-w-lg text-lg text-muted-foreground leading-relaxed">
+              Manage recipes, track inventory, plan meals, and generate grocery lists — all powered by AI.
+              From your pantry to your plate, simplified.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/auth?mode=signup">
+                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-base px-8 h-12 shadow-lg shadow-primary/25">
+                  Start Free — No Card Required
+                </Button>
+              </Link>
+              <a href="#how-it-works">
+                <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-background/60 backdrop-blur-sm">
+                  See How It Works
+                </Button>
+              </a>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* Social Proof Stats */}
+      <section className="border-b border-border bg-card">
+        <div className="container mx-auto px-4 py-10">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {stats.map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-3xl font-bold text-primary md:text-4xl">{stat.value}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
       <section id="features" className="py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-accent/10 px-4 py-1 text-sm font-medium text-accent">
+              <BarChart3 className="h-3.5 w-3.5" /> Powerful Features
+            </div>
             <h2 className="text-3xl font-bold md:text-5xl text-foreground">Everything Your Kitchen Needs</h2>
-            <p className="mt-4 text-muted-foreground text-lg">Five powerful tools, one intelligent platform.</p>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-lg">
+              Six powerful tools working together in one intelligent platform.
+            </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
-              <Card key={feature.title} className="group border-border bg-card hover:shadow-lg hover:border-primary/30 transition-all duration-300">
-                <CardHeader>
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+              <Card key={feature.title} className="group border-border bg-card hover:shadow-xl hover:border-primary/20 hover:-translate-y-1 transition-all duration-300">
+                <CardHeader className="pb-3">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary group-hover:from-primary group-hover:to-primary/80 group-hover:text-primary-foreground transition-all duration-300 shadow-sm">
                     <feature.icon className="h-6 w-6" />
                   </div>
-                  <CardTitle className="text-xl text-card-foreground">{feature.title}</CardTitle>
+                  <CardTitle className="text-lg text-card-foreground">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">{feature.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -152,40 +199,163 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-20 md:py-28 bg-secondary/30">
+      {/* Showcase Sections with Images */}
+      <section className="bg-secondary/20">
+        {/* Meal Planner Showcase */}
+        <div className="container mx-auto px-4 py-20 md:py-28">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <CalendarDays className="h-3 w-3" /> Meal Planning
+              </div>
+              <h2 className="text-3xl font-bold md:text-4xl text-foreground">Plan Every Meal, Effortlessly</h2>
+              <p className="mt-4 text-muted-foreground leading-relaxed">
+                Drag and drop your favorite recipes onto a weekly calendar. Plan breakfast, lunch, dinner, and snacks for the whole family. Items already in your inventory get a star so you know what you've got covered.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {["Week, month & day views", "Drag & drop from your recipes", "Inventory items marked with ★", "Sync with Google & Apple Calendar"].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 shrink-0 text-primary" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="relative">
+              <div className="overflow-hidden rounded-2xl shadow-2xl shadow-primary/10 border border-border">
+                <img src={plannerImg} alt="Meal planner calendar interface" width={800} height={600} loading="lazy" className="w-full" />
+              </div>
+              <div className="absolute -bottom-4 -left-4 h-24 w-24 rounded-2xl bg-primary/10 -z-10" />
+              <div className="absolute -top-4 -right-4 h-16 w-16 rounded-full bg-accent/10 -z-10" />
+            </div>
+          </div>
+        </div>
+
+        {/* Inventory Showcase */}
+        <div className="container mx-auto px-4 pb-20 md:pb-28">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div className="order-2 lg:order-1 relative">
+              <div className="overflow-hidden rounded-2xl shadow-2xl shadow-primary/10 border border-border">
+                <img src={inventoryImg} alt="Organized kitchen pantry" width={800} height={600} loading="lazy" className="w-full" />
+              </div>
+              <div className="absolute -bottom-4 -right-4 h-20 w-20 rounded-2xl bg-accent/10 -z-10" />
+            </div>
+            <div className="order-1 lg:order-2">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                <Package className="h-3 w-3" /> Kitchen Inventory
+              </div>
+              <h2 className="text-3xl font-bold md:text-4xl text-foreground">Know What's in Your Kitchen</h2>
+              <p className="mt-4 text-muted-foreground leading-relaxed">
+                Track every item by category, storage location, barcode, quantity, and price. Get notifications before things expire so nothing goes to waste.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {["Fridge, pantry, freezer & cabinet tracking", "Barcode scanning support", "Expiration date alerts", "Price per unit tracking"].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 shrink-0 text-primary" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Grocery Showcase */}
+        <div className="container mx-auto px-4 pb-20 md:pb-28">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <ShoppingCart className="h-3 w-3" /> Smart Grocery
+              </div>
+              <h2 className="text-3xl font-bold md:text-4xl text-foreground">Shop Smarter, Save More</h2>
+              <p className="mt-4 text-muted-foreground leading-relaxed">
+                Your grocery list builds itself from your meal plan. Items you already have in inventory are excluded. Compare prices across Kroger, Meijer, Walmart, and Giant Eagle.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {["Auto-generated from meal plans", "Excludes items already in inventory", "Price comparison across stores", "Add items manually anytime"].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 shrink-0 text-primary" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="relative">
+              <div className="overflow-hidden rounded-2xl shadow-2xl shadow-primary/10 border border-border">
+                <img src={groceryImg} alt="Smart grocery list on phone" width={800} height={600} loading="lazy" className="w-full" />
+              </div>
+              <div className="absolute -top-4 -left-4 h-16 w-16 rounded-full bg-primary/10 -z-10" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold md:text-5xl text-foreground">Simple, Honest Pricing</h2>
-            <p className="mt-4 text-muted-foreground text-lg">Start free. Upgrade when you're ready.</p>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary">
+              <Timer className="h-3.5 w-3.5" /> Get Started in Minutes
+            </div>
+            <h2 className="text-3xl font-bold md:text-5xl text-foreground">How It Works</h2>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-lg">
+              Four simple steps to a smarter kitchen.
+            </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {howItWorks.map((item, i) => (
+              <div key={item.title} className="relative text-center">
+                {i < howItWorks.length - 1 && (
+                  <div className="absolute top-8 left-[60%] hidden h-[2px] w-[80%] bg-gradient-to-r from-primary/30 to-transparent lg:block" />
+                )}
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground text-xl font-bold shadow-lg shadow-primary/25">
+                  {item.step}
+                </div>
+                <item.icon className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
+                <h3 className="text-lg font-semibold text-foreground">{item.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-20 md:py-28 bg-secondary/20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1 text-sm font-medium text-primary">
+              <Sparkles className="h-3.5 w-3.5" /> Pricing
+            </div>
+            <h2 className="text-3xl font-bold md:text-5xl text-foreground">Simple, Honest Pricing</h2>
+            <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-lg">
+              Start free. Upgrade when you're ready. No hidden fees.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
             {plans.map((plan) => (
               <Card
                 key={plan.name}
                 className={`relative flex flex-col border-border bg-card ${
                   plan.highlight
-                    ? "ring-2 ring-primary shadow-xl scale-[1.02]"
-                    : "hover:shadow-lg"
-                } transition-all`}
+                    ? "ring-2 ring-primary shadow-2xl shadow-primary/10 scale-[1.03]"
+                    : "hover:shadow-lg hover:-translate-y-1"
+                } transition-all duration-300`}
               >
                 {plan.highlight && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground">
-                      <Star className="mr-1 h-3 w-3" /> Most Popular
-                    </Badge>
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-lg">
+                      <Star className="h-3 w-3" /> Most Popular
+                    </span>
                   </div>
                 )}
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="text-lg text-card-foreground">{plan.name}</CardTitle>
-                  <div className="mt-4">
+                <CardHeader className="text-center pb-2 pt-8">
+                  <CardTitle className="text-base font-semibold text-card-foreground">{plan.name}</CardTitle>
+                  <div className="mt-3">
                     <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                    <span className="text-muted-foreground">{plan.period}</span>
+                    <span className="text-sm text-muted-foreground">{plan.period}</span>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{plan.recipes} recipes</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{plan.recipes} recipes</p>
                 </CardHeader>
-                <CardContent className="flex flex-1 flex-col">
-                  <ul className="flex-1 space-y-3 mb-6">
+                <CardContent className="flex flex-1 flex-col pt-4">
+                  <ul className="flex-1 space-y-2.5 mb-6">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -197,11 +367,11 @@ const Landing = () => {
                     <Button
                       className={`w-full ${
                         plan.highlight
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
                           : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                       }`}
                     >
-                      {plan.price === "Free" ? "Get Started" : "Choose Plan"}
+                      {plan.price === "Free" ? "Get Started Free" : "Choose Plan"}
                     </Button>
                   </Link>
                 </CardContent>
@@ -211,16 +381,43 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-12">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <ChefHat className="h-6 w-6 text-primary" />
-            <span className="font-bold font-serif text-foreground">AI Recipe Manager</span>
+      {/* Final CTA */}
+      <section className="py-20 md:py-28">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-3xl rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-12 text-center shadow-2xl shadow-primary/20 md:p-16">
+            <ChefHat className="mx-auto mb-6 h-12 w-12 text-primary-foreground/80" />
+            <h2 className="text-3xl font-bold text-primary-foreground md:text-4xl">
+              Ready to Transform Your Kitchen?
+            </h2>
+            <p className="mx-auto mt-4 max-w-lg text-primary-foreground/80 text-lg">
+              Join thousands of home cooks who save time, reduce waste, and eat better with AI Recipe Manager.
+            </p>
+            <Link to="/auth?mode=signup">
+              <Button size="lg" className="mt-8 bg-background text-foreground hover:bg-background/90 text-base px-10 h-12 shadow-lg">
+                Start Free Today <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} airecipemanager.com — All rights reserved.
-          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-card py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col items-center gap-6 md:flex-row md:justify-between">
+            <div className="flex items-center gap-2">
+              <ChefHat className="h-6 w-6 text-primary" />
+              <span className="font-bold font-serif text-foreground">AI Recipe Manager</span>
+            </div>
+            <div className="flex gap-6 text-sm text-muted-foreground">
+              <a href="#features" className="hover:text-foreground transition-colors">Features</a>
+              <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+              <Link to="/auth" className="hover:text-foreground transition-colors">Sign In</Link>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} airecipemanager.com
+            </p>
+          </div>
         </div>
       </footer>
     </div>
