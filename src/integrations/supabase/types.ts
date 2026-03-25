@@ -14,7 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          breakfast_time: string | null
+          created_at: string
+          diet_restrictions: string[] | null
+          dinner_time: string | null
+          display_name: string | null
+          email: string | null
+          id: string
+          lunch_time: string | null
+          snack_time: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          breakfast_time?: string | null
+          created_at?: string
+          diet_restrictions?: string[] | null
+          dinner_time?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          lunch_time?: string | null
+          snack_time?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          breakfast_time?: string | null
+          created_at?: string
+          diet_restrictions?: string[] | null
+          dinner_time?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          lunch_time?: string | null
+          snack_time?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          category: string | null
+          cook_time: number | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          ingredients: Json
+          instructions: Json
+          is_ai_generated: boolean | null
+          prep_time: number | null
+          servings: number | null
+          source_url: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          cook_time?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: Json
+          is_ai_generated?: boolean | null
+          prep_time?: number | null
+          servings?: number | null
+          source_url?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          cook_time?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: Json
+          is_ai_generated?: boolean | null
+          prep_time?: number | null
+          servings?: number | null
+          source_url?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          next_billing_date: string | null
+          payment_method: string | null
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          price_monthly: number
+          recipe_limit: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          next_billing_date?: string | null
+          payment_method?: string | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          price_monthly?: number
+          recipe_limit?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          next_billing_date?: string | null
+          payment_method?: string | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          price_monthly?: number
+          recipe_limit?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +163,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      subscription_plan: "free" | "basic" | "pro" | "unlimited"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +290,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_plan: ["free", "basic", "pro", "unlimited"],
+    },
   },
 } as const
