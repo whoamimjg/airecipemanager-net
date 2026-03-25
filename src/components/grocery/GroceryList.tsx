@@ -125,8 +125,17 @@ const GroceryList = () => {
         const quantity = typeof ing === "object" ? (ing.quantity || ing.amount || "") : "";
         const unit = typeof ing === "object" ? (ing.unit || "") : "";
         
-        // Use AI category, fall back to "Other"
-        const category = aiCategories[key] || "Other";
+        // Use AI category - try exact match first, then check if any AI key is contained in this ingredient
+        let category = aiCategories[key] || "";
+        if (!category) {
+          for (const [aiName, aiCat] of Object.entries(aiCategories)) {
+            if (key.includes(aiName) || aiName.includes(key)) {
+              category = aiCat;
+              break;
+            }
+          }
+        }
+        if (!category) category = "Other";
         const inInventory = inventoryNames.some(inv => inv.includes(key) || key.includes(inv));
 
         if (ingredientMap.has(key)) {
