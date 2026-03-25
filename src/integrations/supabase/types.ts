@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      inventory_items: {
+        Row: {
+          barcode: string | null
+          category: string | null
+          created_at: string
+          expiration_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          price_per_unit: number | null
+          quantity: number
+          storage_location: Database["public"]["Enums"]["storage_location"]
+          unit: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string | null
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          price_per_unit?: number | null
+          quantity?: number
+          storage_location?: Database["public"]["Enums"]["storage_location"]
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string | null
+          created_at?: string
+          expiration_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          price_per_unit?: number | null
+          quantity?: number
+          storage_location?: Database["public"]["Enums"]["storage_location"]
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -163,6 +211,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      storage_location:
+        | "fridge"
+        | "freezer"
+        | "pantry"
+        | "cabinet"
+        | "counter"
+        | "other"
       subscription_plan: "free" | "basic" | "pro" | "unlimited"
     }
     CompositeTypes: {
@@ -291,6 +346,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      storage_location: [
+        "fridge",
+        "freezer",
+        "pantry",
+        "cabinet",
+        "counter",
+        "other",
+      ],
       subscription_plan: ["free", "basic", "pro", "unlimited"],
     },
   },
