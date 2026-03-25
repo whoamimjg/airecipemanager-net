@@ -88,9 +88,14 @@ const RecipeManager = () => {
           <h2 className="text-2xl font-bold text-foreground">My Recipes</h2>
           <p className="text-sm text-muted-foreground">{recipes.length} recipes in your collection</p>
         </div>
-        <Button onClick={() => setShowForm(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" /> Add Recipe
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowImport(true)}>
+            <Globe className="mr-2 h-4 w-4" /> Import URL
+          </Button>
+          <Button onClick={() => setShowForm(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Plus className="mr-2 h-4 w-4" /> Add Recipe
+          </Button>
+        </div>
       </div>
 
       <div className="relative">
