@@ -72,6 +72,47 @@ const GroceryList = () => {
     enabled: !!user,
   });
 
+  const STORE_CATEGORIES = [
+    "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Canned Goods", "Bread", "Frozen", "Condiments & Spices", "Other"
+  ];
+
+  const categorizeIngredient = (name: string, originalCategory: string): string => {
+    const n = name.toLowerCase();
+    const produceKeywords = ["lettuce", "tomato", "onion", "garlic", "pepper", "carrot", "potato", "celery", "cucumber", "spinach", "kale", "broccoli", "mushroom", "zucchini", "squash", "corn", "pea", "bean", "avocado", "lemon", "lime", "orange", "apple", "banana", "berry", "blueberry", "strawberry", "grape", "mango", "pineapple", "peach", "pear", "melon", "ginger", "cilantro", "parsley", "basil", "mint", "dill", "scallion", "shallot", "leek", "cabbage", "radish", "beet", "asparagus", "artichoke", "jalapeño", "serrano", "habanero", "chili", "fruit", "vegetable", "salad", "herb"];
+    const meatKeywords = ["chicken", "beef", "pork", "lamb", "turkey", "bacon", "sausage", "steak", "ground", "meat", "fish", "salmon", "tuna", "shrimp", "prawn", "crab", "lobster", "cod", "tilapia", "ham", "ribs", "brisket", "veal", "duck", "wing", "thigh", "breast", "drumstick", "seafood", "anchov"];
+    const dairyKeywords = ["milk", "cheese", "butter", "cream", "yogurt", "sour cream", "egg", "mozzarella", "parmesan", "cheddar", "ricotta", "cottage", "whip", "half and half", "ghee", "margarine"];
+    const beverageKeywords = ["juice", "soda", "water", "coffee", "tea", "wine", "beer", "drink", "lemonade", "kombucha", "smoothie", "cola"];
+    const cerealKeywords = ["cereal", "oat", "granola", "rice", "pasta", "noodle", "flour", "quinoa", "couscous", "barley", "farro", "grain", "wheat", "cornmeal", "polenta", "spaghetti", "penne", "macaroni", "linguine", "fettuccine"];
+    const cannedKeywords = ["canned", "can of", "tomato sauce", "tomato paste", "diced tomato", "crushed tomato", "broth", "stock", "soup", "beans", "chickpea", "lentil", "coconut milk", "condensed", "evaporated"];
+    const breadKeywords = ["bread", "bun", "roll", "tortilla", "pita", "naan", "bagel", "croissant", "wrap", "flatbread", "english muffin", "biscuit", "crouton"];
+    const frozenKeywords = ["frozen", "ice cream", "popsicle", "pizza"];
+    const condimentKeywords = ["salt", "pepper", "sugar", "oil", "vinegar", "sauce", "soy sauce", "mustard", "ketchup", "mayo", "mayonnaise", "honey", "syrup", "spice", "cumin", "paprika", "cinnamon", "nutmeg", "oregano", "thyme", "rosemary", "bay leaf", "turmeric", "cayenne", "chili powder", "curry", "vanilla", "extract", "seasoning", "dressing", "sriracha", "hot sauce", "worcestershire", "olive oil", "sesame", "cornstarch", "baking soda", "baking powder", "yeast"];
+
+    if (produceKeywords.some(k => n.includes(k))) return "Produce";
+    if (meatKeywords.some(k => n.includes(k))) return "Meats";
+    if (dairyKeywords.some(k => n.includes(k))) return "Dairy";
+    if (beverageKeywords.some(k => n.includes(k))) return "Beverages";
+    if (cerealKeywords.some(k => n.includes(k))) return "Cereal";
+    if (cannedKeywords.some(k => n.includes(k))) return "Canned Goods";
+    if (breadKeywords.some(k => n.includes(k))) return "Bread";
+    if (frozenKeywords.some(k => n.includes(k))) return "Frozen";
+    if (condimentKeywords.some(k => n.includes(k))) return "Condiments & Spices";
+
+    // Fall back to original category mapping
+    const oc = originalCategory.toLowerCase();
+    if (["produce", "fruit", "vegetable", "fresh"].some(k => oc.includes(k))) return "Produce";
+    if (["meat", "protein", "seafood", "fish", "poultry"].some(k => oc.includes(k))) return "Meats";
+    if (["dairy", "egg"].some(k => oc.includes(k))) return "Dairy";
+    if (["beverage", "drink"].some(k => oc.includes(k))) return "Beverages";
+    if (["grain", "cereal", "pasta", "rice"].some(k => oc.includes(k))) return "Cereal";
+    if (["canned", "can"].some(k => oc.includes(k))) return "Canned Goods";
+    if (["bread", "bakery", "baked"].some(k => oc.includes(k))) return "Bread";
+    if (["frozen"].some(k => oc.includes(k))) return "Frozen";
+    if (["condiment", "spice", "seasoning", "sauce", "oil"].some(k => oc.includes(k))) return "Condiments & Spices";
+
+    return "Other";
+  };
+
   // Build grocery list: aggregate ingredients, exclude inventory
   const groceryItems = useMemo(() => {
     const ingredientMap = new Map<string, GroceryItem>();
@@ -88,7 +129,8 @@ const GroceryList = () => {
         const key = name.toLowerCase();
         const quantity = typeof ing === "object" ? (ing.quantity || ing.amount || "") : "";
         const unit = typeof ing === "object" ? (ing.unit || "") : "";
-        const category = typeof ing === "object" ? (ing.category || "Other") : "Other";
+        const originalCategory = typeof ing === "object" ? (ing.category || "Other") : "Other";
+        const category = categorizeIngredient(name, originalCategory);
 
         const inInventory = inventoryNames.some(inv => inv.includes(key) || key.includes(inv));
 
@@ -116,7 +158,7 @@ const GroceryList = () => {
     });
   }, [mealPlans, inventory]);
 
-  // Group by category
+  // Group by store category in aisle order
   const groupedItems = useMemo(() => {
     const groups: Record<string, GroceryItem[]> = {};
     groceryItems.forEach(item => {
@@ -124,7 +166,9 @@ const GroceryList = () => {
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
     });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    return STORE_CATEGORIES
+      .filter(cat => groups[cat]?.length > 0)
+      .map(cat => [cat, groups[cat]] as [string, GroceryItem[]]);
   }, [groceryItems]);
 
   const toggleCheck = (name: string) => {
