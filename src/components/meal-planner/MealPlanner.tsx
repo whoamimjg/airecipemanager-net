@@ -465,15 +465,23 @@ const MealPlanner = () => {
         {/* Calendar header */}
         <div className="flex items-center justify-between p-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentWeekStart(subWeeks(currentWeekStart, 1))}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+              if (view === "month") setCurrentMonth(subMonths(currentMonth, 1));
+              else setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+            }}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <h3 className="font-semibold text-sm text-foreground min-w-[180px] text-center">
-              {view === "week"
-                ? `${format(currentWeekStart, "MMM d")} – ${format(weekEnd, "MMM d, yyyy")}`
-                : format(selectedDay, "EEEE, MMMM d, yyyy")}
+              {view === "month"
+                ? format(currentMonth, "MMMM yyyy")
+                : view === "week"
+                  ? `${format(currentWeekStart, "MMM d")} – ${format(weekEnd, "MMM d, yyyy")}`
+                  : format(selectedDay, "EEEE, MMMM d, yyyy")}
             </h3>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentWeekStart(addWeeks(currentWeekStart, 1))}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+              if (view === "month") setCurrentMonth(addMonths(currentMonth, 1));
+              else setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+            }}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -484,10 +492,19 @@ const MealPlanner = () => {
               className="text-xs h-7"
               onClick={() => {
                 setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+                setCurrentMonth(new Date());
                 setSelectedDay(new Date());
               }}
             >
               Today
+            </Button>
+            <Button
+              variant={view === "month" ? "secondary" : "ghost"}
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => setView("month")}
+            >
+              Month
             </Button>
             <Button
               variant={view === "week" ? "secondary" : "ghost"}
@@ -527,6 +544,8 @@ const MealPlanner = () => {
             </div>
             {weekDays.map(day => renderDayColumn(day, true))}
           </div>
+        ) : view === "month" ? (
+          renderMonthView()
         ) : (
           renderDayView()
         )}
