@@ -9,6 +9,7 @@ import AIRecipeGenerator from "@/components/recipes/AIRecipeGenerator";
 import InventoryManager from "@/components/inventory/InventoryManager";
 import MealPlanner from "@/components/meal-planner/MealPlanner";
 import GroceryList from "@/components/grocery/GroceryList";
+import AccountSettings from "@/components/account/AccountSettings";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -84,11 +85,7 @@ const Dashboard = () => {
             <GroceryList />
           </TabsContent>
           <TabsContent value="account">
-            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
-              <Settings className="h-12 w-12 mb-4 opacity-40" />
-              <h3 className="text-lg font-semibold text-foreground">Account Settings</h3>
-              <p>Coming soon — Diet restrictions, payments, and calendar sync.</p>
-            </div>
+            <AccountSettings />
           </TabsContent>
         </Tabs>
       </div>
