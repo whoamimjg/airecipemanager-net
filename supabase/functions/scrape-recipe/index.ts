@@ -42,36 +42,33 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url: formattedUrl,
-        formats: [
-          'markdown',
-          {
-            type: 'json',
-            schema: {
-              type: 'object',
-              properties: {
-                title: { type: 'string', description: 'Recipe title/name' },
-                description: { type: 'string', description: 'Brief recipe description or summary' },
-                ingredients: {
-                  type: 'array',
-                  items: { type: 'string' },
-                  description: 'List of ingredients with quantities',
-                },
-                instructions: {
-                  type: 'array',
-                  items: { type: 'string' },
-                  description: 'Step-by-step cooking instructions',
-                },
-                prep_time: { type: 'number', description: 'Prep time in minutes' },
-                cook_time: { type: 'number', description: 'Cook time in minutes' },
-                servings: { type: 'number', description: 'Number of servings' },
-                category: { type: 'string', description: 'Recipe category like Dinner, Dessert, Breakfast, etc.' },
-                image_url: { type: 'string', description: 'Main recipe image URL' },
-              },
-              required: ['title', 'ingredients', 'instructions'],
-            },
-          },
-        ],
+        formats: ['markdown', 'extract'],
         onlyMainContent: true,
+        extract: {
+          schema: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'Recipe title/name' },
+              description: { type: 'string', description: 'Brief recipe description or summary' },
+              ingredients: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'List of ingredients with quantities',
+              },
+              instructions: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Step-by-step cooking instructions',
+              },
+              prep_time: { type: 'number', description: 'Prep time in minutes' },
+              cook_time: { type: 'number', description: 'Cook time in minutes' },
+              servings: { type: 'number', description: 'Number of servings' },
+              category: { type: 'string', description: 'Recipe category like Dinner, Dessert, Breakfast, etc.' },
+              image_url: { type: 'string', description: 'Main recipe image URL' },
+            },
+            required: ['title', 'ingredients', 'instructions'],
+          },
+        },
       }),
     });
 
