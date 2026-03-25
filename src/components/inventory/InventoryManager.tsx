@@ -261,12 +261,13 @@ const InventoryManager = () => {
       {/* Add/Edit dialog */}
       {(showForm || editingItem) && (
         <InventoryFormDialog
-          item={editingItem}
+          item={editingItem || (prefillItem as any) || null}
           open={showForm || !!editingItem}
           onOpenChange={(open) => {
             if (!open) {
               setShowForm(false);
               setEditingItem(null);
+              setPrefillItem(null);
             }
           }}
         />
