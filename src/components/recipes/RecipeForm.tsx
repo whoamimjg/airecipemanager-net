@@ -22,6 +22,7 @@ interface RecipeFormProps {
     servings: number | null;
     category: string | null;
     source_url: string | null;
+    image_url?: string | null;
   } | null;
   isNew?: boolean;
   onClose: () => void;
