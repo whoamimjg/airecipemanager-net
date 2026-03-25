@@ -8,6 +8,7 @@ import RecipeManager from "@/components/recipes/RecipeManager";
 import AIRecipeGenerator from "@/components/recipes/AIRecipeGenerator";
 import InventoryManager from "@/components/inventory/InventoryManager";
 import MealPlanner from "@/components/meal-planner/MealPlanner";
+import GroceryList from "@/components/grocery/GroceryList";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -80,11 +81,7 @@ const Dashboard = () => {
             <MealPlanner />
           </TabsContent>
           <TabsContent value="grocery">
-            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
-              <ShoppingCart className="h-12 w-12 mb-4 opacity-40" />
-              <h3 className="text-lg font-semibold text-foreground">Grocery List</h3>
-              <p>Coming in Phase 3 — Auto-generated lists from your meal plans.</p>
-            </div>
+            <GroceryList />
           </TabsContent>
           <TabsContent value="account">
             <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
