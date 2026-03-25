@@ -57,6 +57,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
         cook_time: cookTime ? parseInt(cookTime) : null,
         servings: servings ? parseInt(servings) : null,
         source_url: sourceUrl || null,
+        image_url: imageUrl || null,
         ingredients: ingredients.filter(Boolean),
         instructions: instructions.filter(Boolean),
         user_id: user!.id,
