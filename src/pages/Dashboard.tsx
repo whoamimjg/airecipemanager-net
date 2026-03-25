@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChefHat, BookOpen, Brain, Package, CalendarDays, ShoppingCart, Settings, LogOut } from "lucide-react";
 import RecipeManager from "@/components/recipes/RecipeManager";
+import AIRecipeGenerator from "@/components/recipes/AIRecipeGenerator";
 import InventoryManager from "@/components/inventory/InventoryManager";
 
 const Dashboard = () => {
@@ -69,11 +70,7 @@ const Dashboard = () => {
             <RecipeManager />
           </TabsContent>
           <TabsContent value="ai">
-            <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
-              <Brain className="h-12 w-12 mb-4 opacity-40" />
-              <h3 className="text-lg font-semibold text-foreground">AI Recipe Generator</h3>
-              <p>Coming in Phase 2 — Generate recipes from your inventory and collection.</p>
-            </div>
+            <AIRecipeGenerator />
           </TabsContent>
           <TabsContent value="inventory">
             <InventoryManager />
