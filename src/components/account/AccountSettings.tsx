@@ -45,6 +45,8 @@ const AccountSettings = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{ key: string; name: string; price: number } | null>(null);
 
   // Fetch profile
   const { data: profile, isLoading } = useQuery({
