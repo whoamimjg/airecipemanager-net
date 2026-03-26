@@ -240,6 +240,29 @@ const AccountSettings = () => {
     }
   };
 
+  const handleDownloadInvoice = async (invoiceId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("generate-invoice", {
+        body: { invoiceId },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw res.error;
+
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-${invoiceId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Invoice downloaded!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to download invoice");
+    }
+  };
+
+
   const handleDeleteAccount = async () => {
     if (!user) return;
     setDeleting(true);
