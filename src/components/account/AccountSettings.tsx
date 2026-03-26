@@ -13,6 +13,7 @@ import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, Fi
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import PaymentDialog from "@/components/payment/PaymentDialog";
 
 const DIET_OPTIONS = [
   "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Keto",
