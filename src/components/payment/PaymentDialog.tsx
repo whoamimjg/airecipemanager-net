@@ -205,7 +205,29 @@ const PaymentDialog = ({
       onSuccess?.();
       onOpenChange(false);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Payment failed";
+      let message = err instanceof Error ? err.message : "Payment failed";
+
+      if (
+        err &&
+        typeof err === "object" &&
+        "context" in err &&
+        (err as { context?: Response }).context
+      ) {
+        const context = (err as { context?: Response }).context as Response;
+        try {
+          const payload = await context.clone().json() as { error?: string; details?: unknown };
+          if (payload?.error) {
+            message = payload.error;
+          }
+        } catch {
+          try {
+            const text = await context.clone().text();
+            if (text) message = text;
+          } catch {
+          }
+        }
+      }
+
       console.error("Payment error:", err);
       toast.error(message);
     } finally {

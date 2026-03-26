@@ -184,8 +184,12 @@ async function createRecurring(
 
     if (!createCustomerResponse.ok) {
       console.error("accept.blue create customer error:", createCustomerResult);
+      const customerError =
+        createCustomerResponse.status === 403
+          ? "Recurring billing API permission denied. Use an API source key with Customers, Payment Methods, and Recurring permissions."
+          : "Failed to create customer";
       return new Response(
-        JSON.stringify({ error: "Failed to create customer", details: createCustomerResult }),
+        JSON.stringify({ error: customerError, details: createCustomerResult }),
         {
           status: createCustomerResponse.status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -284,6 +288,10 @@ async function createRecurring(
 
   if (!response.ok) {
     console.error("accept.blue recurring error:", result);
+    const recurringError =
+      response.status === 403 || response.status === 404
+        ? "Recurring schedule API access is not enabled for this source key. Please enable recurring permissions for your API key in accept.blue."
+        : "Failed to create recurring schedule";
     return new Response(JSON.stringify({ error: "Failed to create recurring schedule", details: result }), {
       status: response.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
