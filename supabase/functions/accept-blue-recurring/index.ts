@@ -82,13 +82,19 @@ serve(async (req) => {
 
 async function createRecurring(
   body: Record<string, unknown>,
-  userId: string,
+  user: { id: string; email?: string | null },
   supabase: ReturnType<typeof createClient>
 ) {
   const { card, amount, frequency, title, plan } = body as {
-    card: { nonce?: string; source?: string };
+    card: {
+      nonce?: string;
+      source?: string;
+      expiry_month?: number;
+      expiry_year?: number;
+      avs_zip?: string;
+    };
     amount: number;
-    frequency: string; // monthly, weekly, yearly
+    frequency: string;
     title?: string;
     plan?: string;
   };
@@ -103,43 +109,165 @@ async function createRecurring(
     );
   }
 
-  // Map frequency to accept.blue schedule params
-  const scheduleMap: Record<string, { frequency: string; period: number }> = {
-    weekly: { frequency: "weekly", period: 1 },
-    biweekly: { frequency: "weekly", period: 2 },
-    monthly: { frequency: "monthly", period: 1 },
-    quarterly: { frequency: "monthly", period: 3 },
-    yearly: { frequency: "monthly", period: 12 },
+  const frequencyMap: Record<string, string> = {
+    weekly: "weekly",
+    biweekly: "weekly",
+    monthly: "monthly",
+    quarterly: "quarterly",
+    yearly: "annually",
   };
 
-  const schedule = scheduleMap[frequency] || scheduleMap.monthly;
+  const mappedFrequency = frequencyMap[frequency] || "monthly";
 
-  // Calculate next billing date
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() + 1); // Start tomorrow
+  startDate.setDate(startDate.getDate() + 1);
   const nextDate = startDate.toISOString().split("T")[0];
+
+  const cardSource = card.nonce ? `nonce-${card.nonce}` : card.source;
+  if (!cardSource) {
+    return new Response(
+      JSON.stringify({ error: "Missing card source or nonce" }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  const customerIdentifier = user.email || user.id;
+
+  const customersResponse = await fetch(
+    `${ACCEPT_BLUE_BASE}/customers?active=true&customer_number=${encodeURIComponent(customerIdentifier)}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${getBasicAuth()}`,
+      },
+    }
+  );
+
+  const customersText = await customersResponse.text();
+  let customersResult: unknown = [];
+  if (customersText) {
+    try {
+      customersResult = JSON.parse(customersText);
+    } catch {
+      customersResult = [];
+    }
+  }
+
+  let customerId: number | string | undefined;
+  if (Array.isArray(customersResult) && customersResult.length > 0) {
+    customerId = (customersResult[0] as { id?: number | string })?.id;
+  }
+
+  if (!customerId) {
+    const createCustomerResponse = await fetch(`${ACCEPT_BLUE_BASE}/customers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${getBasicAuth()}`,
+      },
+      body: JSON.stringify({
+        identifier: customerIdentifier,
+        customer_number: customerIdentifier,
+        email: user.email || undefined,
+        active: true,
+      }),
+    });
+
+    const createCustomerText = await createCustomerResponse.text();
+    let createCustomerResult: Record<string, unknown> = {};
+    try {
+      createCustomerResult = createCustomerText ? JSON.parse(createCustomerText) : {};
+    } catch {
+      createCustomerResult = { raw: createCustomerText };
+    }
+
+    if (!createCustomerResponse.ok) {
+      console.error("accept.blue create customer error:", createCustomerResult);
+      return new Response(
+        JSON.stringify({ error: "Failed to create customer", details: createCustomerResult }),
+        {
+          status: createCustomerResponse.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    customerId = createCustomerResult.id as number | string | undefined;
+  }
+
+  if (!customerId) {
+    return new Response(
+      JSON.stringify({ error: "Unable to resolve customer for recurring billing" }),
+      {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  const createPaymentMethodResponse = await fetch(
+    `${ACCEPT_BLUE_BASE}/customers/${customerId}/payment-methods`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${getBasicAuth()}`,
+      },
+      body: JSON.stringify({
+        source: cardSource,
+        ...(card.expiry_month ? { expiry_month: card.expiry_month } : {}),
+        ...(card.expiry_year ? { expiry_year: card.expiry_year } : {}),
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      }),
+    }
+  );
+
+  const createPaymentMethodText = await createPaymentMethodResponse.text();
+  let createPaymentMethodResult: Record<string, unknown> = {};
+  try {
+    createPaymentMethodResult = createPaymentMethodText ? JSON.parse(createPaymentMethodText) : {};
+  } catch {
+    createPaymentMethodResult = { raw: createPaymentMethodText };
+  }
+
+  if (!createPaymentMethodResponse.ok) {
+    console.error("accept.blue create payment method error:", createPaymentMethodResult);
+    return new Response(
+      JSON.stringify({
+        error: "Failed to create payment method",
+        details: createPaymentMethodResult,
+      }),
+      {
+        status: createPaymentMethodResponse.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  const paymentMethodId = createPaymentMethodResult.id;
+  if (!paymentMethodId) {
+    return new Response(
+      JSON.stringify({ error: "Recurring payment method ID missing" }),
+      {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
 
   const payload: Record<string, unknown> = {
     amount: Number(amount),
-    schedule: {
-      frequency: schedule.frequency,
-      period: schedule.period,
-      start_date: nextDate,
-    },
     title: title || "Subscription",
+    frequency: mappedFrequency,
+    next_run_date: nextDate,
+    payment_method_id: paymentMethodId,
     active: true,
   };
 
-  if (card.nonce) {
-    payload.source = `nonce-${card.nonce}`;
-    if (card.expiry_month) payload.expiry_month = card.expiry_month;
-    if (card.expiry_year) payload.expiry_year = card.expiry_year;
-    if (card.avs_zip) payload.avs_zip = card.avs_zip;
-  } else if (card.source) {
-    payload.source = card.source;
-  }
-
-  const response = await fetch(`${ACCEPT_BLUE_BASE}/recurring-schedules`, {
+  const response = await fetch(`${ACCEPT_BLUE_BASE}/customers/${customerId}/recurring-schedules`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -148,7 +276,13 @@ async function createRecurring(
     body: JSON.stringify(payload),
   });
 
-  const result = await response.json();
+  const responseText = await response.text();
+  let result: Record<string, unknown>;
+  try {
+    result = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    result = { raw: responseText };
+  }
 
   if (!response.ok) {
     console.error("accept.blue recurring error:", result);
@@ -158,7 +292,6 @@ async function createRecurring(
     });
   }
 
-  // Update subscription table
   const planName = (plan as string) || "basic";
   const planConfig: Record<string, { limit: number; price: number }> = {
     basic: { limit: 100, price: Number(amount) },
@@ -178,7 +311,7 @@ async function createRecurring(
       next_billing_date: nextDate,
       payment_method: `accept_blue_schedule:${result.id}`,
     })
-    .eq("user_id", userId);
+    .eq("user_id", user.id);
 
   return new Response(JSON.stringify({ success: true, schedule: result }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
