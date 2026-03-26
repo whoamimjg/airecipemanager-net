@@ -47,9 +47,9 @@ serve(async (req) => {
     const body = await req.json();
     const { amount, card, name, description } = body;
 
-    // card should contain either a nonce or source (tokenized card reference)
-    // For nonce-based: { nonce: "..." }
-    // For saved card: { source: "card-ref-..." }
+    // card should contain tokenization result:
+    // { nonce: "...", expiry_month: N, expiry_year: N, avs_zip: "..." }
+    // or a saved card: { source: "card-ref-..." }
     if (!amount || !card) {
       return new Response(
         JSON.stringify({ error: "Missing required fields: amount, card" }),
@@ -62,10 +62,17 @@ serve(async (req) => {
 
     const chargePayload: Record<string, unknown> = {
       amount: Number(amount),
-      ...(card.nonce ? { nonce: card.nonce } : {}),
-      ...(card.source ? { source: card.source } : {}),
       ...(name ? { name } : {}),
     };
+
+    if (card.nonce) {
+      chargePayload.source = `nonce-${card.nonce}`;
+      if (card.expiry_month) chargePayload.expiry_month = card.expiry_month;
+      if (card.expiry_year) chargePayload.expiry_year = card.expiry_year;
+      if (card.avs_zip) chargePayload.avs_zip = card.avs_zip;
+    } else if (card.source) {
+      chargePayload.source = card.source;
+    }
 
     const response = await fetch(`${ACCEPT_BLUE_BASE}/transactions/charge`, {
       method: "POST",
