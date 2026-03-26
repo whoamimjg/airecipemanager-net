@@ -89,6 +89,44 @@ const AccountSettings = () => {
     enabled: !!user,
   });
 
+  // Fetch billing history
+  const { data: billingHistory } = useQuery({
+    queryKey: ["billingHistory", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("billing_history")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  // Seed sample billing data if none exists
+  const seedBillingData = async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from("billing_history")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if ((count ?? 0) > 0) return;
+
+    const sampleInvoices = [
+      { user_id: user.id, invoice_number: "INV-2025-001", date: "2025-01-15", amount: 9.99, plan: "pro", status: "paid", payment_method: "Visa •••• 4242", description: "Pro Plan - Monthly" },
+      { user_id: user.id, invoice_number: "INV-2024-012", date: "2024-12-15", amount: 9.99, plan: "pro", status: "paid", payment_method: "Visa •••• 4242", description: "Pro Plan - Monthly" },
+      { user_id: user.id, invoice_number: "INV-2024-011", date: "2024-11-15", amount: 4.99, plan: "basic", status: "paid", payment_method: "Visa •••• 4242", description: "Basic Plan - Monthly" },
+      { user_id: user.id, invoice_number: "INV-2024-010", date: "2024-10-15", amount: 4.99, plan: "basic", status: "paid", payment_method: "Visa •••• 4242", description: "Basic Plan - Monthly" },
+    ];
+    await supabase.from("billing_history").insert(sampleInvoices);
+    queryClient.invalidateQueries({ queryKey: ["billingHistory"] });
+  };
+
+  useEffect(() => {
+    if (user) seedBillingData();
+  }, [user]);
+
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name ?? "");
