@@ -110,11 +110,19 @@ const PaymentDialog = ({
       const hostedTokenization = new window.HostedTokenization(sourceKey);
       const cardForm = hostedTokenization.create("card-form");
 
-      cardForm.setStyles({
-        card: "font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px; border: 1px solid hsl(30, 20%, 88%); border-radius: 8px; background: hsl(40, 33%, 98%);",
+      cardForm.mount("#accept-blue-card-container");
+
+      // accept.blue creates its iframe during mount; setStyles before that throws "iframe not found".
+      requestAnimationFrame(() => {
+        try {
+          cardForm.setStyles({
+            card: "font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px; border: 1px solid hsl(30, 20%, 88%); border-radius: 8px; background: hsl(40, 33%, 98%);",
+          });
+        } catch (styleError) {
+          console.warn("Card form style initialization skipped:", styleError);
+        }
       });
 
-      cardForm.mount("#accept-blue-card-container");
       cardFormRef.current = cardForm;
       setCardFormReady(true);
     } catch (err) {
