@@ -119,11 +119,18 @@ async function createRecurring(
       period: schedule.period,
       start_date: nextDate,
     },
-    ...(card.nonce ? { nonce: card.nonce } : {}),
-    ...(card.source ? { source: card.source } : {}),
     title: title || "Subscription",
     active: true,
   };
+
+  if (card.nonce) {
+    payload.source = `nonce-${card.nonce}`;
+    if (card.expiry_month) payload.expiry_month = card.expiry_month;
+    if (card.expiry_year) payload.expiry_year = card.expiry_year;
+    if (card.avs_zip) payload.avs_zip = card.avs_zip;
+  } else if (card.source) {
+    payload.source = card.source;
+  }
 
   const response = await fetch(`${ACCEPT_BLUE_BASE}/recurring-schedules`, {
     method: "POST",
