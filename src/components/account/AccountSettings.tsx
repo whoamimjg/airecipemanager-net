@@ -449,7 +449,14 @@ const AccountSettings = () => {
                       variant={key === "pro" ? "default" : "outline"}
                       size="sm"
                       className="w-full mt-2"
-                      onClick={() => toast.info("Payment integration coming soon!")}
+                      onClick={() => {
+                        if (plan.price === 0) {
+                          toast.info("You're already on the free plan");
+                          return;
+                        }
+                        setSelectedPlan({ key, name: plan.name, price: plan.price });
+                        setPaymentOpen(true);
+                      }}
                     >
                       <Crown className="h-3.5 w-3.5 mr-1" />
                       {Object.keys(PLAN_DETAILS).indexOf(key) > Object.keys(PLAN_DETAILS).indexOf(currentPlan)
