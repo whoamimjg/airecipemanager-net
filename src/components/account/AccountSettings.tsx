@@ -670,6 +670,23 @@ const AccountSettings = () => {
           </AlertDialog>
         </CardContent>
       </Card>
+
+      {/* Payment Dialog */}
+      {selectedPlan && (
+        <PaymentDialog
+          open={paymentOpen}
+          onOpenChange={setPaymentOpen}
+          planKey={selectedPlan.key}
+          planName={selectedPlan.name}
+          amount={selectedPlan.price}
+          mode="subscription"
+          frequency="monthly"
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["subscription"] });
+            queryClient.invalidateQueries({ queryKey: ["billingHistory"] });
+          }}
+        />
+      )}
     </div>
   );
 };
