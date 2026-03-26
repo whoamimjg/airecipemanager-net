@@ -292,7 +292,7 @@ async function createRecurring(
       response.status === 403 || response.status === 404
         ? "Recurring schedule API access is not enabled for this source key. Please enable recurring permissions for your API key in accept.blue."
         : "Failed to create recurring schedule";
-    return new Response(JSON.stringify({ error: "Failed to create recurring schedule", details: result }), {
+    return new Response(JSON.stringify({ error: recurringError, details: result }), {
       status: response.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
