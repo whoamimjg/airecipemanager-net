@@ -10,13 +10,11 @@ const corsHeaders = {
 const ACCEPT_BLUE_BASE = "https://api.sandbox.accept.blue/api/v2";
 
 function getBasicAuth(): string {
-  const sourceKey =
-    Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim() ||
-    Deno.env.get("ACCEPT_BLUE_SOURCE_KEY")?.trim();
+  const sourceKey = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
   const pin = Deno.env.get("ACCEPT_BLUE_PIN")?.trim();
 
   if (!sourceKey || !pin) {
-    throw new Error("Missing accept.blue API credentials");
+    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY or ACCEPT_BLUE_PIN");
   }
 
   return btoa(`${sourceKey}:${pin}`);
