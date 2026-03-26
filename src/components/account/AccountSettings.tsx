@@ -461,7 +461,133 @@ const AccountSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Account Actions */}
+      {/* Next Billing & Payment Method */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <CreditCard className="h-5 w-5" /> Payment & Billing
+          </CardTitle>
+          <CardDescription>Manage your payment method and view upcoming charges</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Next billing */}
+          <div className="flex items-center justify-between rounded-lg border border-border p-4 bg-muted/30">
+            <div>
+              <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 text-primary" /> Next Billing Date
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {subscription?.next_billing_date
+                  ? new Date(subscription.next_billing_date).toLocaleDateString("en-US", {
+                      year: "numeric", month: "long", day: "numeric",
+                    })
+                  : "No upcoming charges"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Amount</p>
+              <p className="text-lg font-bold font-serif text-foreground">
+                ${planInfo.price.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {/* Payment method */}
+          <div className="space-y-2">
+            <Label>Payment Method</Label>
+            <div className="flex items-center justify-between rounded-lg border border-border p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-14 rounded bg-muted flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {subscription?.payment_method ?? "No payment method"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {subscription?.payment_method ? "Default payment method" : "Add a payment method to upgrade"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toast.info("Payment method management coming soon!")}
+              >
+                {subscription?.payment_method ? "Update" : "Add"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Billing History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <FileText className="h-5 w-5" /> Billing History
+          </CardTitle>
+          <CardDescription>View and download past invoices</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {billingHistory && billingHistory.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">PDF</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {billingHistory.map((inv: any) => (
+                    <TableRow key={inv.id}>
+                      <TableCell className="font-mono text-xs">{inv.invoice_number}</TableCell>
+                      <TableCell className="text-sm">
+                        {new Date(inv.date).toLocaleDateString("en-US", {
+                          month: "short", day: "numeric", year: "numeric",
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs capitalize">{inv.plan}</Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">${Number(inv.amount).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={inv.status === "paid" ? "default" : "destructive"}
+                          className="text-xs capitalize"
+                        >
+                          {inv.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadInvoice(inv.id)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              <p>No billing history yet</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Account Actions</CardTitle>
