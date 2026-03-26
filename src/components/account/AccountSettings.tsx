@@ -13,6 +13,7 @@ import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, Fi
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import PaymentDialog from "@/components/payment/PaymentDialog";
 
 const DIET_OPTIONS = [
   "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Keto",
@@ -44,6 +45,8 @@ const AccountSettings = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{ key: string; name: string; price: number } | null>(null);
 
   // Fetch profile
   const { data: profile, isLoading } = useQuery({
@@ -446,7 +449,14 @@ const AccountSettings = () => {
                       variant={key === "pro" ? "default" : "outline"}
                       size="sm"
                       className="w-full mt-2"
-                      onClick={() => toast.info("Payment integration coming soon!")}
+                      onClick={() => {
+                        if (plan.price === 0) {
+                          toast.info("You're already on the free plan");
+                          return;
+                        }
+                        setSelectedPlan({ key, name: plan.name, price: plan.price });
+                        setPaymentOpen(true);
+                      }}
                     >
                       <Crown className="h-3.5 w-3.5 mr-1" />
                       {Object.keys(PLAN_DETAILS).indexOf(key) > Object.keys(PLAN_DETAILS).indexOf(currentPlan)
@@ -660,6 +670,23 @@ const AccountSettings = () => {
           </AlertDialog>
         </CardContent>
       </Card>
+
+      {/* Payment Dialog */}
+      {selectedPlan && (
+        <PaymentDialog
+          open={paymentOpen}
+          onOpenChange={setPaymentOpen}
+          planKey={selectedPlan.key}
+          planName={selectedPlan.name}
+          amount={selectedPlan.price}
+          mode="subscription"
+          frequency="monthly"
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["subscription"] });
+            queryClient.invalidateQueries({ queryKey: ["billingHistory"] });
+          }}
+        />
+      )}
     </div>
   );
 };
