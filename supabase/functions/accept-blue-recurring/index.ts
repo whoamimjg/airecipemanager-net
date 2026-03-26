@@ -54,7 +54,7 @@ serve(async (req) => {
     const { action } = body;
 
     if (action === "create") {
-      return await createRecurring(body, user.id, supabase);
+      return await createRecurring(body, { id: user.id, email: user.email }, supabase);
     } else if (action === "cancel") {
       return await cancelRecurring(body, user.id, supabase);
     } else if (action === "list") {
