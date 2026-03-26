@@ -1,0 +1,116 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const ACCEPT_BLUE_BASE = "https://api.sandbox.accept.blue/api/v2";
+
+function getBasicAuth(): string {
+  const sourceKey = Deno.env.get("ACCEPT_BLUE_SOURCE_KEY")!;
+  const pin = Deno.env.get("ACCEPT_BLUE_PIN")!;
+  return btoa(`${sourceKey}:${pin}`);
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Verify user is authenticated
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = await req.json();
+    const { amount, card, name, description } = body;
+
+    // card should contain either a nonce or source (tokenized card reference)
+    // For nonce-based: { nonce: "..." }
+    // For saved card: { source: "card-ref-..." }
+    if (!amount || !card) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: amount, card" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const chargePayload: Record<string, unknown> = {
+      amount: Number(amount),
+      ...(card.nonce ? { nonce: card.nonce } : {}),
+      ...(card.source ? { source: card.source } : {}),
+      ...(name ? { name } : {}),
+    };
+
+    const response = await fetch(`${ACCEPT_BLUE_BASE}/transactions/charge`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${getBasicAuth()}`,
+      },
+      body: JSON.stringify(chargePayload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error("accept.blue charge error:", result);
+      return new Response(JSON.stringify({ error: "Payment failed", details: result }), {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // If successful, record in billing_history
+    if (result.status === "approved" || result.status_code === 1) {
+      const invoiceNumber = `INV-${Date.now()}`;
+      await supabase.from("billing_history").insert({
+        user_id: user.id,
+        amount: Number(amount),
+        invoice_number: invoiceNumber,
+        plan: description || "one-time",
+        status: "paid",
+        payment_method: "card",
+        description: description || "One-time payment",
+      });
+    }
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Charge error:", error);
+    return new Response(
+      JSON.stringify({ error: "Internal server error" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+});
