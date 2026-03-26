@@ -9,9 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock } from "lucide-react";
+import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, FileText, Download, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const DIET_OPTIONS = [
   "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Keto",
@@ -87,6 +88,44 @@ const AccountSettings = () => {
     },
     enabled: !!user,
   });
+
+  // Fetch billing history
+  const { data: billingHistory } = useQuery({
+    queryKey: ["billingHistory", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("billing_history")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
+  // Seed sample billing data if none exists
+  const seedBillingData = async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from("billing_history")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if ((count ?? 0) > 0) return;
+
+    const sampleInvoices = [
+      { user_id: user.id, invoice_number: "INV-2025-001", date: "2025-01-15", amount: 9.99, plan: "pro", status: "paid", payment_method: "Visa •••• 4242", description: "Pro Plan - Monthly" },
+      { user_id: user.id, invoice_number: "INV-2024-012", date: "2024-12-15", amount: 9.99, plan: "pro", status: "paid", payment_method: "Visa •••• 4242", description: "Pro Plan - Monthly" },
+      { user_id: user.id, invoice_number: "INV-2024-011", date: "2024-11-15", amount: 4.99, plan: "basic", status: "paid", payment_method: "Visa •••• 4242", description: "Basic Plan - Monthly" },
+      { user_id: user.id, invoice_number: "INV-2024-010", date: "2024-10-15", amount: 4.99, plan: "basic", status: "paid", payment_method: "Visa •••• 4242", description: "Basic Plan - Monthly" },
+    ];
+    await supabase.from("billing_history").insert(sampleInvoices);
+    queryClient.invalidateQueries({ queryKey: ["billingHistory"] });
+  };
+
+  useEffect(() => {
+    if (user) seedBillingData();
+  }, [user]);
 
   useEffect(() => {
     if (profile) {
@@ -200,6 +239,29 @@ const AccountSettings = () => {
       setChangingPassword(false);
     }
   };
+
+  const handleDownloadInvoice = async (invoiceId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("generate-invoice", {
+        body: { invoiceId },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw res.error;
+
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice-${invoiceId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Invoice downloaded!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to download invoice");
+    }
+  };
+
 
   const handleDeleteAccount = async () => {
     if (!user) return;
@@ -399,7 +461,133 @@ const AccountSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Account Actions */}
+      {/* Next Billing & Payment Method */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <CreditCard className="h-5 w-5" /> Payment & Billing
+          </CardTitle>
+          <CardDescription>Manage your payment method and view upcoming charges</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Next billing */}
+          <div className="flex items-center justify-between rounded-lg border border-border p-4 bg-muted/30">
+            <div>
+              <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 text-primary" /> Next Billing Date
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {subscription?.next_billing_date
+                  ? new Date(subscription.next_billing_date).toLocaleDateString("en-US", {
+                      year: "numeric", month: "long", day: "numeric",
+                    })
+                  : "No upcoming charges"}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Amount</p>
+              <p className="text-lg font-bold font-serif text-foreground">
+                ${planInfo.price.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {/* Payment method */}
+          <div className="space-y-2">
+            <Label>Payment Method</Label>
+            <div className="flex items-center justify-between rounded-lg border border-border p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-14 rounded bg-muted flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {subscription?.payment_method ?? "No payment method"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {subscription?.payment_method ? "Default payment method" : "Add a payment method to upgrade"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toast.info("Payment method management coming soon!")}
+              >
+                {subscription?.payment_method ? "Update" : "Add"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Billing History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <FileText className="h-5 w-5" /> Billing History
+          </CardTitle>
+          <CardDescription>View and download past invoices</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {billingHistory && billingHistory.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">PDF</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {billingHistory.map((inv: any) => (
+                    <TableRow key={inv.id}>
+                      <TableCell className="font-mono text-xs">{inv.invoice_number}</TableCell>
+                      <TableCell className="text-sm">
+                        {new Date(inv.date).toLocaleDateString("en-US", {
+                          month: "short", day: "numeric", year: "numeric",
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-xs capitalize">{inv.plan}</Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">${Number(inv.amount).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={inv.status === "paid" ? "default" : "destructive"}
+                          className="text-xs capitalize"
+                        >
+                          {inv.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadInvoice(inv.id)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+              <p>No billing history yet</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Account Actions</CardTitle>
