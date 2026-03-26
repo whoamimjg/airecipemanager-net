@@ -9,9 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock } from "lucide-react";
+import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, FileText, Download, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const DIET_OPTIONS = [
   "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Keto",
