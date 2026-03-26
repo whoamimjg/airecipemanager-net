@@ -76,7 +76,20 @@ serve(async (req) => {
       body: JSON.stringify(chargePayload),
     });
 
-    const result = await response.json();
+    const responseText = await response.text();
+    let result: Record<string, unknown>;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      console.error("accept.blue non-JSON response:", responseText);
+      return new Response(
+        JSON.stringify({ error: "Payment gateway error", details: responseText }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     if (!response.ok) {
       console.error("accept.blue charge error:", result);

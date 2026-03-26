@@ -29,7 +29,7 @@ serve(async (req) => {
     if (action === "get-tokenization-key") {
       // Return the source key for the hosted tokenization form
       // The source key is a publishable key safe for frontend use
-      const sourceKey = Deno.env.get("ACCEPT_BLUE_SOURCE_KEY")!;
+      const sourceKey = Deno.env.get("ACCEPT_BLUE_SOURCE_KEY")!.trim();
       return new Response(
         JSON.stringify({
           tokenization_source: sourceKey,
