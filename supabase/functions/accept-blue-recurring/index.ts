@@ -137,8 +137,12 @@ async function createRecurring(
 
   const customerIdentifier = user.email || user.id;
 
+  const customerLookupUrl = `${ACCEPT_BLUE_BASE}/customers?active=true&customer_number=${encodeURIComponent(customerIdentifier)}`;
+  console.log("DEBUG: Fetching customers from:", customerLookupUrl);
+  console.log("DEBUG: Auth header length:", getBasicAuth().length);
+
   const customersResponse = await fetch(
-    `${ACCEPT_BLUE_BASE}/customers?active=true&customer_number=${encodeURIComponent(customerIdentifier)}`,
+    customerLookupUrl,
     {
       method: "GET",
       headers: {
@@ -146,6 +150,8 @@ async function createRecurring(
       },
     }
   );
+
+  console.log("DEBUG: Customer lookup status:", customersResponse.status);
 
   const customersText = await customersResponse.text();
   let customersResult: unknown = [];
