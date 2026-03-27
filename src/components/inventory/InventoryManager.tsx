@@ -23,11 +23,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
 import InventoryFormDialog from "./InventoryFormDialog";
 import BarcodeScanner from "./BarcodeScanner";
+
+const DELETE_REASONS = [
+  "Used / Consumed",
+  "Expired",
+  "Spoiled",
+  "Damaged",
+  "Given Away",
+  "Recalled",
+  "Other",
+];
 
 interface InventoryItem {
   id: string;
