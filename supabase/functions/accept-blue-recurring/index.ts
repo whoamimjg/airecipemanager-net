@@ -102,9 +102,11 @@ async function createRecurring(
     card: {
       nonce?: string;
       source?: string;
-      expiry_month?: number;
-      expiry_year?: number;
       expiration?: string;
+      expiry_month?: number | string;
+      expiry_year?: number | string;
+      expiryMonth?: number | string;
+      expiryYear?: number | string;
       avs_zip?: string;
     };
     amount: number;
@@ -227,16 +229,11 @@ async function createRecurring(
   }
 
   // Accept Blue requires "expiration" in MMYY format
-  const cardWithVariants = card as typeof card & {
-    expiryMonth?: number | string;
-    expiryYear?: number | string;
-  };
-
-  const expiryMonth = card.expiry_month ?? cardWithVariants.expiryMonth;
-  const expiryYear = card.expiry_year ?? cardWithVariants.expiryYear;
+  const expiryMonth = card.expiry_month ?? card.expiryMonth;
+  const expiryYear = card.expiry_year ?? card.expiryYear;
   const expiration: string | undefined = card.expiration
     ?? (expiryMonth && expiryYear
-      ? `${String(expiryMonth).padStart(2, '0')}${String(expiryYear).slice(-2)}`
+      ? `${String(expiryMonth).padStart(2, "0")}${String(expiryYear).slice(-2)}`
       : undefined);
 
   if (!expiration) {
@@ -249,20 +246,22 @@ async function createRecurring(
     );
   }
 
-  const pmBody: Record<string, unknown> = {
-    source: cardSource,
-    expiration,
-    ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+  const paymentMethodPayload: Record<string, unknown> = {
+    payment_method: {
+      source: cardSource,
+      expiration,
+      ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+    },
   };
 
   console.log("DEBUG: Resolved expiration:", expiration);
-  console.log("DEBUG: Creating payment method with body:", JSON.stringify(pmBody));
+  console.log("DEBUG: Creating payment method with body:", JSON.stringify(paymentMethodPayload));
 
   const createPaymentMethodResponse = await acceptBlueFetch(
     `${ACCEPT_BLUE_BASE}/customers/${customerId}/payment-methods`,
     {
       method: "POST",
-      body: JSON.stringify(pmBody),
+      body: JSON.stringify(paymentMethodPayload),
     }
   );
 
