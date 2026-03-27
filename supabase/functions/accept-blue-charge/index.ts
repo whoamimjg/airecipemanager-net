@@ -7,10 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ACCEPT_BLUE_BASE = (
-  Deno.env.get("ACCEPT_BLUE_API_BASE_URL")?.trim() ||
-  "https://api.sandbox.accept.blue/api/v2"
-).replace(/\/$/, "");
+const ACCEPT_BLUE_BASE = "https://api.accept.blue/api/v2";
 
 function getBasicAuth(): string {
   const sourceKey = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
