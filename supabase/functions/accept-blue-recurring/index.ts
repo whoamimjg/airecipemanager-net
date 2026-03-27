@@ -354,46 +354,35 @@ async function createRecurring(
     }
   }
 
+  // Build minimal payment-method payloads — only card-related fields allowed.
+  // Do NOT include reference_number, title, plan, amount, etc.
   const paymentMethodAttempts: Array<{ label: string; body: Record<string, unknown> }> = [
+    // 1. Use the raw saved-card ref (NO prefix) with expiration
     ...(savedCardRef
-      ? [{
-          label: "source_with_saved_card_ref",
-          body: {
-            source: normalizeSource(savedCardRef, "ref"),
-            expiration,
-            expiry_month: expiryMonth,
-            expiry_year: expiryYear,
-            ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      ? [
+          {
+            label: "saved_card_ref_raw",
+            body: { source: savedCardRef, expiration },
           },
-        }]
+          {
+            label: "saved_card_ref_with_ref_prefix",
+            body: { source: `ref-${savedCardRef}`, expiration },
+          },
+        ]
       : []),
-    ...sourceCandidates.map((source) => ({
-      label: `source_with_both_exp_formats_${source.split("-")[0]}`,
-      body: {
-        source,
-        expiration,
-        expiry_month: expiryMonth,
-        expiry_year: expiryYear,
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      },
-    })),
-    ...sourceCandidates.map((source) => ({
-      label: `source_with_expiry_parts_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
-      body: {
-        source,
-        expiry_month: expiryMonth,
-        expiry_year: expiryYear,
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      },
-    })),
-    ...sourceCandidates.map((source) => ({
-      label: `source_with_mmyy_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
-      body: {
-        source,
-        expiration,
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      },
-    })),
+    // 2. Use the nonce directly with expiration (nonce- prefix)
+    ...(card.nonce
+      ? [
+          {
+            label: "nonce_prefixed",
+            body: { source: `nonce-${card.nonce.replace(/^nonce-/, "")}`, expiration },
+          },
+          {
+            label: "nonce_raw",
+            body: { source: card.nonce, expiration },
+          },
+        ]
+      : []),
   ];
 
   let createPaymentMethodResponse: Response | null = null;
