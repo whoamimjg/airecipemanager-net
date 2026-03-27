@@ -279,81 +279,6 @@ async function createRecurring(
     );
   }
 
-  const normalizeSource = (value: string, fallbackPrefix: "nonce" | "ref" | "tkn"): string => {
-    const trimmed = value.trim();
-    if (/^(nonce|tkn|ref)-[A-Za-z0-9]+$/.test(trimmed)) {
-      return trimmed;
-    }
-    const compact = trimmed.replace(/[^A-Za-z0-9]/g, "");
-    return `${fallbackPrefix}-${compact}`;
-  };
-
-  const buildSourceCandidates = (value: string, preferredPrefix: "nonce" | "tkn" | "ref"): string[] => {
-    const trimmed = value.trim();
-    if (/^(nonce|tkn|ref)-[A-Za-z0-9]+$/.test(trimmed)) {
-      return [trimmed];
-    }
-
-    const compact = trimmed.replace(/[^A-Za-z0-9]/g, "");
-    if (!compact) return [];
-
-    const baseOrder: Array<"nonce" | "tkn" | "ref"> = ["nonce", "tkn", "ref"];
-    const ordered = [preferredPrefix, ...baseOrder.filter((p) => p !== preferredPrefix)];
-    return ordered.map((prefix) => `${prefix}-${compact}`);
-  };
-
-  const sourceCandidates = Array.from(new Set([
-    ...(card.nonce ? buildSourceCandidates(String(card.nonce), "nonce") : []),
-    ...(rawSource ? buildSourceCandidates(String(rawSource), card.nonce ? "nonce" : "ref") : []),
-  ]));
-
-  let savedCardRef: string | undefined;
-  const savedCardAttempts = sourceCandidates.flatMap((source) => [
-    {
-      label: `saved_card_with_exp_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
-      body: {
-        source,
-        expiry_month: expiryMonth,
-        expiry_year: expiryYear,
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      },
-    },
-    {
-      label: `saved_card_source_only_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
-      body: {
-        source,
-      },
-    },
-  ]);
-
-  for (const attempt of savedCardAttempts) {
-    console.log(`DEBUG: Saving card [${attempt.label}]`, JSON.stringify(attempt.body));
-
-    const response = await acceptBlueFetch(`${ACCEPT_BLUE_BASE}/saved-cards`, {
-      method: "POST",
-      body: JSON.stringify(attempt.body),
-    });
-
-    const responseText = await response.text();
-    let parsed: Record<string, unknown> = {};
-    try {
-      parsed = responseText ? JSON.parse(responseText) : {};
-    } catch {
-      parsed = { raw: responseText };
-    }
-
-    if (!response.ok) {
-      continue;
-    }
-
-    const candidate = parsed.cardRef ?? parsed.card_ref;
-    if (typeof candidate === "string" && candidate.length > 0) {
-      savedCardRef = candidate;
-      console.log("DEBUG: Saved card token acquired");
-      break;
-    }
-  }
-
   // Ensure source always matches pattern: (nonce|tkn|ref)-[A-Za-z0-9]+
   const ensureSourcePrefix = (val: string, prefix: "nonce" | "tkn" | "ref"): string => {
     const trimmed = val.trim();
@@ -362,29 +287,29 @@ async function createRecurring(
     return `${prefix}-${clean}`;
   };
 
-  // Build minimal payment-method payloads — only source + expiration allowed.
+  // Step 1: Use the nonce to create a payment method directly on the customer.
+  // The accept.blue API requires expiry_month (integer) and expiry_year (integer),
+  // NOT an "expiration" MMYY string.
+  const nonce = String(card.nonce ?? rawSource);
   const paymentMethodAttempts: Array<{ label: string; body: Record<string, unknown> }> = [
-    // 1. Saved card ref with ref- prefix (preferred)
-    ...(savedCardRef
-      ? [{
-            label: "saved_card_ref_prefixed",
-            body: { source: ensureSourcePrefix(savedCardRef, "ref"), expiration },
-        }]
-      : []),
-    // 2. Nonce with nonce- prefix
-    ...(card.nonce
-      ? [{
-            label: "nonce_prefixed",
-            body: { source: ensureSourcePrefix(String(card.nonce), "nonce"), expiration },
-        }]
-      : []),
-    // 3. Nonce with tkn- prefix as fallback
-    ...(card.nonce
-      ? [{
-            label: "nonce_as_tkn",
-            body: { source: ensureSourcePrefix(String(card.nonce), "tkn"), expiration },
-        }]
-      : []),
+    {
+      label: "nonce_prefixed",
+      body: {
+        source: ensureSourcePrefix(nonce, "nonce"),
+        expiry_month: expiryMonth,
+        expiry_year: expiryYear,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
+    },
+    {
+      label: "tkn_prefixed",
+      body: {
+        source: ensureSourcePrefix(nonce, "tkn"),
+        expiry_month: expiryMonth,
+        expiry_year: expiryYear,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
+    },
   ];
 
   let createPaymentMethodResponse: Response | null = null;
