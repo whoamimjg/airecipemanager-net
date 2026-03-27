@@ -227,19 +227,35 @@ async function createRecurring(
   }
 
   // Accept Blue requires "expiration" in MMYY format
+  const cardWithVariants = card as typeof card & {
+    expiryMonth?: number | string;
+    expiryYear?: number | string;
+  };
+
+  const expiryMonth = card.expiry_month ?? cardWithVariants.expiryMonth;
+  const expiryYear = card.expiry_year ?? cardWithVariants.expiryYear;
   const expiration: string | undefined = card.expiration
-    ?? (card.expiry_month && card.expiry_year
-      ? `${String(card.expiry_month).padStart(2, '0')}${String(card.expiry_year).slice(-2)}`
+    ?? (expiryMonth && expiryYear
+      ? `${String(expiryMonth).padStart(2, '0')}${String(expiryYear).slice(-2)}`
       : undefined);
-  
-  console.log("DEBUG: Resolved expiration:", expiration);
+
+  if (!expiration) {
+    return new Response(
+      JSON.stringify({ error: "Missing card expiration from tokenization payload" }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
 
   const pmBody: Record<string, unknown> = {
     source: cardSource,
-    ...(expiration ? { expiration } : {}),
+    expiration,
     ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
   };
 
+  console.log("DEBUG: Resolved expiration:", expiration);
   console.log("DEBUG: Creating payment method with body:", JSON.stringify(pmBody));
 
   const createPaymentMethodResponse = await acceptBlueFetch(

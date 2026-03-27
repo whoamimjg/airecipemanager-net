@@ -164,19 +164,29 @@ const PaymentDialog = ({
         return;
       }
 
-      // Build expiration in MMYY format for Accept Blue
-      const expiration = result.expiry_month && result.expiry_year
-        ? `${String(result.expiry_month).padStart(2, '0')}${String(result.expiry_year).slice(-2)}`
-        : undefined;
+      // Accept Blue tokenization can return either snake_case or camelCase fields
+      const token = result as typeof result & {
+        expiryMonth?: number | string;
+        expiryYear?: number | string;
+        expiration?: string;
+        cardType?: string;
+      };
+
+      const expiryMonth = result.expiry_month ?? token.expiryMonth;
+      const expiryYear = result.expiry_year ?? token.expiryYear;
+      const expiration = token.expiration
+        ?? (expiryMonth && expiryYear
+          ? `${String(expiryMonth).padStart(2, '0')}${String(expiryYear).slice(-2)}`
+          : undefined);
 
       const card = {
         nonce: result.nonce,
-        expiry_month: result.expiry_month,
-        expiry_year: result.expiry_year,
+        expiry_month: expiryMonth,
+        expiry_year: expiryYear,
         expiration,
         avs_zip: result.avs_zip,
         last4: result.last4,
-        card_type: result.card_type,
+        card_type: result.card_type ?? token.cardType,
       };
 
       if (mode === "one-time") {
