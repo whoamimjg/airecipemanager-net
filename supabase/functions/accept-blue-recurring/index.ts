@@ -402,7 +402,13 @@ async function createRecurring(
     }
 
     const isLastAttempt = i === paymentMethodAttempts.length - 1;
-    if (response.status !== 400 || isLastAttempt) {
+    if (isLastAttempt) {
+      break;
+    }
+
+    // Keep trying alternative payload/source shapes for gateway validation errors.
+    // Stop early only on auth/permission or server-side hard failures.
+    if ([401, 403, 500, 502, 503].includes(response.status)) {
       break;
     }
   }
