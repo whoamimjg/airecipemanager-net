@@ -40,7 +40,7 @@ interface PaymentDialogProps {
   onSuccess?: () => void;
 }
 
-const TOKENIZATION_SCRIPT_URL = "https://tokenization.sandbox.accept.blue/tokenization/v0.2";
+const TOKENIZATION_SCRIPT_URL = "https://tokenization.accept.blue/tokenization/v0.2";
 
 const PaymentDialog = ({
   open,
