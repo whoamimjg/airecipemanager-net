@@ -12,15 +12,14 @@ const ACCEPT_BLUE_BASE = (
   "https://api.sandbox.accept.blue/api/v2"
 ).replace(/\/$/, "");
 
-function getBasicAuth(): string {
-  const sourceKey = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
-  const pin = Deno.env.get("ACCEPT_BLUE_PIN")?.trim();
+const ACCEPT_BLUE_API_SOURCE_KEY = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
 
-  if (!sourceKey || !pin) {
-    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY or ACCEPT_BLUE_PIN");
+function getAcceptBlueAuthHeader(): string {
+  if (!ACCEPT_BLUE_API_SOURCE_KEY) {
+    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY");
   }
 
-  return btoa(`${sourceKey}:${pin}`);
+  return `Bearer ${ACCEPT_BLUE_API_SOURCE_KEY}`;
 }
 
 serve(async (req) => {
@@ -139,14 +138,14 @@ async function createRecurring(
 
   const customerLookupUrl = `${ACCEPT_BLUE_BASE}/customers?active=true&customer_number=${encodeURIComponent(customerIdentifier)}`;
   console.log("DEBUG: Fetching customers from:", customerLookupUrl);
-  console.log("DEBUG: Auth header length:", getBasicAuth().length);
+  console.log("DEBUG: Auth header length:", getAcceptBlueAuthHeader().length);
 
   const customersResponse = await fetch(
     customerLookupUrl,
     {
       method: "GET",
       headers: {
-        Authorization: `Basic ${getBasicAuth()}`,
+        Authorization: getAcceptBlueAuthHeader(),
       },
     }
   );
@@ -173,7 +172,7 @@ async function createRecurring(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${getBasicAuth()}`,
+        Authorization: getAcceptBlueAuthHeader(),
       },
       body: JSON.stringify({
         identifier: customerIdentifier,
@@ -225,7 +224,7 @@ async function createRecurring(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${getBasicAuth()}`,
+        Authorization: getAcceptBlueAuthHeader(),
       },
       body: JSON.stringify({
         source: cardSource,
@@ -282,7 +281,7 @@ async function createRecurring(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Basic ${getBasicAuth()}`,
+      Authorization: getAcceptBlueAuthHeader(),
     },
     body: JSON.stringify(payload),
   });
@@ -355,7 +354,7 @@ async function cancelRecurring(
     {
       method: "DELETE",
       headers: {
-        Authorization: `Basic ${getBasicAuth()}`,
+        Authorization: getAcceptBlueAuthHeader(),
       },
     }
   );
@@ -397,7 +396,7 @@ async function listRecurring(userId: string) {
   const response = await fetch(`${ACCEPT_BLUE_BASE}/recurring-schedules`, {
     method: "GET",
     headers: {
-      Authorization: `Basic ${getBasicAuth()}`,
+      Authorization: getAcceptBlueAuthHeader(),
     },
   });
 
