@@ -83,6 +83,8 @@ const InventoryManager = () => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [prefillItem, setPrefillItem] = useState<Partial<InventoryItem> | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteNotes, setDeleteNotes] = useState("");
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["inventory", user?.id],
