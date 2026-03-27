@@ -168,6 +168,8 @@ const PaymentDialog = ({
         expiry_month: result.expiry_month,
         expiry_year: result.expiry_year,
         avs_zip: result.avs_zip,
+        last4: result.last4,
+        card_type: result.card_type,
       };
 
       if (mode === "one-time") {
