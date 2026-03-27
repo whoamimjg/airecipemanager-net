@@ -104,6 +104,7 @@ async function createRecurring(
       source?: string;
       expiry_month?: number;
       expiry_year?: number;
+      expiration?: string;
       avs_zip?: string;
     };
     amount: number;
@@ -111,6 +112,8 @@ async function createRecurring(
     title?: string;
     plan?: string;
   };
+
+  console.log("DEBUG: Incoming card data:", JSON.stringify(card));
 
   if (!card || !amount || !frequency) {
     return new Response(
@@ -224,10 +227,12 @@ async function createRecurring(
   }
 
   // Accept Blue requires "expiration" in MMYY format
-  let expiration: string | undefined;
-  if (card.expiry_month && card.expiry_year) {
-    expiration = `${String(card.expiry_month).padStart(2, '0')}${String(card.expiry_year).slice(-2)}`;
-  }
+  const expiration: string | undefined = card.expiration
+    ?? (card.expiry_month && card.expiry_year
+      ? `${String(card.expiry_month).padStart(2, '0')}${String(card.expiry_year).slice(-2)}`
+      : undefined);
+  
+  console.log("DEBUG: Resolved expiration:", expiration);
 
   const pmBody: Record<string, unknown> = {
     source: cardSource,
