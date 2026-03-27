@@ -100,7 +100,24 @@ const InventoryManager = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, reason, notes }: { id: string; reason: string; notes: string }) => {
+      const item = items.find((i) => i.id === id);
+      if (!item) throw new Error("Item not found");
+
+      // Log the deletion with reason
+      const { error: logError } = await supabase.from("inventory_deletions").insert({
+        user_id: user!.id,
+        item_name: item.name,
+        category: item.category,
+        quantity: item.quantity,
+        unit: item.unit,
+        price_per_unit: item.price_per_unit,
+        total_cost: item.price_per_unit ? item.price_per_unit * item.quantity : null,
+        reason,
+        notes: notes || null,
+      });
+      if (logError) throw logError;
+
       const { error } = await supabase.from("inventory_items").delete().eq("id", id);
       if (error) throw error;
     },
@@ -108,6 +125,8 @@ const InventoryManager = () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       toast.success("Item removed");
       setDeleteId(null);
+      setDeleteReason("");
+      setDeleteNotes("");
     },
     onError: () => toast.error("Failed to delete item"),
   });
