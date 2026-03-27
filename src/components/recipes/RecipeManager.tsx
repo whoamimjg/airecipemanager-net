@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe } from "lucide-react";
+import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe, Star, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
 import ImportRecipe from "./ImportRecipe";
 import RecipeDetailDialog from "./RecipeDetailDialog";
+import StarRating from "./StarRating";
 
 interface Recipe {
   id: string;
@@ -25,6 +26,7 @@ interface Recipe {
   tags: string[] | null;
   source_url: string | null;
   image_url: string | null;
+  rating: number | null;
   created_at: string;
 }
 
@@ -48,6 +50,37 @@ const RecipeManager = () => {
       return data as Recipe[];
     },
     enabled: !!user,
+  });
+
+  const { data: lastPlannedMap = {} } = useQuery({
+    queryKey: ["recipe-last-planned", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("meal_plans")
+        .select("recipe_id, date")
+        .not("recipe_id", "is", null)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      data?.forEach((mp) => {
+        if (mp.recipe_id && !map[mp.recipe_id]) {
+          map[mp.recipe_id] = mp.date;
+        }
+      });
+      return map;
+    },
+    enabled: !!user,
+  });
+
+  const ratingMutation = useMutation({
+    mutationFn: async ({ id, rating }: { id: string; rating: number }) => {
+      const { error } = await supabase.from("recipes").update({ rating }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+    onError: () => toast.error("Failed to update rating"),
   });
 
   const deleteMutation = useMutation({
@@ -170,7 +203,14 @@ const RecipeManager = () => {
                 {recipe.description && (
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{recipe.description}</p>
                 )}
-                <div className="flex gap-4 text-xs text-muted-foreground">
+                <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                  <StarRating
+                    rating={recipe.rating}
+                    onChange={(rating) => ratingMutation.mutate({ id: recipe.id, rating })}
+                    size="sm"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                   {recipe.prep_time && (
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" /> {recipe.prep_time + (recipe.cook_time || 0)} min
@@ -179,6 +219,11 @@ const RecipeManager = () => {
                   {recipe.servings && (
                     <span className="flex items-center gap-1">
                       <Users className="h-3 w-3" /> {recipe.servings} servings
+                    </span>
+                  )}
+                  {lastPlannedMap[recipe.id] && (
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" /> Last planned: {new Date(lastPlannedMap[recipe.id]).toLocaleDateString()}
                     </span>
                   )}
                 </div>

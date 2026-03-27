@@ -1,0 +1,1 @@
+ALTER TABLE public.recipes ADD COLUMN rating integer DEFAULT NULL CHECK (rating >= 1 AND rating <= 5);
