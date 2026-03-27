@@ -149,6 +149,7 @@ const PaymentDialog = ({
     try {
       // Get nonce from hosted tokenization
       const result = await cardFormRef.current.getNonceToken();
+      console.log("DEBUG: getNonceToken result:", JSON.stringify(result));
 
       if (result.status !== "success" && !result.nonce) {
         toast.error("Failed to tokenize card. Please check your card details.");
