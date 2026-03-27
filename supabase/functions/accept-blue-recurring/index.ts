@@ -141,8 +141,8 @@ async function createRecurring(
   startDate.setDate(startDate.getDate() + 1);
   const nextDate = startDate.toISOString().split("T")[0];
 
-  const cardSource = card.nonce ? `nonce-${card.nonce}` : card.source;
-  if (!cardSource) {
+  const rawSource = card.source ?? card.nonce;
+  if (!rawSource) {
     return new Response(
       JSON.stringify({ error: "Missing card source or nonce" }),
       {
@@ -228,17 +228,50 @@ async function createRecurring(
     );
   }
 
-  // Accept Blue requires "expiration" in MMYY format
-  const expiryMonth = card.expiry_month ?? card.expiryMonth;
-  const expiryYear = card.expiry_year ?? card.expiryYear;
-  const expiration: string | undefined = card.expiration
-    ?? (expiryMonth && expiryYear
-      ? `${String(expiryMonth).padStart(2, "0")}${String(expiryYear).slice(-2)}`
-      : undefined);
+  const parseNumeric = (value: unknown): number | null => {
+    if (value === null || value === undefined || value === "") return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  };
 
-  if (!expiration) {
+  const rawExpDigits = String(
+    card.expiration
+      ?? (card as { expiry?: string }).expiry
+      ?? (
+        (card.expiryMonth ?? card.expiry_month) && (card.expiryYear ?? card.expiry_year)
+          ? `${String(card.expiryMonth ?? card.expiry_month).padStart(2, "0")}${String(card.expiryYear ?? card.expiry_year)}`
+          : ""
+      )
+  ).replace(/\D/g, "");
+
+  let expiryMonth = parseNumeric(card.expiry_month ?? card.expiryMonth);
+  let expiryYear = parseNumeric(card.expiry_year ?? card.expiryYear);
+
+  if ((!expiryMonth || !expiryYear) && (rawExpDigits.length === 4 || rawExpDigits.length === 6)) {
+    expiryMonth = Number(rawExpDigits.slice(0, 2));
+    expiryYear = Number(rawExpDigits.slice(2));
+  }
+
+  if (expiryYear && expiryYear < 100) {
+    expiryYear += 2000;
+  }
+
+  const isValidMonth = !!expiryMonth && expiryMonth >= 1 && expiryMonth <= 12;
+  const isValidYear = !!expiryYear && expiryYear >= 2000 && expiryYear <= 9999;
+  const expiration = isValidMonth && isValidYear
+    ? `${String(expiryMonth).padStart(2, "0")}${String(expiryYear).slice(-2)}`
+    : "";
+
+  if (!expiration || !isValidMonth || !isValidYear) {
     return new Response(
-      JSON.stringify({ error: "Missing card expiration from tokenization payload" }),
+      JSON.stringify({
+        error: "Missing/invalid card expiration from tokenization payload",
+        details: {
+          expiration: card.expiration,
+          expiry_month: card.expiry_month ?? card.expiryMonth,
+          expiry_year: card.expiry_year ?? card.expiryYear,
+        },
+      }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -246,32 +279,121 @@ async function createRecurring(
     );
   }
 
+  const normalizeSource = (value: string, fallbackPrefix: "nonce" | "ref" | "tkn"): string => {
+    const trimmed = value.trim();
+    if (/^(nonce|tkn|ref)-[A-Za-z0-9]+$/.test(trimmed)) {
+      return trimmed;
+    }
+    const compact = trimmed.replace(/[^A-Za-z0-9]/g, "");
+    return `${fallbackPrefix}-${compact}`;
+  };
+
+  const buildSourceCandidates = (value: string, preferredPrefix: "nonce" | "tkn" | "ref"): string[] => {
+    const trimmed = value.trim();
+    if (/^(nonce|tkn|ref)-[A-Za-z0-9]+$/.test(trimmed)) {
+      return [trimmed];
+    }
+
+    const compact = trimmed.replace(/[^A-Za-z0-9]/g, "");
+    if (!compact) return [];
+
+    const baseOrder: Array<"nonce" | "tkn" | "ref"> = ["nonce", "tkn", "ref"];
+    const ordered = [preferredPrefix, ...baseOrder.filter((p) => p !== preferredPrefix)];
+    return ordered.map((prefix) => `${prefix}-${compact}`);
+  };
+
+  const sourceCandidates = Array.from(new Set([
+    ...(card.nonce ? buildSourceCandidates(String(card.nonce), "nonce") : []),
+    ...(rawSource ? buildSourceCandidates(String(rawSource), card.nonce ? "nonce" : "ref") : []),
+  ]));
+
+  let savedCardRef: string | undefined;
+  const savedCardAttempts = sourceCandidates.flatMap((source) => [
+    {
+      label: `saved_card_with_exp_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
+      body: {
+        source,
+        expiry_month: expiryMonth,
+        expiry_year: expiryYear,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
+    },
+    {
+      label: `saved_card_source_only_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
+      body: {
+        source,
+      },
+    },
+  ]);
+
+  for (const attempt of savedCardAttempts) {
+    console.log(`DEBUG: Saving card [${attempt.label}]`, JSON.stringify(attempt.body));
+
+    const response = await acceptBlueFetch(`${ACCEPT_BLUE_BASE}/saved-cards`, {
+      method: "POST",
+      body: JSON.stringify(attempt.body),
+    });
+
+    const responseText = await response.text();
+    let parsed: Record<string, unknown> = {};
+    try {
+      parsed = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      parsed = { raw: responseText };
+    }
+
+    if (!response.ok) {
+      continue;
+    }
+
+    const candidate = parsed.cardRef ?? parsed.card_ref;
+    if (typeof candidate === "string" && candidate.length > 0) {
+      savedCardRef = candidate;
+      console.log("DEBUG: Saved card token acquired");
+      break;
+    }
+  }
+
   const paymentMethodAttempts: Array<{ label: string; body: Record<string, unknown> }> = [
-    {
-      label: "source_with_prefixed_nonce",
+    ...(savedCardRef
+      ? [{
+          label: "source_with_saved_card_ref",
+          body: {
+            source: normalizeSource(savedCardRef, "ref"),
+            expiration,
+            expiry_month: expiryMonth,
+            expiry_year: expiryYear,
+            ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+          },
+        }]
+      : []),
+    ...sourceCandidates.map((source) => ({
+      label: `source_with_both_exp_formats_${source.split("-")[0]}`,
       body: {
-        source: cardSource,
+        source,
+        expiration,
+        expiry_month: expiryMonth,
+        expiry_year: expiryYear,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
+    })),
+    ...sourceCandidates.map((source) => ({
+      label: `source_with_expiry_parts_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
+      body: {
+        source,
+        expiry_month: expiryMonth,
+        expiry_year: expiryYear,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
+    })),
+    ...sourceCandidates.map((source) => ({
+      label: `source_with_mmyy_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
+      body: {
+        source,
         expiration,
         ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
       },
-    },
-    {
-      label: "source_with_raw_nonce",
-      body: {
-        source: card.nonce || cardSource,
-        expiration,
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      },
-    },
-    {
-      label: "token_with_customer_id",
-      body: {
-        token: card.nonce || cardSource,
-        customer_id: customerId,
-        expiration,
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      },
-    },
+    })),
   ];
 
   let createPaymentMethodResponse: Response | null = null;
@@ -306,8 +428,16 @@ async function createRecurring(
       break;
     }
 
+    console.log(`DEBUG: Payment method attempt failed [${attempt.label}]`, JSON.stringify(parsed));
+
     const isLastAttempt = i === paymentMethodAttempts.length - 1;
-    if (response.status !== 400 || isLastAttempt) {
+    if (isLastAttempt) {
+      break;
+    }
+
+    // Keep trying alternative payload/source shapes for gateway validation errors.
+    // Stop early only on auth/permission or server-side hard failures.
+    if ([401, 403, 500, 502, 503].includes(response.status)) {
       break;
     }
   }
