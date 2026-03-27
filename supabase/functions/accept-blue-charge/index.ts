@@ -11,13 +11,12 @@ const ACCEPT_BLUE_BASE = "https://api.accept.blue/api/v2";
 
 function getBasicAuth(): string {
   const sourceKey = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
-  const pin = Deno.env.get("ACCEPT_BLUE_PIN")?.trim();
 
-  if (!sourceKey || !pin) {
-    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY or ACCEPT_BLUE_PIN");
+  if (!sourceKey) {
+    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY");
   }
 
-  return btoa(`${sourceKey}:${pin}`);
+  return btoa(`${sourceKey}:`);
 }
 
 serve(async (req) => {
