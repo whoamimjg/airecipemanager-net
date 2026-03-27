@@ -223,16 +223,25 @@ async function createRecurring(
     );
   }
 
+  // Accept Blue requires "expiration" in MMYY format
+  let expiration: string | undefined;
+  if (card.expiry_month && card.expiry_year) {
+    expiration = `${String(card.expiry_month).padStart(2, '0')}${String(card.expiry_year).slice(-2)}`;
+  }
+
+  const pmBody: Record<string, unknown> = {
+    source: cardSource,
+    ...(expiration ? { expiration } : {}),
+    ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+  };
+
+  console.log("DEBUG: Creating payment method with body:", JSON.stringify(pmBody));
+
   const createPaymentMethodResponse = await acceptBlueFetch(
     `${ACCEPT_BLUE_BASE}/customers/${customerId}/payment-methods`,
     {
       method: "POST",
-      body: JSON.stringify({
-        source: cardSource,
-        ...(card.expiry_month ? { expiry_month: card.expiry_month } : {}),
-        ...(card.expiry_year ? { expiry_year: card.expiry_year } : {}),
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      }),
+      body: JSON.stringify(pmBody),
     }
   );
 
