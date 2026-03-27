@@ -246,37 +246,79 @@ async function createRecurring(
     );
   }
 
-  const paymentMethodPayload: Record<string, unknown> = {
-    payment_method: {
-      source: cardSource,
-      expiration,
-      ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+  const paymentMethodAttempts: Array<{ label: string; body: Record<string, unknown> }> = [
+    {
+      label: "source_with_prefixed_nonce",
+      body: {
+        source: cardSource,
+        expiration,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
     },
-  };
+    {
+      label: "source_with_raw_nonce",
+      body: {
+        source: card.nonce || cardSource,
+        expiration,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
+    },
+    {
+      label: "token_with_customer_id",
+      body: {
+        token: card.nonce || cardSource,
+        customer_id: customerId,
+        expiration,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
+    },
+  ];
+
+  let createPaymentMethodResponse: Response | null = null;
+  let createPaymentMethodResult: Record<string, unknown> = {};
 
   console.log("DEBUG: Resolved expiration:", expiration);
-  console.log("DEBUG: Creating payment method with body:", JSON.stringify(paymentMethodPayload));
 
-  const createPaymentMethodResponse = await acceptBlueFetch(
-    `${ACCEPT_BLUE_BASE}/customers/${customerId}/payment-methods`,
-    {
-      method: "POST",
-      body: JSON.stringify(paymentMethodPayload),
+  for (const attempt of paymentMethodAttempts) {
+    console.log(`DEBUG: Creating payment method [${attempt.label}]`, JSON.stringify(attempt.body));
+
+    const response = await acceptBlueFetch(
+      `${ACCEPT_BLUE_BASE}/customers/${customerId}/payment-methods`,
+      {
+        method: "POST",
+        body: JSON.stringify(attempt.body),
+      }
+    );
+
+    const responseText = await response.text();
+    let parsed: Record<string, unknown> = {};
+    try {
+      parsed = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      parsed = { raw: responseText };
     }
-  );
 
-  const createPaymentMethodText = await createPaymentMethodResponse.text();
-  let createPaymentMethodResult: Record<string, unknown> = {};
-  try {
-    createPaymentMethodResult = createPaymentMethodText ? JSON.parse(createPaymentMethodText) : {};
-  } catch {
-    createPaymentMethodResult = { raw: createPaymentMethodText };
+    createPaymentMethodResponse = response;
+    createPaymentMethodResult = parsed;
+
+    if (response.ok) {
+      break;
+    }
+
+    const errorMessage = String(parsed?.error_message || "").toLowerCase();
+    const isRetryableShapeError =
+      response.status === 400 &&
+      (errorMessage.includes("missing expiration") || errorMessage.includes("required fields are missing"));
+
+    if (!isRetryableShapeError) {
+      break;
+    }
   }
 
-  if (!createPaymentMethodResponse.ok) {
+  if (!createPaymentMethodResponse?.ok) {
     console.error("accept.blue create payment method error:", createPaymentMethodResult);
     const paymentMethodError =
-      createPaymentMethodResponse.status === 403
+      createPaymentMethodResponse?.status === 403
         ? "Accept Blue denied payment method creation for ACCEPT_BLUE_API_SOURCE_KEY. Enable Payment Methods permission for this environment."
         : "Failed to create payment method";
     return new Response(
@@ -285,7 +327,7 @@ async function createRecurring(
         details: createPaymentMethodResult,
       }),
       {
-        status: createPaymentMethodResponse.status,
+        status: createPaymentMethodResponse?.status || 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
