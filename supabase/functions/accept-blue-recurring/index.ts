@@ -13,13 +13,46 @@ const ACCEPT_BLUE_BASE = (
 ).replace(/\/$/, "");
 
 const ACCEPT_BLUE_API_SOURCE_KEY = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
+const ACCEPT_BLUE_PIN = Deno.env.get("ACCEPT_BLUE_PIN")?.trim();
 
-function getAcceptBlueAuthHeader(): string {
+function getBearerAuthHeader(): string {
   if (!ACCEPT_BLUE_API_SOURCE_KEY) {
     throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY");
   }
 
   return `Bearer ${ACCEPT_BLUE_API_SOURCE_KEY}`;
+}
+
+function getBasicAuthHeader(): string {
+  if (!ACCEPT_BLUE_API_SOURCE_KEY || !ACCEPT_BLUE_PIN) {
+    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY or ACCEPT_BLUE_PIN");
+  }
+
+  return `Basic ${btoa(`${ACCEPT_BLUE_API_SOURCE_KEY}:${ACCEPT_BLUE_PIN}`)}`;
+}
+
+async function acceptBlueFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const headers = init.headers ? { ...init.headers } : {};
+
+  const bearerResponse = await fetch(url, {
+    ...init,
+    headers: {
+      ...headers,
+      Authorization: getBearerAuthHeader(),
+    },
+  });
+
+  if ((bearerResponse.status === 401 || bearerResponse.status === 403) && ACCEPT_BLUE_PIN) {
+    return fetch(url, {
+      ...init,
+      headers: {
+        ...headers,
+        Authorization: getBasicAuthHeader(),
+      },
+    });
+  }
+
+  return bearerResponse;
 }
 
 serve(async (req) => {
@@ -138,15 +171,12 @@ async function createRecurring(
 
   const customerLookupUrl = `${ACCEPT_BLUE_BASE}/customers?active=true&customer_number=${encodeURIComponent(customerIdentifier)}`;
   console.log("DEBUG: Fetching customers from:", customerLookupUrl);
-  console.log("DEBUG: Auth header length:", getAcceptBlueAuthHeader().length);
+  console.log("DEBUG: Auth header length:", getBearerAuthHeader().length);
 
-  const customersResponse = await fetch(
+  const customersResponse = await acceptBlueFetch(
     customerLookupUrl,
     {
       method: "GET",
-      headers: {
-        Authorization: getAcceptBlueAuthHeader(),
-      },
     }
   );
 
@@ -168,11 +198,10 @@ async function createRecurring(
   }
 
   if (!customerId) {
-    const createCustomerResponse = await fetch(`${ACCEPT_BLUE_BASE}/customers`, {
+    const createCustomerResponse = await acceptBlueFetch(`${ACCEPT_BLUE_BASE}/customers`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: getAcceptBlueAuthHeader(),
       },
       body: JSON.stringify({
         identifier: customerIdentifier,
@@ -218,13 +247,12 @@ async function createRecurring(
     );
   }
 
-  const createPaymentMethodResponse = await fetch(
+  const createPaymentMethodResponse = await acceptBlueFetch(
     `${ACCEPT_BLUE_BASE}/customers/${customerId}/payment-methods`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: getAcceptBlueAuthHeader(),
       },
       body: JSON.stringify({
         source: cardSource,
@@ -277,11 +305,10 @@ async function createRecurring(
     active: true,
   };
 
-  const response = await fetch(`${ACCEPT_BLUE_BASE}/customers/${customerId}/recurring-schedules`, {
+  const response = await acceptBlueFetch(`${ACCEPT_BLUE_BASE}/customers/${customerId}/recurring-schedules`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: getAcceptBlueAuthHeader(),
     },
     body: JSON.stringify(payload),
   });
@@ -349,13 +376,10 @@ async function cancelRecurring(
     );
   }
 
-  const response = await fetch(
+  const response = await acceptBlueFetch(
     `${ACCEPT_BLUE_BASE}/recurring-schedules/${schedule_id}`,
     {
       method: "DELETE",
-      headers: {
-        Authorization: getAcceptBlueAuthHeader(),
-      },
     }
   );
 
@@ -393,14 +417,29 @@ async function cancelRecurring(
 async function listRecurring(userId: string) {
   // Note: accept.blue doesn't filter by customer on list endpoint,
   // so we rely on our local subscription data for user-specific info
-  const response = await fetch(`${ACCEPT_BLUE_BASE}/recurring-schedules`, {
+  const response = await acceptBlueFetch(`${ACCEPT_BLUE_BASE}/recurring-schedules`, {
     method: "GET",
-    headers: {
-      Authorization: getAcceptBlueAuthHeader(),
-    },
   });
 
-  const result = await response.json();
+  const resultText = await response.text();
+  let result: unknown = [];
+  if (resultText) {
+    try {
+      result = JSON.parse(resultText);
+    } catch {
+      result = { raw: resultText };
+    }
+  }
+
+  if (!response.ok) {
+    return new Response(
+      JSON.stringify({ error: "Failed to list recurring schedules", details: result }),
+      {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
 
   return new Response(JSON.stringify(result), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
