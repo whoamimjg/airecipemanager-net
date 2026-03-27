@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Users, ExternalLink } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CookingTimer from "./CookingTimer";
+import StarRating from "./StarRating";
 
 interface Recipe {
   id: string;
@@ -22,6 +23,7 @@ interface Recipe {
   tags: string[] | null;
   source_url: string | null;
   image_url: string | null;
+  rating: number | null;
   created_at: string;
 }
 
@@ -60,6 +62,10 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
                 <p className="text-sm text-muted-foreground mt-1">{recipe.description}</p>
               )}
             </DialogHeader>
+
+            {recipe.rating && (
+              <StarRating rating={recipe.rating} readonly size="md" />
+            )}
 
             <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
               {recipe.category && <Badge variant="secondary">{recipe.category}</Badge>}
