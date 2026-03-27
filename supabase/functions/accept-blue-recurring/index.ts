@@ -312,7 +312,7 @@ async function createRecurring(
   let createPaymentMethodResponse: Response | null = null;
   let createPaymentMethodResult: Record<string, unknown> = {};
 
-  console.log("DEBUG: Resolved expiration:", expiration);
+  console.log("DEBUG: Resolved expiry_month:", expiryMonth, "expiry_year:", expiryYear);
 
   for (let i = 0; i < paymentMethodAttempts.length; i += 1) {
     const attempt = paymentMethodAttempts[i];
