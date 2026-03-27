@@ -354,34 +354,36 @@ async function createRecurring(
     }
   }
 
-  // Build minimal payment-method payloads — only card-related fields allowed.
-  // Do NOT include reference_number, title, plan, amount, etc.
+  // Ensure source always matches pattern: (nonce|tkn|ref)-[A-Za-z0-9]+
+  const ensureSourcePrefix = (val: string, prefix: "nonce" | "tkn" | "ref"): string => {
+    const trimmed = val.trim();
+    if (/^(nonce|tkn|ref)-[A-Za-z0-9]+$/.test(trimmed)) return trimmed;
+    const clean = trimmed.replace(/^(nonce|tkn|ref)-/, "").replace(/[^A-Za-z0-9]/g, "");
+    return `${prefix}-${clean}`;
+  };
+
+  // Build minimal payment-method payloads — only source + expiration allowed.
   const paymentMethodAttempts: Array<{ label: string; body: Record<string, unknown> }> = [
-    // 1. Use the raw saved-card ref (NO prefix) with expiration
+    // 1. Saved card ref with ref- prefix (preferred)
     ...(savedCardRef
-      ? [
-          {
-            label: "saved_card_ref_raw",
-            body: { source: savedCardRef, expiration },
-          },
-          {
-            label: "saved_card_ref_with_ref_prefix",
-            body: { source: `ref-${savedCardRef}`, expiration },
-          },
-        ]
+      ? [{
+            label: "saved_card_ref_prefixed",
+            body: { source: ensureSourcePrefix(savedCardRef, "ref"), expiration },
+        }]
       : []),
-    // 2. Use the nonce directly with expiration (nonce- prefix)
+    // 2. Nonce with nonce- prefix
     ...(card.nonce
-      ? [
-          {
+      ? [{
             label: "nonce_prefixed",
-            body: { source: `nonce-${card.nonce.replace(/^nonce-/, "")}`, expiration },
-          },
-          {
-            label: "nonce_raw",
-            body: { source: card.nonce, expiration },
-          },
-        ]
+            body: { source: ensureSourcePrefix(String(card.nonce), "nonce"), expiration },
+        }]
+      : []),
+    // 3. Nonce with tkn- prefix as fallback
+    ...(card.nonce
+      ? [{
+            label: "nonce_as_tkn",
+            body: { source: ensureSourcePrefix(String(card.nonce), "tkn"), expiration },
+        }]
       : []),
   ];
 
