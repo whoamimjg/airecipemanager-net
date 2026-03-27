@@ -12,47 +12,27 @@ const ACCEPT_BLUE_BASE = (
   "https://api.sandbox.accept.blue/api/v2"
 ).replace(/\/$/, "");
 
-const ACCEPT_BLUE_API_SOURCE_KEY = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
-const ACCEPT_BLUE_PIN = Deno.env.get("ACCEPT_BLUE_PIN")?.trim();
+const ACCEPT_BLUE_API_KEY =
+  Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim() ||
+  Deno.env.get("ACCEPT_BLUE_SOURCE_KEY")?.trim();
 
-function getBearerAuthHeader(): string {
-  if (!ACCEPT_BLUE_API_SOURCE_KEY) {
-    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY");
+function getAcceptBlueHeaders(extra: HeadersInit = {}): HeadersInit {
+  if (!ACCEPT_BLUE_API_KEY) {
+    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY or ACCEPT_BLUE_SOURCE_KEY");
   }
 
-  return `Bearer ${ACCEPT_BLUE_API_SOURCE_KEY}`;
-}
-
-function getBasicAuthHeader(): string {
-  if (!ACCEPT_BLUE_API_SOURCE_KEY || !ACCEPT_BLUE_PIN) {
-    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY or ACCEPT_BLUE_PIN");
-  }
-
-  return `Basic ${btoa(`${ACCEPT_BLUE_API_SOURCE_KEY}:${ACCEPT_BLUE_PIN}`)}`;
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${ACCEPT_BLUE_API_KEY}`,
+    ...extra,
+  };
 }
 
 async function acceptBlueFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const headers = init.headers ? { ...init.headers } : {};
-
-  const bearerResponse = await fetch(url, {
+  return fetch(url, {
     ...init,
-    headers: {
-      ...headers,
-      Authorization: getBearerAuthHeader(),
-    },
+    headers: getAcceptBlueHeaders((init.headers as HeadersInit) || {}),
   });
-
-  if ((bearerResponse.status === 401 || bearerResponse.status === 403) && ACCEPT_BLUE_PIN) {
-    return fetch(url, {
-      ...init,
-      headers: {
-        ...headers,
-        Authorization: getBasicAuthHeader(),
-      },
-    });
-  }
-
-  return bearerResponse;
 }
 
 serve(async (req) => {
@@ -171,7 +151,7 @@ async function createRecurring(
 
   const customerLookupUrl = `${ACCEPT_BLUE_BASE}/customers?active=true&customer_number=${encodeURIComponent(customerIdentifier)}`;
   console.log("DEBUG: Fetching customers from:", customerLookupUrl);
-  console.log("DEBUG: Auth header length:", getBearerAuthHeader().length);
+  console.log("DEBUG: Auth header length:", (`Bearer ${ACCEPT_BLUE_API_KEY || ""}`).length);
 
   const customersResponse = await acceptBlueFetch(
     customerLookupUrl,
@@ -200,9 +180,6 @@ async function createRecurring(
   if (!customerId) {
     const createCustomerResponse = await acceptBlueFetch(`${ACCEPT_BLUE_BASE}/customers`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         identifier: customerIdentifier,
         customer_number: customerIdentifier,
@@ -251,9 +228,6 @@ async function createRecurring(
     `${ACCEPT_BLUE_BASE}/customers/${customerId}/payment-methods`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         source: cardSource,
         ...(card.expiry_month ? { expiry_month: card.expiry_month } : {}),
@@ -307,9 +281,6 @@ async function createRecurring(
 
   const response = await acceptBlueFetch(`${ACCEPT_BLUE_BASE}/customers/${customerId}/recurring-schedules`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(payload),
   });
 
