@@ -279,7 +279,8 @@ async function createRecurring(
 
   console.log("DEBUG: Resolved expiration:", expiration);
 
-  for (const attempt of paymentMethodAttempts) {
+  for (let i = 0; i < paymentMethodAttempts.length; i += 1) {
+    const attempt = paymentMethodAttempts[i];
     console.log(`DEBUG: Creating payment method [${attempt.label}]`, JSON.stringify(attempt.body));
 
     const response = await acceptBlueFetch(
@@ -305,12 +306,8 @@ async function createRecurring(
       break;
     }
 
-    const errorMessage = String(parsed?.error_message || "").toLowerCase();
-    const isRetryableShapeError =
-      response.status === 400 &&
-      (errorMessage.includes("missing expiration") || errorMessage.includes("required fields are missing"));
-
-    if (!isRetryableShapeError) {
+    const isLastAttempt = i === paymentMethodAttempts.length - 1;
+    if (response.status !== 400 || isLastAttempt) {
       break;
     }
   }
