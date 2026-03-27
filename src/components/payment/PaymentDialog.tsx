@@ -164,10 +164,16 @@ const PaymentDialog = ({
         return;
       }
 
+      // Build expiration in MMYY format for Accept Blue
+      const expiration = result.expiry_month && result.expiry_year
+        ? `${String(result.expiry_month).padStart(2, '0')}${String(result.expiry_year).slice(-2)}`
+        : undefined;
+
       const card = {
         nonce: result.nonce,
         expiry_month: result.expiry_month,
         expiry_year: result.expiry_year,
+        expiration,
         avs_zip: result.avs_zip,
         last4: result.last4,
         card_type: result.card_type,
