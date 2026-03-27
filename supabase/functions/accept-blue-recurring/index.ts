@@ -12,18 +12,12 @@ const ACCEPT_BLUE_BASE = (
   "https://api.sandbox.accept.blue/api/v2"
 ).replace(/\/$/, "");
 
-const ACCEPT_BLUE_RECURRING_API_KEY = Deno.env.get("ACCEPT_BLUE_RECURRING_API_KEY")?.trim();
 const ACCEPT_BLUE_API_SOURCE_KEY = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
-const ACCEPT_BLUE_API_KEY = ACCEPT_BLUE_RECURRING_API_KEY || ACCEPT_BLUE_API_SOURCE_KEY;
-const ACCEPT_BLUE_ACTIVE_KEY_NAME = ACCEPT_BLUE_RECURRING_API_KEY
-  ? "ACCEPT_BLUE_RECURRING_API_KEY"
-  : "ACCEPT_BLUE_API_SOURCE_KEY";
+const ACCEPT_BLUE_API_KEY = ACCEPT_BLUE_API_SOURCE_KEY;
 
 function getAcceptBlueHeaders(extra: HeadersInit = {}): HeadersInit {
   if (!ACCEPT_BLUE_API_KEY) {
-    throw new Error(
-      "Missing recurring API key secret: set ACCEPT_BLUE_RECURRING_API_KEY (preferred) or ACCEPT_BLUE_API_SOURCE_KEY"
-    );
+    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY");
   }
 
   return {
@@ -160,7 +154,6 @@ async function createRecurring(
 
   const customerLookupUrl = `${ACCEPT_BLUE_BASE}/customers?active=true&customer_number=${encodeURIComponent(customerIdentifier)}`;
   console.log("DEBUG: Fetching customers from:", customerLookupUrl);
-  console.log("DEBUG: Using key source:", ACCEPT_BLUE_ACTIVE_KEY_NAME);
 
   const customersResponse = await acceptBlueFetch(
     customerLookupUrl,
@@ -209,7 +202,7 @@ async function createRecurring(
       console.error("accept.blue create customer error:", createCustomerResult);
       const customerError =
         createCustomerResponse.status === 403
-          ? "Recurring billing API permission denied. Use ACCEPT_BLUE_RECURRING_API_KEY (or ACCEPT_BLUE_API_SOURCE_KEY) with Customers, Payment Methods, and Recurring permissions for this environment."
+          ? "Accept Blue denied customer creation for ACCEPT_BLUE_API_SOURCE_KEY in this environment. Enable Customers (create), Payment Methods, and Recurring permissions on this same key."
           : "Failed to create customer";
       return new Response(
         JSON.stringify({ error: customerError, details: createCustomerResult }),
@@ -256,9 +249,13 @@ async function createRecurring(
 
   if (!createPaymentMethodResponse.ok) {
     console.error("accept.blue create payment method error:", createPaymentMethodResult);
+    const paymentMethodError =
+      createPaymentMethodResponse.status === 403
+        ? "Accept Blue denied payment method creation for ACCEPT_BLUE_API_SOURCE_KEY. Enable Payment Methods permission for this environment."
+        : "Failed to create payment method";
     return new Response(
       JSON.stringify({
-        error: "Failed to create payment method",
+        error: paymentMethodError,
         details: createPaymentMethodResult,
       }),
       {
@@ -305,7 +302,7 @@ async function createRecurring(
     console.error("accept.blue recurring error:", result);
     const recurringError =
       response.status === 403 || response.status === 404
-        ? "Recurring schedule API access is not enabled for this source key. Please enable recurring permissions for your API key in accept.blue."
+        ? "Accept Blue denied recurring schedule creation for ACCEPT_BLUE_API_SOURCE_KEY. Enable Recurring permission for this environment."
         : "Failed to create recurring schedule";
     return new Response(JSON.stringify({ error: recurringError, details: result }), {
       status: response.status,
