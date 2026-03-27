@@ -258,18 +258,15 @@ async function createRecurring(
 
   const isValidMonth = !!expiryMonth && expiryMonth >= 1 && expiryMonth <= 12;
   const isValidYear = !!expiryYear && expiryYear >= 2000 && expiryYear <= 9999;
-  const expiration = isValidMonth && isValidYear
-    ? `${String(expiryMonth).padStart(2, "0")}${String(expiryYear).slice(-2)}`
-    : "";
 
-  if (!expiration || !isValidMonth || !isValidYear) {
+  if (!isValidMonth || !isValidYear) {
     return new Response(
       JSON.stringify({
         error: "Missing/invalid card expiration from tokenization payload",
         details: {
-          expiration: card.expiration,
-          expiry_month: card.expiry_month ?? card.expiryMonth,
-          expiry_year: card.expiry_year ?? card.expiryYear,
+          expiry_month: expiryMonth,
+          expiry_year: expiryYear,
+          raw_expiration: card.expiration,
         },
       }),
       {
