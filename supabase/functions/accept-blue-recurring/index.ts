@@ -12,11 +12,18 @@ const ACCEPT_BLUE_BASE = (
   "https://api.sandbox.accept.blue/api/v2"
 ).replace(/\/$/, "");
 
-const ACCEPT_BLUE_API_KEY = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
+const ACCEPT_BLUE_RECURRING_API_KEY = Deno.env.get("ACCEPT_BLUE_RECURRING_API_KEY")?.trim();
+const ACCEPT_BLUE_API_SOURCE_KEY = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
+const ACCEPT_BLUE_API_KEY = ACCEPT_BLUE_RECURRING_API_KEY || ACCEPT_BLUE_API_SOURCE_KEY;
+const ACCEPT_BLUE_ACTIVE_KEY_NAME = ACCEPT_BLUE_RECURRING_API_KEY
+  ? "ACCEPT_BLUE_RECURRING_API_KEY"
+  : "ACCEPT_BLUE_API_SOURCE_KEY";
 
 function getAcceptBlueHeaders(extra: HeadersInit = {}): HeadersInit {
   if (!ACCEPT_BLUE_API_KEY) {
-    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY secret");
+    throw new Error(
+      "Missing recurring API key secret: set ACCEPT_BLUE_RECURRING_API_KEY (preferred) or ACCEPT_BLUE_API_SOURCE_KEY"
+    );
   }
 
   return {
@@ -153,7 +160,7 @@ async function createRecurring(
 
   const customerLookupUrl = `${ACCEPT_BLUE_BASE}/customers?active=true&customer_number=${encodeURIComponent(customerIdentifier)}`;
   console.log("DEBUG: Fetching customers from:", customerLookupUrl);
-  console.log("DEBUG: Auth header length:", (`Bearer ${ACCEPT_BLUE_API_KEY || ""}`).length);
+  console.log("DEBUG: Using key source:", ACCEPT_BLUE_ACTIVE_KEY_NAME);
 
   const customersResponse = await acceptBlueFetch(
     customerLookupUrl,
