@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const ACCEPT_BLUE_BASE = (
   Deno.env.get("ACCEPT_BLUE_API_BASE_URL")?.trim() ||
-  "https://api.develop.accept.blue/api/v2"
+  "https://api.sandbox.accept.blue/api/v2"
 ).replace(/\/$/, "");
 
 function getBasicAuth(): string {
