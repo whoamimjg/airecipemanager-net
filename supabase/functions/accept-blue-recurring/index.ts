@@ -288,10 +288,24 @@ async function createRecurring(
     return `${fallbackPrefix}-${compact}`;
   };
 
+  const buildSourceCandidates = (value: string, preferredPrefix: "nonce" | "tkn" | "ref"): string[] => {
+    const trimmed = value.trim();
+    if (/^(nonce|tkn|ref)-[A-Za-z0-9]+$/.test(trimmed)) {
+      return [trimmed];
+    }
+
+    const compact = trimmed.replace(/[^A-Za-z0-9]/g, "");
+    if (!compact) return [];
+
+    const baseOrder: Array<"nonce" | "tkn" | "ref"> = ["nonce", "tkn", "ref"];
+    const ordered = [preferredPrefix, ...baseOrder.filter((p) => p !== preferredPrefix)];
+    return ordered.map((prefix) => `${prefix}-${compact}`);
+  };
+
   const sourceCandidates = Array.from(new Set([
-    card.nonce ? normalizeSource(String(card.nonce), "nonce") : null,
-    rawSource ? normalizeSource(String(rawSource), card.nonce ? "nonce" : "ref") : null,
-  ].filter((value): value is string => !!value)));
+    ...(card.nonce ? buildSourceCandidates(String(card.nonce), "nonce") : []),
+    ...(rawSource ? buildSourceCandidates(String(rawSource), card.nonce ? "nonce" : "ref") : []),
+  ]));
 
   let savedCardRef: string | undefined;
   const savedCardAttempts = sourceCandidates.flatMap((source) => [
@@ -346,10 +360,23 @@ async function createRecurring(
           label: "source_with_saved_card_ref",
           body: {
             source: normalizeSource(savedCardRef, "ref"),
+            expiration,
+            expiry_month: expiryMonth,
+            expiry_year: expiryYear,
             ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
           },
         }]
       : []),
+    ...sourceCandidates.map((source) => ({
+      label: `source_with_both_exp_formats_${source.split("-")[0]}`,
+      body: {
+        source,
+        expiration,
+        expiry_month: expiryMonth,
+        expiry_year: expiryYear,
+        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
+      },
+    })),
     ...sourceCandidates.map((source) => ({
       label: `source_with_expiry_parts_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
       body: {
@@ -364,13 +391,6 @@ async function createRecurring(
       body: {
         source,
         expiration,
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      },
-    })),
-    ...sourceCandidates.map((source) => ({
-      label: `source_only_${source.startsWith("nonce-") ? "prefixed" : "raw"}`,
-      body: {
-        source,
         ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
       },
     })),
@@ -407,6 +427,8 @@ async function createRecurring(
     if (response.ok) {
       break;
     }
+
+    console.log(`DEBUG: Payment method attempt failed [${attempt.label}]`, JSON.stringify(parsed));
 
     const isLastAttempt = i === paymentMethodAttempts.length - 1;
     if (isLastAttempt) {
