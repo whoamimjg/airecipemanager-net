@@ -13,12 +13,12 @@ const ACCEPT_BLUE_BASE = (
 ).replace(/\/$/, "");
 
 const ACCEPT_BLUE_API_KEY =
-  Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim() ||
-  Deno.env.get("ACCEPT_BLUE_SOURCE_KEY")?.trim();
+  Deno.env.get("ACCEPT_BLUE_RECURRING_API_KEY")?.trim() ||
+  Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
 
 function getAcceptBlueHeaders(extra: HeadersInit = {}): HeadersInit {
   if (!ACCEPT_BLUE_API_KEY) {
-    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY or ACCEPT_BLUE_SOURCE_KEY");
+    throw new Error("Missing ACCEPT_BLUE_RECURRING_API_KEY or ACCEPT_BLUE_API_SOURCE_KEY");
   }
 
   return {
@@ -200,7 +200,7 @@ async function createRecurring(
       console.error("accept.blue create customer error:", createCustomerResult);
       const customerError =
         createCustomerResponse.status === 403
-          ? "Recurring billing API permission denied. Use an API source key with Customers, Payment Methods, and Recurring permissions."
+          ? "Recurring billing API permission denied. Use ACCEPT_BLUE_RECURRING_API_KEY (or ACCEPT_BLUE_API_SOURCE_KEY) with Customers, Payment Methods, and Recurring permissions for this environment."
           : "Failed to create customer";
       return new Response(
         JSON.stringify({ error: customerError, details: createCustomerResult }),
