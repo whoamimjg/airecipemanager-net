@@ -279,11 +279,18 @@ async function createRecurring(
     );
   }
 
+  const normalizeSource = (value: string, fallbackPrefix: "nonce" | "ref" | "tkn"): string => {
+    const trimmed = value.trim();
+    if (/^(nonce|tkn|ref)-[A-Za-z0-9]+$/.test(trimmed)) {
+      return trimmed;
+    }
+    const compact = trimmed.replace(/[^A-Za-z0-9]/g, "");
+    return `${fallbackPrefix}-${compact}`;
+  };
+
   const sourceCandidates = Array.from(new Set([
-    card.nonce
-      ? (String(card.nonce).startsWith("nonce-") ? String(card.nonce) : `nonce-${card.nonce}`)
-      : null,
-    rawSource ? String(rawSource) : null,
+    card.nonce ? normalizeSource(String(card.nonce), "nonce") : null,
+    rawSource ? normalizeSource(String(rawSource), card.nonce ? "nonce" : "ref") : null,
   ].filter((value): value is string => !!value)));
 
   let savedCardRef: string | undefined;
@@ -338,7 +345,7 @@ async function createRecurring(
       ? [{
           label: "source_with_saved_card_ref",
           body: {
-            source: savedCardRef,
+            source: normalizeSource(savedCardRef, "ref"),
             ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
           },
         }]
