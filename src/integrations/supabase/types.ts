@@ -53,6 +53,48 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_deletions: {
+        Row: {
+          category: string | null
+          deleted_at: string
+          id: string
+          item_name: string
+          notes: string | null
+          price_per_unit: number | null
+          quantity: number
+          reason: string
+          total_cost: number | null
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          deleted_at?: string
+          id?: string
+          item_name: string
+          notes?: string | null
+          price_per_unit?: number | null
+          quantity?: number
+          reason: string
+          total_cost?: number | null
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          deleted_at?: string
+          id?: string
+          item_name?: string
+          notes?: string | null
+          price_per_unit?: number | null
+          quantity?: number
+          reason?: string
+          total_cost?: number | null
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           barcode: string | null

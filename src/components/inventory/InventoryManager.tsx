@@ -23,11 +23,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
 import InventoryFormDialog from "./InventoryFormDialog";
 import BarcodeScanner from "./BarcodeScanner";
+
+const DELETE_REASONS = [
+  "Used / Consumed",
+  "Expired",
+  "Spoiled",
+  "Damaged",
+  "Given Away",
+  "Recalled",
+  "Other",
+];
 
 interface InventoryItem {
   id: string;
@@ -71,6 +83,8 @@ const InventoryManager = () => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [prefillItem, setPrefillItem] = useState<Partial<InventoryItem> | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteNotes, setDeleteNotes] = useState("");
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["inventory", user?.id],
@@ -86,7 +100,24 @@ const InventoryManager = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, reason, notes }: { id: string; reason: string; notes: string }) => {
+      const item = items.find((i) => i.id === id);
+      if (!item) throw new Error("Item not found");
+
+      // Log the deletion with reason
+      const { error: logError } = await supabase.from("inventory_deletions").insert({
+        user_id: user!.id,
+        item_name: item.name,
+        category: item.category,
+        quantity: item.quantity,
+        unit: item.unit,
+        price_per_unit: item.price_per_unit,
+        total_cost: item.price_per_unit ? item.price_per_unit * item.quantity : null,
+        reason,
+        notes: notes || null,
+      });
+      if (logError) throw logError;
+
       const { error } = await supabase.from("inventory_items").delete().eq("id", id);
       if (error) throw error;
     },
@@ -94,6 +125,8 @@ const InventoryManager = () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       toast.success("Item removed");
       setDeleteId(null);
+      setDeleteReason("");
+      setDeleteNotes("");
     },
     onError: () => toast.error("Failed to delete item"),
   });
@@ -273,16 +306,62 @@ const InventoryManager = () => {
         />
       )}
 
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+      {/* Delete confirmation with reason */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) { setDeleteId(null); setDeleteReason(""); setDeleteNotes(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete item?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently remove this item from your inventory.</AlertDialogDescription>
+            <AlertDialogDescription>
+              Please select a reason for removing this item. This helps track food costs.
+            </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Reason *</Label>
+              <Select value={deleteReason} onValueChange={setDeleteReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DELETE_REASONS.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {deleteId && (() => {
+              const item = items.find((i) => i.id === deleteId);
+              if (item?.price_per_unit) {
+                return (
+                  <div className="rounded-md bg-muted/50 p-3 text-sm">
+                    <span className="text-muted-foreground">Estimated cost: </span>
+                    <span className="font-semibold text-foreground">
+                      ${(item.price_per_unit * item.quantity).toFixed(2)}
+                    </span>
+                    <span className="text-muted-foreground"> ({item.quantity} {item.unit || "pcs"} × ${item.price_per_unit.toFixed(2)})</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            <div className="space-y-2">
+              <Label>Additional notes</Label>
+              <Textarea
+                value={deleteNotes}
+                onChange={(e) => setDeleteNotes(e.target.value)}
+                placeholder="Optional details..."
+                rows={2}
+              />
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate(deleteId)}>Delete</AlertDialogAction>
+            <AlertDialogAction
+              disabled={!deleteReason}
+              onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
