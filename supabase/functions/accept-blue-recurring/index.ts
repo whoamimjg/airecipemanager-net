@@ -12,27 +12,29 @@ const ACCEPT_BLUE_BASE = (
   "https://api.sandbox.accept.blue/api/v2"
 ).replace(/\/$/, "");
 
-const ACCEPT_BLUE_API_KEY =
-  Deno.env.get("ACCEPT_BLUE_RECURRING_API_KEY")?.trim() ||
-  Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
+const ACCEPT_BLUE_API_KEY = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
 
 function getAcceptBlueHeaders(extra: HeadersInit = {}): HeadersInit {
   if (!ACCEPT_BLUE_API_KEY) {
-    throw new Error("Missing ACCEPT_BLUE_RECURRING_API_KEY or ACCEPT_BLUE_API_SOURCE_KEY");
+    throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY secret");
   }
 
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${ACCEPT_BLUE_API_KEY}`,
+    Accept: "application/json",
+    Authorization: `Basic ${btoa(`${ACCEPT_BLUE_API_KEY}:`)}`,
     ...extra,
   };
 }
 
 async function acceptBlueFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  return fetch(url, {
+  console.log("acceptBlueFetch ->", init.method || "GET", url);
+  const resp = await fetch(url, {
     ...init,
     headers: getAcceptBlueHeaders((init.headers as HeadersInit) || {}),
   });
+  console.log("acceptBlueFetch <-", resp.status, resp.statusText);
+  return resp;
 }
 
 serve(async (req) => {
