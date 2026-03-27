@@ -199,6 +199,7 @@ export type Database = {
           instructions: Json
           is_ai_generated: boolean | null
           prep_time: number | null
+          rating: number | null
           servings: number | null
           source_url: string | null
           tags: string[] | null
@@ -217,6 +218,7 @@ export type Database = {
           instructions?: Json
           is_ai_generated?: boolean | null
           prep_time?: number | null
+          rating?: number | null
           servings?: number | null
           source_url?: string | null
           tags?: string[] | null
@@ -235,6 +237,7 @@ export type Database = {
           instructions?: Json
           is_ai_generated?: boolean | null
           prep_time?: number | null
+          rating?: number | null
           servings?: number | null
           source_url?: string | null
           tags?: string[] | null
