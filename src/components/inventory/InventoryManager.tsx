@@ -306,16 +306,62 @@ const InventoryManager = () => {
         />
       )}
 
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+      {/* Delete confirmation with reason */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) { setDeleteId(null); setDeleteReason(""); setDeleteNotes(""); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete item?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently remove this item from your inventory.</AlertDialogDescription>
+            <AlertDialogDescription>
+              Please select a reason for removing this item. This helps track food costs.
+            </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Reason *</Label>
+              <Select value={deleteReason} onValueChange={setDeleteReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DELETE_REASONS.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {deleteId && (() => {
+              const item = items.find((i) => i.id === deleteId);
+              if (item?.price_per_unit) {
+                return (
+                  <div className="rounded-md bg-muted/50 p-3 text-sm">
+                    <span className="text-muted-foreground">Estimated cost: </span>
+                    <span className="font-semibold text-foreground">
+                      ${(item.price_per_unit * item.quantity).toFixed(2)}
+                    </span>
+                    <span className="text-muted-foreground"> ({item.quantity} {item.unit || "pcs"} × ${item.price_per_unit.toFixed(2)})</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            <div className="space-y-2">
+              <Label>Additional notes</Label>
+              <Textarea
+                value={deleteNotes}
+                onChange={(e) => setDeleteNotes(e.target.value)}
+                placeholder="Optional details..."
+                rows={2}
+              />
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteId && deleteMutation.mutate(deleteId)}>Delete</AlertDialogAction>
+            <AlertDialogAction
+              disabled={!deleteReason}
+              onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
+            >
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
