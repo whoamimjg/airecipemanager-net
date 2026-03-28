@@ -698,6 +698,74 @@ const MealPlanner = () => {
           renderDayView()
         )}
       </div>
+
+      {/* Recipe Picker Dialog */}
+      <Dialog open={!!pickerTarget} onOpenChange={(open) => !open && setPickerTarget(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ChefHat className="h-5 w-5" />
+              Add Recipe to {pickerTarget && MEAL_SLOTS.find(s => s.key === pickerTarget.slot)?.label}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="relative mb-2">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search recipes..."
+              value={pickerSearch}
+              onChange={e => setPickerSearch(e.target.value)}
+              className="pl-9"
+              autoFocus
+            />
+          </div>
+          <ScrollArea className="flex-1 -mx-2 px-2">
+            <div className="space-y-4 pb-2">
+              {pickerFilteredRecipes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  No recipes found
+                </div>
+              ) : (
+                pickerFilteredRecipes.map(([category, catRecipes]) => (
+                  <div key={category}>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">
+                      {category} ({catRecipes.length})
+                    </div>
+                    <div className="space-y-1">
+                      {catRecipes.map(recipe => (
+                        <button
+                          key={recipe.id}
+                          onClick={() => pickRecipe(recipe)}
+                          className="w-full flex items-center gap-3 p-2 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 transition-colors text-left"
+                        >
+                          {recipe.image_url ? (
+                            <img src={recipe.image_url} alt="" className="h-10 w-10 rounded object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="h-10 w-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                              <ChefHat className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate text-foreground">{recipe.title}</p>
+                            {(recipe.prep_time || recipe.cook_time) && (
+                              <p className="text-xs text-muted-foreground">
+                                {(recipe.prep_time || 0) + (recipe.cook_time || 0)} min
+                              </p>
+                            )}
+                          </div>
+                          {hasIngredients(recipe) && (
+                            <Star className="h-4 w-4 text-warning fill-warning flex-shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
