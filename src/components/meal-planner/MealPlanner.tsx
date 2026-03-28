@@ -12,7 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search,
   Star, Plus, X, ChefHat, Trash2, UtensilsCrossed, GripVertical, BookOpen
@@ -63,6 +69,8 @@ const MealPlanner = () => {
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
   const [recipePanelOpen, setRecipePanelOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<{ date: Date; slot: MealSlot } | null>(null);
+  const [pickerSearch, setPickerSearch] = useState("");
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
@@ -187,6 +195,37 @@ const MealPlanner = () => {
     });
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filteredRecipes]);
+
+  // Recipes filtered for the picker dialog
+  const pickerFilteredRecipes = useMemo(() => {
+    const search = pickerSearch.toLowerCase();
+    const filtered = recipes.filter(r =>
+      r.title.toLowerCase().includes(search) ||
+      (r.category?.toLowerCase().includes(search) ?? false)
+    );
+    const groups: Record<string, Recipe[]> = {};
+    filtered.forEach(r => {
+      const cat = r.category || "Uncategorized";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(r);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [recipes, pickerSearch]);
+
+  const openRecipePicker = (date: Date, slot: MealSlot) => {
+    setPickerSearch("");
+    setPickerTarget({ date, slot });
+  };
+
+  const pickRecipe = (recipe: Recipe) => {
+    if (!pickerTarget) return;
+    addMealPlan.mutate({
+      recipe_id: recipe.id,
+      date: format(pickerTarget.date, "yyyy-MM-dd"),
+      meal_slot: pickerTarget.slot,
+    });
+    setPickerTarget(null);
+  };
 
   const getMealsForDaySlot = (date: Date, slot: MealSlot) =>
     mealPlans.filter(mp => mp.date === format(date, "yyyy-MM-dd") && mp.meal_slot === slot);
@@ -339,9 +378,12 @@ const MealPlanner = () => {
 
                         {/* Drop hint */}
                         {meals.length === 0 && (
-                          <div className="h-full flex items-center justify-center opacity-0 hover:opacity-30 transition-opacity">
+                          <button
+                            onClick={() => openRecipePicker(day, slot.key)}
+                            className="h-full w-full flex items-center justify-center opacity-0 hover:opacity-50 transition-opacity"
+                          >
                             <Plus className="h-3 w-3 text-muted-foreground" />
-                          </div>
+                          </button>
                         )}
                       </div>
                     );
@@ -406,9 +448,12 @@ const MealPlanner = () => {
                   </div>
                 ))}
                 {meals.length === 0 && (
-                  <div className="h-full flex items-center justify-center opacity-0 hover:opacity-40 transition-opacity">
+                  <button
+                    onClick={() => openRecipePicker(date, slot.key)}
+                    className="h-full w-full flex items-center justify-center opacity-0 hover:opacity-50 transition-opacity"
+                  >
                     <Plus className="h-4 w-4 text-muted-foreground" />
-                  </div>
+                  </button>
                 )}
               </div>
             );
@@ -441,9 +486,12 @@ const MealPlanner = () => {
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 {meals.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg">
-                    Drag a recipe here or click + to add
-                  </div>
+                  <button
+                    onClick={() => openRecipePicker(selectedDay, slot.key)}
+                    className="w-full text-center py-6 text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
+                  >
+                    Click to add a recipe
+                  </button>
                 ) : (
                   <div className="space-y-2">
                     {meals.map(meal => (
@@ -650,6 +698,74 @@ const MealPlanner = () => {
           renderDayView()
         )}
       </div>
+
+      {/* Recipe Picker Dialog */}
+      <Dialog open={!!pickerTarget} onOpenChange={(open) => !open && setPickerTarget(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ChefHat className="h-5 w-5" />
+              Add Recipe to {pickerTarget && MEAL_SLOTS.find(s => s.key === pickerTarget.slot)?.label}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="relative mb-2">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search recipes..."
+              value={pickerSearch}
+              onChange={e => setPickerSearch(e.target.value)}
+              className="pl-9"
+              autoFocus
+            />
+          </div>
+          <ScrollArea className="flex-1 -mx-2 px-2">
+            <div className="space-y-4 pb-2">
+              {pickerFilteredRecipes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  No recipes found
+                </div>
+              ) : (
+                pickerFilteredRecipes.map(([category, catRecipes]) => (
+                  <div key={category}>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1.5">
+                      {category} ({catRecipes.length})
+                    </div>
+                    <div className="space-y-1">
+                      {catRecipes.map(recipe => (
+                        <button
+                          key={recipe.id}
+                          onClick={() => pickRecipe(recipe)}
+                          className="w-full flex items-center gap-3 p-2 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 transition-colors text-left"
+                        >
+                          {recipe.image_url ? (
+                            <img src={recipe.image_url} alt="" className="h-10 w-10 rounded object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="h-10 w-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                              <ChefHat className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate text-foreground">{recipe.title}</p>
+                            {(recipe.prep_time || recipe.cook_time) && (
+                              <p className="text-xs text-muted-foreground">
+                                {(recipe.prep_time || 0) + (recipe.cook_time || 0)} min
+                              </p>
+                            )}
+                          </div>
+                          {hasIngredients(recipe) && (
+                            <Star className="h-4 w-4 text-warning fill-warning flex-shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
