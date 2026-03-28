@@ -8,7 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Users, ExternalLink } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CookingTimer from "./CookingTimer";
+import CookingMode from "./CookingMode";
 import StarRating from "./StarRating";
+import { Button } from "@/components/ui/button";
+import { PlayCircle } from "lucide-react";
 
 interface Recipe {
   id: string;
