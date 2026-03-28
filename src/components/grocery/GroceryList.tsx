@@ -143,6 +143,16 @@ const GroceryList = () => {
           if (!existing.recipes.includes(recipe.title)) {
             existing.recipes.push(recipe.title);
           }
+          // Aggregate quantities
+          const qNum = parseFloat(String(quantity));
+          const eNum = parseFloat(existing.quantity);
+          if (!isNaN(qNum) && qNum > 0) {
+            if (!isNaN(eNum)) {
+              existing.quantity = String(eNum + qNum);
+            } else {
+              existing.quantity = String(qNum);
+            }
+          }
         } else {
           ingredientMap.set(key, {
             name,
