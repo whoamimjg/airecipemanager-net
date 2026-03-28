@@ -6,14 +6,16 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search,
-  Star, Plus, X, ChefHat, Trash2, UtensilsCrossed, GripVertical
+  Star, Plus, X, ChefHat, Trash2, UtensilsCrossed, GripVertical, BookOpen
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
