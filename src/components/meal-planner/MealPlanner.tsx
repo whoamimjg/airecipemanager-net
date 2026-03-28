@@ -54,6 +54,7 @@ interface Recipe {
 const MealPlanner = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [recipeSearch, setRecipeSearch] = useState("");
   const [draggedRecipe, setDraggedRecipe] = useState<Recipe | null>(null);
@@ -61,6 +62,7 @@ const MealPlanner = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
+  const [recipePanelOpen, setRecipePanelOpen] = useState(false);
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
