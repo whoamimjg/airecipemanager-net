@@ -11,8 +11,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle
+  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface GroceryItem {
@@ -39,6 +41,8 @@ const GroceryList = () => {
   const [customFrom, setCustomFrom] = useState<Date>(thisWeekStart);
   const [customTo, setCustomTo] = useState<Date>(addDays(thisWeekStart, 6));
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
 
   const { rangeStart, rangeEnd } = useMemo(() => {
     switch (preset) {
@@ -197,10 +201,12 @@ const GroceryList = () => {
     });
   }, [mealPlans, inventory, aiCategories]);
 
-  // Group by store category in aisle order
+  // Apply overrides then group by store category in aisle order
+  const adjustedItems = useMemo(() => applyOverrides(groceryItems), [groceryItems, itemOverrides]);
+
   const groupedItems = useMemo(() => {
     const groups: Record<string, GroceryItem[]> = {};
-    groceryItems.forEach(item => {
+    adjustedItems.forEach(item => {
       const cat = item.category || "Other";
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
@@ -208,7 +214,7 @@ const GroceryList = () => {
     return STORE_CATEGORIES
       .filter(cat => groups[cat]?.length > 0)
       .map(cat => [cat, groups[cat]] as [string, GroceryItem[]]);
-  }, [groceryItems]);
+  }, [adjustedItems]);
 
   const toggleCheck = (name: string) => {
     setCheckedItems(prev => {
@@ -217,6 +223,25 @@ const GroceryList = () => {
       else next.add(name);
       return next;
     });
+  };
+
+  const applyOverrides = (items: GroceryItem[]) =>
+    items.map(item => {
+      const o = itemOverrides[item.name.toLowerCase()];
+      if (!o) return item;
+      return {
+        ...item,
+        quantity: o.quantity ?? item.quantity,
+        unit: o.unit ?? item.unit,
+        category: o.category ?? item.category,
+      };
+    });
+
+  const updateOverride = (key: string, field: string, value: string) => {
+    setItemOverrides(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: value },
+    }));
   };
 
   const needToBuy = groceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
@@ -359,14 +384,16 @@ const GroceryList = () => {
                     {toBuyItems.map(item => {
                       const key = item.name.toLowerCase();
                       const isChecked = checkedItems.has(key);
+                      const isEditing = editingItem === key;
                       return (
                         <div
                           key={key}
                           className={cn(
-                            "flex items-center gap-3 p-2.5 rounded-lg border border-border transition-colors cursor-pointer hover:bg-muted/50",
+                            "flex items-center gap-3 p-2.5 rounded-lg border border-border transition-colors",
+                            !isEditing && "cursor-pointer hover:bg-muted/50",
                             isChecked && "bg-muted/30 opacity-60"
                           )}
-                          onClick={() => toggleCheck(key)}
+                          onClick={() => !isEditing && toggleCheck(key)}
                         >
                           <Checkbox
                             checked={isChecked}
@@ -374,21 +401,71 @@ const GroceryList = () => {
                             className="flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className={cn(
-                              "text-sm font-medium text-foreground",
-                              isChecked && "line-through text-muted-foreground"
-                            )}>
-                              {item.name}
-                              {item.quantity && (
-                                <span className="text-muted-foreground font-normal ml-1">
-                                  — {item.quantity}{item.unit ? ` ${item.unit}` : ""}
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              Used in: {item.recipes.join(", ")}
-                            </p>
+                            {isEditing ? (
+                              <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-foreground">{item.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    className="h-7 w-20 text-xs"
+                                    placeholder="Qty"
+                                    defaultValue={item.quantity}
+                                    onBlur={e => updateOverride(key, "quantity", e.target.value)}
+                                  />
+                                  <Input
+                                    className="h-7 w-20 text-xs"
+                                    placeholder="Unit"
+                                    defaultValue={item.unit}
+                                    onBlur={e => updateOverride(key, "unit", e.target.value)}
+                                  />
+                                  <Select
+                                    defaultValue={item.category}
+                                    onValueChange={v => updateOverride(key, "category", v)}
+                                  >
+                                    <SelectTrigger className="h-7 w-32 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {STORE_CATEGORIES.map(cat => (
+                                        <SelectItem key={cat} value={cat} className="text-xs">{cat}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingItem(null)}>
+                                    Done
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <p className={cn(
+                                  "text-sm font-medium text-foreground",
+                                  isChecked && "line-through text-muted-foreground"
+                                )}>
+                                  {item.name}
+                                  {item.quantity && (
+                                    <span className="text-muted-foreground font-normal ml-1">
+                                      — {item.quantity}{item.unit ? ` ${item.unit}` : ""}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  Used in: {item.recipes.join(", ")}
+                                </p>
+                              </>
+                            )}
                           </div>
+                          {!isEditing && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 flex-shrink-0"
+                              onClick={e => { e.stopPropagation(); setEditingItem(key); }}
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
