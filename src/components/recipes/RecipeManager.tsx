@@ -13,6 +13,8 @@ import ImportRecipe from "./ImportRecipe";
 import PhotoRecipeScanner from "./PhotoRecipeScanner";
 import RecipeDetailDialog from "./RecipeDetailDialog";
 import StarRating from "./StarRating";
+import RecipeLimitBanner from "./RecipeLimitBanner";
+import { useRecipeLimit } from "@/hooks/useRecipeLimit";
 
 interface Recipe {
   id: string;
@@ -40,6 +42,21 @@ const RecipeManager = () => {
   const [showPhotoScan, setShowPhotoScan] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
+  const { atLimit, nearLimit, recipeCount, limit, plan, isUnlimited } = useRecipeLimit();
+
+  const handleUpgrade = () => {
+    // Navigate to account tab
+    const tabTrigger = document.querySelector('[value="account"]') as HTMLElement;
+    tabTrigger?.click();
+  };
+
+  const tryAddRecipe = (action: () => void) => {
+    if (atLimit) {
+      toast.error(`Recipe limit reached (${limit}). Upgrade your plan to add more.`);
+      return;
+    }
+    action();
+  };
 
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ["recipes", user?.id],
@@ -128,20 +145,29 @@ const RecipeManager = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">My Recipes</h2>
-          <p className="text-sm text-muted-foreground">{recipes.length} recipes in your collection</p>
+          <p className="text-sm text-muted-foreground">
+            {recipes.length}{!isUnlimited ? ` / ${limit}` : ""} recipes in your collection
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setShowPhotoScan(true)}>
+          <Button variant="outline" onClick={() => tryAddRecipe(() => setShowPhotoScan(true))} disabled={atLimit}>
             <Camera className="mr-2 h-4 w-4" /> Scan Photo
           </Button>
-          <Button variant="outline" onClick={() => setShowImport(true)}>
+          <Button variant="outline" onClick={() => tryAddRecipe(() => setShowImport(true))} disabled={atLimit}>
             <Globe className="mr-2 h-4 w-4" /> Import URL
           </Button>
-          <Button onClick={() => setShowForm(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button onClick={() => tryAddRecipe(() => setShowForm(true))} disabled={atLimit} className="bg-primary text-primary-foreground hover:bg-primary/90">
             <Plus className="mr-2 h-4 w-4" /> Add Recipe
           </Button>
         </div>
       </div>
+
+      {atLimit && (
+        <RecipeLimitBanner recipeCount={recipeCount} limit={limit} plan={plan} type="blocked" onUpgrade={handleUpgrade} />
+      )}
+      {nearLimit && (
+        <RecipeLimitBanner recipeCount={recipeCount} limit={limit} plan={plan} type="warning" onUpgrade={handleUpgrade} />
+      )}
 
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -162,7 +188,7 @@ const RecipeManager = () => {
           <ChefHat className="h-16 w-16 text-muted-foreground/30 mb-4" />
           <h3 className="text-lg font-semibold text-foreground">No recipes yet</h3>
           <p className="text-muted-foreground mt-1">Add your first recipe to get started!</p>
-          <Button onClick={() => setShowForm(true)} className="mt-4 bg-primary text-primary-foreground">
+          <Button onClick={() => tryAddRecipe(() => setShowForm(true))} disabled={atLimit} className="mt-4 bg-primary text-primary-foreground">
             <Plus className="mr-2 h-4 w-4" /> Add Recipe
           </Button>
         </div>
