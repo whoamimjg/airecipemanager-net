@@ -13,6 +13,8 @@ import ImportRecipe from "./ImportRecipe";
 import PhotoRecipeScanner from "./PhotoRecipeScanner";
 import RecipeDetailDialog from "./RecipeDetailDialog";
 import StarRating from "./StarRating";
+import RecipeLimitBanner from "./RecipeLimitBanner";
+import { useRecipeLimit } from "@/hooks/useRecipeLimit";
 
 interface Recipe {
   id: string;
@@ -40,6 +42,21 @@ const RecipeManager = () => {
   const [showPhotoScan, setShowPhotoScan] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
+  const { atLimit, nearLimit, recipeCount, limit, plan, isUnlimited } = useRecipeLimit();
+
+  const handleUpgrade = () => {
+    // Navigate to account tab
+    const tabTrigger = document.querySelector('[value="account"]') as HTMLElement;
+    tabTrigger?.click();
+  };
+
+  const tryAddRecipe = (action: () => void) => {
+    if (atLimit) {
+      toast.error(`Recipe limit reached (${limit}). Upgrade your plan to add more.`);
+      return;
+    }
+    action();
+  };
 
   const { data: recipes = [], isLoading } = useQuery({
     queryKey: ["recipes", user?.id],
