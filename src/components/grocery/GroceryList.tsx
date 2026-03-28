@@ -11,8 +11,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle
+  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface GroceryItem {
@@ -39,6 +41,8 @@ const GroceryList = () => {
   const [customFrom, setCustomFrom] = useState<Date>(thisWeekStart);
   const [customTo, setCustomTo] = useState<Date>(addDays(thisWeekStart, 6));
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
 
   const { rangeStart, rangeEnd } = useMemo(() => {
     switch (preset) {
@@ -217,6 +221,25 @@ const GroceryList = () => {
       else next.add(name);
       return next;
     });
+  };
+
+  const applyOverrides = (items: GroceryItem[]) =>
+    items.map(item => {
+      const o = itemOverrides[item.name.toLowerCase()];
+      if (!o) return item;
+      return {
+        ...item,
+        quantity: o.quantity ?? item.quantity,
+        unit: o.unit ?? item.unit,
+        category: o.category ?? item.category,
+      };
+    });
+
+  const updateOverride = (key: string, field: string, value: string) => {
+    setItemOverrides(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: value },
+    }));
   };
 
   const needToBuy = groceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
