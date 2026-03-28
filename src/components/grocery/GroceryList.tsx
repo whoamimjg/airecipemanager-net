@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
+import { format, startOfWeek, addDays, addWeeks, startOfDay } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  ChevronLeft, ChevronRight, ShoppingCart, Package, Check, AlertTriangle
+  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,14 +28,37 @@ const STORE_CATEGORIES = [
   "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Condiments & Spices", "Other"
 ];
 
+type RangePreset = "this-week" | "next-week" | "2-weeks" | "this-month" | "custom";
+
 const GroceryList = () => {
   const { user } = useAuth();
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const today = startOfDay(new Date());
+  const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+
+  const [preset, setPreset] = useState<RangePreset>("this-week");
+  const [customFrom, setCustomFrom] = useState<Date>(thisWeekStart);
+  const [customTo, setCustomTo] = useState<Date>(addDays(thisWeekStart, 6));
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
 
-  const weekEnd = addDays(weekStart, 6);
-  const queryStart = format(weekStart, "yyyy-MM-dd");
-  const queryEnd = format(weekEnd, "yyyy-MM-dd");
+  const { rangeStart, rangeEnd } = useMemo(() => {
+    switch (preset) {
+      case "this-week":
+        return { rangeStart: thisWeekStart, rangeEnd: addDays(thisWeekStart, 6) };
+      case "next-week": {
+        const nw = addWeeks(thisWeekStart, 1);
+        return { rangeStart: nw, rangeEnd: addDays(nw, 6) };
+      }
+      case "2-weeks":
+        return { rangeStart: thisWeekStart, rangeEnd: addDays(thisWeekStart, 13) };
+      case "this-month":
+        return { rangeStart: thisWeekStart, rangeEnd: addDays(thisWeekStart, 29) };
+      case "custom":
+        return { rangeStart: customFrom, rangeEnd: customTo };
+    }
+  }, [preset, thisWeekStart, customFrom, customTo]);
+
+  const queryStart = format(rangeStart, "yyyy-MM-dd");
+  const queryEnd = format(rangeEnd, "yyyy-MM-dd");
 
   // Fetch meal plans for the week with recipe details
   const { data: mealPlans = [] } = useQuery({
