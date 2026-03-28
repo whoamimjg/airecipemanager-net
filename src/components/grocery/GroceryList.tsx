@@ -201,10 +201,12 @@ const GroceryList = () => {
     });
   }, [mealPlans, inventory, aiCategories]);
 
-  // Group by store category in aisle order
+  // Apply overrides then group by store category in aisle order
+  const adjustedItems = useMemo(() => applyOverrides(groceryItems), [groceryItems, itemOverrides]);
+
   const groupedItems = useMemo(() => {
     const groups: Record<string, GroceryItem[]> = {};
-    groceryItems.forEach(item => {
+    adjustedItems.forEach(item => {
       const cat = item.category || "Other";
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
@@ -212,7 +214,7 @@ const GroceryList = () => {
     return STORE_CATEGORIES
       .filter(cat => groups[cat]?.length > 0)
       .map(cat => [cat, groups[cat]] as [string, GroceryItem[]]);
-  }, [groceryItems]);
+  }, [adjustedItems]);
 
   const toggleCheck = (name: string) => {
     setCheckedItems(prev => {
