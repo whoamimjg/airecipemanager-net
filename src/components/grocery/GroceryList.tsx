@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
+import { format, startOfWeek, addDays, addWeeks, startOfDay } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  ChevronLeft, ChevronRight, ShoppingCart, Package, Check, AlertTriangle
+  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,14 +28,37 @@ const STORE_CATEGORIES = [
   "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Condiments & Spices", "Other"
 ];
 
+type RangePreset = "this-week" | "next-week" | "2-weeks" | "this-month" | "custom";
+
 const GroceryList = () => {
   const { user } = useAuth();
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const today = startOfDay(new Date());
+  const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+
+  const [preset, setPreset] = useState<RangePreset>("this-week");
+  const [customFrom, setCustomFrom] = useState<Date>(thisWeekStart);
+  const [customTo, setCustomTo] = useState<Date>(addDays(thisWeekStart, 6));
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
 
-  const weekEnd = addDays(weekStart, 6);
-  const queryStart = format(weekStart, "yyyy-MM-dd");
-  const queryEnd = format(weekEnd, "yyyy-MM-dd");
+  const { rangeStart, rangeEnd } = useMemo(() => {
+    switch (preset) {
+      case "this-week":
+        return { rangeStart: thisWeekStart, rangeEnd: addDays(thisWeekStart, 6) };
+      case "next-week": {
+        const nw = addWeeks(thisWeekStart, 1);
+        return { rangeStart: nw, rangeEnd: addDays(nw, 6) };
+      }
+      case "2-weeks":
+        return { rangeStart: thisWeekStart, rangeEnd: addDays(thisWeekStart, 13) };
+      case "this-month":
+        return { rangeStart: thisWeekStart, rangeEnd: addDays(thisWeekStart, 29) };
+      case "custom":
+        return { rangeStart: customFrom, rangeEnd: customTo };
+    }
+  }, [preset, thisWeekStart, customFrom, customTo]);
+
+  const queryStart = format(rangeStart, "yyyy-MM-dd");
+  const queryEnd = format(rangeEnd, "yyyy-MM-dd");
 
   // Fetch meal plans for the week with recipe details
   const { data: mealPlans = [] } = useQuery({
@@ -201,25 +226,67 @@ const GroceryList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with week navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Header with date range selection */}
+      <div className="flex flex-col gap-4">
         <div>
           <h2 className="text-2xl font-bold font-serif text-foreground">Grocery List</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Auto-generated from your meal plan. Items already in your inventory are excluded.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[180px] text-center text-foreground">
-            {format(weekStart, "MMM d")} – {format(weekEnd, "MMM d, yyyy")}
-          </span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              ["this-week", "This Week"],
+              ["next-week", "Next Week"],
+              ["2-weeks", "2 Weeks"],
+              ["this-month", "4 Weeks"],
+              ["custom", "Custom"],
+            ] as [RangePreset, string][]
+          ).map(([key, label]) => (
+            <Button
+              key={key}
+              variant={preset === key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPreset(key)}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
+
+        {preset === "custom" && (
+          <div className="flex flex-wrap items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(customFrom, "MMM d, yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customFrom} onSelect={(d) => d && setCustomFrom(d)} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            <span className="text-sm text-muted-foreground">to</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(customTo, "MMM d, yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customTo} onSelect={(d) => d && setCustomTo(d)} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          Showing: {format(rangeStart, "MMM d")} – {format(rangeEnd, "MMM d, yyyy")}
+        </p>
       </div>
 
       {/* Stats */}
@@ -268,7 +335,7 @@ const GroceryList = () => {
             <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No items yet</h3>
             <p className="text-sm text-muted-foreground max-w-md">
-              Add recipes to your meal plan for this week and the grocery list will be automatically generated.
+              Add recipes to your meal plan for this date range and the grocery list will be automatically generated.
             </p>
           </CardContent>
         </Card>
