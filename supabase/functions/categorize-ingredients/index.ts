@@ -52,8 +52,8 @@ Rules:
 - "Meats" = all raw/fresh meat, poultry, fish, seafood (chicken, beef, salmon, shrimp, bacon, sausage)
 - "Dairy" = milk, cheese, butter, cream, eggs, yogurt
 - "Beverages" = drinks, juices, sodas, coffee, tea, water, wine, beer
-- "Cereal" = breakfast cereals, oats, granola, rice, pasta, noodles, quinoa, couscous
-- "Dry Goods" = flour, sugar, baking supplies, nuts, seeds, dried fruits, bouillon, cornstarch, baking powder/soda, cocoa, chocolate chips
+- "Cereal" = breakfast cereals, oats, granola
+- "Dry Goods" = rice, basmati rice, pasta, noodles, quinoa, couscous, flour, sugar, baking supplies, nuts, seeds, dried fruits, bouillon, cornstarch, baking powder/soda, cocoa, chocolate chips, dried beans, lentils
 - "Canned Goods" = canned/jarred items, broth, stock, canned beans, canned tomatoes, coconut milk (canned)
 - "Bread" = bread, buns, rolls, tortillas, pita, naan, bagels, wraps
 - "Frozen" = frozen foods, ice cream, frozen vegetables, frozen pizza
