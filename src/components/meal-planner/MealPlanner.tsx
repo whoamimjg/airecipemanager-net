@@ -6,14 +6,16 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Search,
-  Star, Plus, X, ChefHat, Trash2, UtensilsCrossed, GripVertical
+  Star, Plus, X, ChefHat, Trash2, UtensilsCrossed, GripVertical, BookOpen
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -52,6 +54,7 @@ interface Recipe {
 const MealPlanner = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [recipeSearch, setRecipeSearch] = useState("");
   const [draggedRecipe, setDraggedRecipe] = useState<Recipe | null>(null);
@@ -59,6 +62,7 @@ const MealPlanner = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
+  const [recipePanelOpen, setRecipePanelOpen] = useState(false);
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
@@ -491,73 +495,103 @@ const MealPlanner = () => {
     </div>
   );
 
+  const recipeSidebarContent = (
+    <div className={cn(
+      "flex flex-col overflow-hidden",
+      isMobile ? "h-full" : "w-64 flex-shrink-0 border border-border rounded-xl bg-card"
+    )}>
+      <div className="p-3 border-b border-border">
+        <h3 className="font-semibold text-sm text-foreground mb-2">Recipes</h3>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search..."
+            value={recipeSearch}
+            onChange={e => setRecipeSearch(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
+        </div>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-2 space-y-3">
+          {filteredRecipes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-xs">
+              <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-30" />
+              No recipes found
+            </div>
+          ) : (
+            groupedRecipes.map(([category, catRecipes]) => (
+              <div key={category}>
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">
+                  {category} ({catRecipes.length})
+                </div>
+                <div className="space-y-0.5">
+                  {catRecipes.map(recipe => (
+                    <div
+                      key={recipe.id}
+                      draggable={!isMobile}
+                      onDragStart={() => setDraggedRecipe(recipe)}
+                      onDragEnd={() => setDraggedRecipe(null)}
+                      onClick={() => {
+                        if (isMobile) {
+                          const dateStr = view === "day" ? format(selectedDay, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
+                          addMealPlan.mutate({ recipe_id: recipe.id, date: dateStr, meal_slot: "dinner" });
+                          setRecipePanelOpen(false);
+                        }
+                      }}
+                      className="flex items-center gap-2 p-1.5 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors text-xs group"
+                    >
+                      {!isMobile && <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground flex-shrink-0" />}
+                      {recipe.image_url ? (
+                        <img src={recipe.image_url} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          <ChefHat className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate text-foreground">{recipe.title}</p>
+                      </div>
+                      {hasIngredients(recipe) && (
+                        <Star className="h-3.5 w-3.5 text-warning fill-warning flex-shrink-0" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
   return (
     <div className="flex gap-4 h-[calc(100vh-180px)]">
-      {/* Recipe sidebar */}
-      <div className="w-64 flex-shrink-0 border border-border rounded-xl bg-card flex flex-col overflow-hidden">
-        <div className="p-3 border-b border-border">
-          <h3 className="font-semibold text-sm text-foreground mb-2">Recipes</h3>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search..."
-              value={recipeSearch}
-              onChange={e => setRecipeSearch(e.target.value)}
-              className="pl-8 h-8 text-xs"
-            />
-          </div>
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="p-2 space-y-3">
-            {filteredRecipes.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-xs">
-                <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                No recipes found
-              </div>
-            ) : (
-              groupedRecipes.map(([category, catRecipes]) => (
-                <div key={category}>
-                  <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-1">
-                    {category} ({catRecipes.length})
-                  </div>
-                  <div className="space-y-0.5">
-                    {catRecipes.map(recipe => (
-                      <div
-                        key={recipe.id}
-                        draggable
-                        onDragStart={() => setDraggedRecipe(recipe)}
-                        onDragEnd={() => setDraggedRecipe(null)}
-                        className="flex items-center gap-2 p-1.5 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors text-xs group"
-                      >
-                        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground flex-shrink-0" />
-                        {recipe.image_url ? (
-                          <img src={recipe.image_url} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="h-8 w-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                            <ChefHat className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate text-foreground">{recipe.title}</p>
-                        </div>
-                        {hasIngredients(recipe) && (
-                          <Star className="h-3.5 w-3.5 text-warning fill-warning flex-shrink-0" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
-      </div>
+      {/* Recipe sidebar: Sheet on mobile, inline on desktop */}
+      {isMobile ? (
+        <Sheet open={recipePanelOpen} onOpenChange={setRecipePanelOpen}>
+          <SheetContent side="left" className="w-72 p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Recipe Browser</SheetTitle>
+            </SheetHeader>
+            {recipeSidebarContent}
+          </SheetContent>
+        </Sheet>
+      ) : (
+        recipeSidebarContent
+      )}
 
       {/* Calendar area */}
       <div className="flex-1 flex flex-col border border-border rounded-xl bg-card overflow-hidden">
         {/* Calendar header */}
         <div className="flex items-center justify-between p-3 border-b border-border">
           <div className="flex items-center gap-2">
+            {isMobile && (
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setRecipePanelOpen(true)}>
+                <BookOpen className="h-4 w-4" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
               if (view === "month") setCurrentMonth(subMonths(currentMonth, 1));
               else if (view === "day") setSelectedDay(addDays(selectedDay, -1));
@@ -565,7 +599,7 @@ const MealPlanner = () => {
             }}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <h3 className="font-semibold text-sm text-foreground min-w-[180px] text-center">
+            <h3 className="font-semibold text-sm text-foreground min-w-[120px] md:min-w-[180px] text-center">
               {view === "month"
                 ? format(currentMonth, "MMM yyyy")
                 : view === "week"
