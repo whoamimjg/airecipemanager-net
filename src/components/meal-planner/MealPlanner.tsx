@@ -196,6 +196,37 @@ const MealPlanner = () => {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [filteredRecipes]);
 
+  // Recipes filtered for the picker dialog
+  const pickerFilteredRecipes = useMemo(() => {
+    const search = pickerSearch.toLowerCase();
+    const filtered = recipes.filter(r =>
+      r.title.toLowerCase().includes(search) ||
+      (r.category?.toLowerCase().includes(search) ?? false)
+    );
+    const groups: Record<string, Recipe[]> = {};
+    filtered.forEach(r => {
+      const cat = r.category || "Uncategorized";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(r);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [recipes, pickerSearch]);
+
+  const openRecipePicker = (date: Date, slot: MealSlot) => {
+    setPickerSearch("");
+    setPickerTarget({ date, slot });
+  };
+
+  const pickRecipe = (recipe: Recipe) => {
+    if (!pickerTarget) return;
+    addMealPlan.mutate({
+      recipe_id: recipe.id,
+      date: format(pickerTarget.date, "yyyy-MM-dd"),
+      meal_slot: pickerTarget.slot,
+    });
+    setPickerTarget(null);
+  };
+
   const getMealsForDaySlot = (date: Date, slot: MealSlot) =>
     mealPlans.filter(mp => mp.date === format(date, "yyyy-MM-dd") && mp.meal_slot === slot);
 
