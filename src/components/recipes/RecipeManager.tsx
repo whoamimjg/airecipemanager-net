@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe, Star, CalendarDays } from "lucide-react";
+import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe, Star, CalendarDays, Camera } from "lucide-react";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
 import ImportRecipe from "./ImportRecipe";
+import PhotoRecipeScanner from "./PhotoRecipeScanner";
 import RecipeDetailDialog from "./RecipeDetailDialog";
 import StarRating from "./StarRating";
 
@@ -36,6 +37,7 @@ const RecipeManager = () => {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showPhotoScan, setShowPhotoScan] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
 
@@ -105,6 +107,10 @@ const RecipeManager = () => {
     return <ImportRecipe onClose={() => setShowImport(false)} />;
   }
 
+  if (showPhotoScan) {
+    return <PhotoRecipeScanner onClose={() => setShowPhotoScan(false)} />;
+  }
+
   if (showForm || editingRecipe) {
     return (
       <RecipeForm
@@ -124,7 +130,10 @@ const RecipeManager = () => {
           <h2 className="text-2xl font-bold text-foreground">My Recipes</h2>
           <p className="text-sm text-muted-foreground">{recipes.length} recipes in your collection</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setShowPhotoScan(true)}>
+            <Camera className="mr-2 h-4 w-4" /> Scan Photo
+          </Button>
           <Button variant="outline" onClick={() => setShowImport(true)}>
             <Globe className="mr-2 h-4 w-4" /> Import URL
           </Button>
