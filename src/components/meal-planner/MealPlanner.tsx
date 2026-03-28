@@ -378,9 +378,12 @@ const MealPlanner = () => {
 
                         {/* Drop hint */}
                         {meals.length === 0 && (
-                          <div className="h-full flex items-center justify-center opacity-0 hover:opacity-30 transition-opacity">
+                          <button
+                            onClick={() => openRecipePicker(day, slot.key)}
+                            className="h-full w-full flex items-center justify-center opacity-0 hover:opacity-50 transition-opacity"
+                          >
                             <Plus className="h-3 w-3 text-muted-foreground" />
-                          </div>
+                          </button>
                         )}
                       </div>
                     );
@@ -445,9 +448,12 @@ const MealPlanner = () => {
                   </div>
                 ))}
                 {meals.length === 0 && (
-                  <div className="h-full flex items-center justify-center opacity-0 hover:opacity-40 transition-opacity">
+                  <button
+                    onClick={() => openRecipePicker(date, slot.key)}
+                    className="h-full w-full flex items-center justify-center opacity-0 hover:opacity-50 transition-opacity"
+                  >
                     <Plus className="h-4 w-4 text-muted-foreground" />
-                  </div>
+                  </button>
                 )}
               </div>
             );
@@ -480,9 +486,12 @@ const MealPlanner = () => {
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 {meals.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg">
-                    Drag a recipe here or click + to add
-                  </div>
+                  <button
+                    onClick={() => openRecipePicker(selectedDay, slot.key)}
+                    className="w-full text-center py-6 text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
+                  >
+                    Click to add a recipe
+                  </button>
                 ) : (
                   <div className="space-y-2">
                     {meals.map(meal => (
