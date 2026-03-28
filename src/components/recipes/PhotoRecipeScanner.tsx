@@ -119,9 +119,9 @@ const PhotoRecipeScanner = ({ onClose }: PhotoRecipeScannerProps) => {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={handleFileChange}
+            onClick={(e) => { (e.target as HTMLInputElement).value = ""; }}
           />
         </div>
 
