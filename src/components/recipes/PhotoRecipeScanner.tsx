@@ -65,9 +65,7 @@ const PhotoRecipeScanner = ({ onClose }: PhotoRecipeScannerProps) => {
           cook_time: scannedRecipe.cook_time || null,
           servings: scannedRecipe.servings || null,
           category: scannedRecipe.category || null,
-          tags: scannedRecipe.tags || [],
           source_url: null,
-          image_url: null,
         }}
         isNew
         onClose={onClose}
