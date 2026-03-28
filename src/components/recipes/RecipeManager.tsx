@@ -188,7 +188,7 @@ const RecipeManager = () => {
           <ChefHat className="h-16 w-16 text-muted-foreground/30 mb-4" />
           <h3 className="text-lg font-semibold text-foreground">No recipes yet</h3>
           <p className="text-muted-foreground mt-1">Add your first recipe to get started!</p>
-          <Button onClick={() => setShowForm(true)} className="mt-4 bg-primary text-primary-foreground">
+          <Button onClick={() => tryAddRecipe(() => setShowForm(true))} disabled={atLimit} className="mt-4 bg-primary text-primary-foreground">
             <Plus className="mr-2 h-4 w-4" /> Add Recipe
           </Button>
         </div>
