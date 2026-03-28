@@ -201,6 +201,25 @@ const GroceryList = () => {
     });
   }, [mealPlans, inventory, aiCategories]);
 
+  const applyOverrides = (items: GroceryItem[]) =>
+    items.map(item => {
+      const o = itemOverrides[item.name.toLowerCase()];
+      if (!o) return item;
+      return {
+        ...item,
+        quantity: o.quantity ?? item.quantity,
+        unit: o.unit ?? item.unit,
+        category: o.category ?? item.category,
+      };
+    });
+
+  const updateOverride = (key: string, field: string, value: string) => {
+    setItemOverrides(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: value },
+    }));
+  };
+
   // Apply overrides then group by store category in aisle order
   const adjustedItems = useMemo(() => applyOverrides(groceryItems), [groceryItems, itemOverrides]);
 
@@ -223,25 +242,6 @@ const GroceryList = () => {
       else next.add(name);
       return next;
     });
-  };
-
-  const applyOverrides = (items: GroceryItem[]) =>
-    items.map(item => {
-      const o = itemOverrides[item.name.toLowerCase()];
-      if (!o) return item;
-      return {
-        ...item,
-        quantity: o.quantity ?? item.quantity,
-        unit: o.unit ?? item.unit,
-        category: o.category ?? item.category,
-      };
-    });
-
-  const updateOverride = (key: string, field: string, value: string) => {
-    setItemOverrides(prev => ({
-      ...prev,
-      [key]: { ...prev[key], [field]: value },
-    }));
   };
 
   const needToBuy = groceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
