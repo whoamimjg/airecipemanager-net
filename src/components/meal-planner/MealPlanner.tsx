@@ -358,19 +358,6 @@ const MealPlanner = () => {
   // ── Week View ──
   const renderWeekView = () => (
     <div className="flex-1 flex overflow-auto">
-      <div className="w-16 flex-shrink-0 border-r border-border">
-        <div className="h-[52px] border-b border-border" />
-        {MEAL_SLOTS.map(slot => (
-          <div
-            key={slot.key}
-            className="flex-1 min-h-[70px] flex items-center justify-center border-b border-border last:border-b-0"
-          >
-            <span className="text-[10px] font-medium text-muted-foreground" style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}>
-              {slot.label}
-            </span>
-          </div>
-        ))}
-      </div>
       {weekDays.map(date => (
         <div
           key={date.toISOString()}
