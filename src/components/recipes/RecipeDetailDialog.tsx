@@ -37,6 +37,8 @@ interface RecipeDetailDialogProps {
 }
 
 const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogProps) => {
+  const [showCookingMode, setShowCookingMode] = useState(false);
+
   if (!recipe) return null;
 
   const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
