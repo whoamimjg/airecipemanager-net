@@ -131,10 +131,30 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
               </div>
             )}
 
+            {instructions.length > 0 && (
+              <Button
+                onClick={() => setShowCookingMode(true)}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                size="lg"
+              >
+                <PlayCircle className="mr-2 h-5 w-5" /> Start Cooking Mode
+              </Button>
+            )}
+
             <CookingTimer />
           </div>
         </ScrollArea>
       </DialogContent>
+
+      <CookingMode
+        open={showCookingMode}
+        onOpenChange={setShowCookingMode}
+        title={recipe.title}
+        ingredients={ingredients}
+        instructions={instructions}
+        prepTime={recipe.prep_time}
+        cookTime={recipe.cook_time}
+      />
     </Dialog>
   );
 };
