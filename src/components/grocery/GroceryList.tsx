@@ -226,25 +226,67 @@ const GroceryList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with week navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Header with date range selection */}
+      <div className="flex flex-col gap-4">
         <div>
           <h2 className="text-2xl font-bold font-serif text-foreground">Grocery List</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Auto-generated from your meal plan. Items already in your inventory are excluded.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(subWeeks(weekStart, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium min-w-[180px] text-center text-foreground">
-            {format(weekStart, "MMM d")} – {format(weekEnd, "MMM d, yyyy")}
-          </span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {(
+            [
+              ["this-week", "This Week"],
+              ["next-week", "Next Week"],
+              ["2-weeks", "2 Weeks"],
+              ["this-month", "4 Weeks"],
+              ["custom", "Custom"],
+            ] as [RangePreset, string][]
+          ).map(([key, label]) => (
+            <Button
+              key={key}
+              variant={preset === key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPreset(key)}
+            >
+              {label}
+            </Button>
+          ))}
         </div>
+
+        {preset === "custom" && (
+          <div className="flex flex-wrap items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(customFrom, "MMM d, yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customFrom} onSelect={(d) => d && setCustomFrom(d)} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+            <span className="text-sm text-muted-foreground">to</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(customTo, "MMM d, yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={customTo} onSelect={(d) => d && setCustomTo(d)} initialFocus className={cn("p-3 pointer-events-auto")} />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground">
+          Showing: {format(rangeStart, "MMM d")} – {format(rangeEnd, "MMM d, yyyy")}
+        </p>
       </div>
 
       {/* Stats */}
