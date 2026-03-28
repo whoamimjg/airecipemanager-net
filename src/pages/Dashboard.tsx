@@ -3,12 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChefHat, BookOpen, Brain, Package, CalendarDays, ShoppingCart, Settings, LogOut } from "lucide-react";
+import { ChefHat, BookOpen, Brain, Package, CalendarDays, ShoppingCart, DollarSign, Settings, LogOut } from "lucide-react";
 import RecipeManager from "@/components/recipes/RecipeManager";
 import AIRecipeGenerator from "@/components/recipes/AIRecipeGenerator";
 import InventoryManager from "@/components/inventory/InventoryManager";
 import MealPlanner from "@/components/meal-planner/MealPlanner";
 import GroceryList from "@/components/grocery/GroceryList";
+import ExpenseReport from "@/components/expenses/ExpenseReport";
 import AccountSettings from "@/components/account/AccountSettings";
 
 const Dashboard = () => {
@@ -64,6 +65,9 @@ const Dashboard = () => {
             <TabsTrigger value="grocery" className="gap-1.5 text-xs sm:text-sm">
               <ShoppingCart className="h-4 w-4" /> <span className="hidden sm:inline">Grocery</span>
             </TabsTrigger>
+            <TabsTrigger value="expenses" className="gap-1.5 text-xs sm:text-sm">
+              <DollarSign className="h-4 w-4" /> <span className="hidden sm:inline">Expenses</span>
+            </TabsTrigger>
             <TabsTrigger value="account" className="gap-1.5 text-xs sm:text-sm">
               <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Account</span>
             </TabsTrigger>
@@ -83,6 +87,9 @@ const Dashboard = () => {
           </TabsContent>
           <TabsContent value="grocery">
             <GroceryList />
+          </TabsContent>
+          <TabsContent value="expenses">
+            <ExpenseReport />
           </TabsContent>
           <TabsContent value="account">
             <AccountSettings />

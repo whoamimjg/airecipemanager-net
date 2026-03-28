@@ -25,11 +25,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine } from "lucide-react";
+import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
 import InventoryFormDialog from "./InventoryFormDialog";
 import BarcodeScanner from "./BarcodeScanner";
+import ReceiptScanner from "./ReceiptScanner";
 
 const DELETE_REASONS = [
   "Used / Consumed",
@@ -85,6 +86,7 @@ const InventoryManager = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteNotes, setDeleteNotes] = useState("");
+  const [showReceiptScanner, setShowReceiptScanner] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["inventory", user?.id],
@@ -151,7 +153,10 @@ const InventoryManager = () => {
           <h2 className="text-2xl font-bold text-foreground">Kitchen Inventory</h2>
           <p className="text-sm text-muted-foreground">{items.length} items tracked</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setShowReceiptScanner(true)}>
+            <Receipt className="mr-2 h-4 w-4" /> Receipt
+          </Button>
           <Button variant="outline" onClick={() => setShowScanner(true)}>
             <ScanLine className="mr-2 h-4 w-4" /> Scan
           </Button>
@@ -305,6 +310,9 @@ const InventoryManager = () => {
           }}
         />
       )}
+
+      {/* Receipt Scanner */}
+      <ReceiptScanner open={showReceiptScanner} onOpenChange={setShowReceiptScanner} />
 
       {/* Delete confirmation with reason */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) { setDeleteId(null); setDeleteReason(""); setDeleteNotes(""); } }}>
