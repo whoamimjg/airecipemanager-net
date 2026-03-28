@@ -69,6 +69,8 @@ const MealPlanner = () => {
   const [selectedDay, setSelectedDay] = useState(new Date());
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<number>>(new Set());
   const [recipePanelOpen, setRecipePanelOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<{ date: Date; slot: MealSlot } | null>(null);
+  const [pickerSearch, setPickerSearch] = useState("");
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
