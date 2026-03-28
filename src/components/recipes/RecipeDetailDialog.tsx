@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Users, ExternalLink } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CookingTimer from "./CookingTimer";
+import CookingMode from "./CookingMode";
 import StarRating from "./StarRating";
+import { Button } from "@/components/ui/button";
+import { PlayCircle } from "lucide-react";
 
 interface Recipe {
   id: string;
@@ -34,6 +38,8 @@ interface RecipeDetailDialogProps {
 }
 
 const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogProps) => {
+  const [showCookingMode, setShowCookingMode] = useState(false);
+
   if (!recipe) return null;
 
   const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
@@ -125,10 +131,30 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
               </div>
             )}
 
+            {instructions.length > 0 && (
+              <Button
+                onClick={() => setShowCookingMode(true)}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                size="lg"
+              >
+                <PlayCircle className="mr-2 h-5 w-5" /> Start Cooking Mode
+              </Button>
+            )}
+
             <CookingTimer />
           </div>
         </ScrollArea>
       </DialogContent>
+
+      <CookingMode
+        open={showCookingMode}
+        onOpenChange={setShowCookingMode}
+        title={recipe.title}
+        ingredients={ingredients}
+        instructions={instructions}
+        prepTime={recipe.prep_time}
+        cookTime={recipe.cook_time}
+      />
     </Dialog>
   );
 };
