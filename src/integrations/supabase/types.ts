@@ -229,6 +229,86 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_items: {
+        Row: {
+          added_to_inventory: boolean
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+          price: number
+          quantity: number
+          receipt_id: string
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          added_to_inventory?: boolean
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          price?: number
+          quantity?: number
+          receipt_id: string
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          added_to_inventory?: boolean
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          quantity?: number
+          receipt_id?: string
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_items_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipt_scans: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          notes: string | null
+          receipt_date: string
+          store_name: string | null
+          total_amount: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          notes?: string | null
+          receipt_date?: string
+          store_name?: string | null
+          total_amount?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          notes?: string | null
+          receipt_date?: string
+          store_name?: string | null
+          total_amount?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       recipes: {
         Row: {
           category: string | null
