@@ -335,7 +335,7 @@ const GroceryList = () => {
             <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No items yet</h3>
             <p className="text-sm text-muted-foreground max-w-md">
-              Add recipes to your meal plan for this week and the grocery list will be automatically generated.
+              Add recipes to your meal plan for this date range and the grocery list will be automatically generated.
             </p>
           </CardContent>
         </Card>
