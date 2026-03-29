@@ -9,6 +9,10 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPayments from "./pages/admin/AdminPayments";
 
 const queryClient = new QueryClient();
 
