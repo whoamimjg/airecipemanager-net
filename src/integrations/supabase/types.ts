@@ -410,78 +410,7 @@ export type Database = {
       }
     }
     Views: {
-      admin_billing: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          date: string | null
-          description: string | null
-          display_name: string | null
-          email: string | null
-          id: string | null
-          invoice_number: string | null
-          payment_method: string | null
-          plan: string | null
-          status: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
-      admin_profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          diet_restrictions: string[] | null
-          display_name: string | null
-          email: string | null
-          user_id: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          diet_restrictions?: string[] | null
-          display_name?: string | null
-          email?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          diet_restrictions?: string[] | null
-          display_name?: string | null
-          email?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      admin_recipe_stats: {
-        Row: {
-          ai_generated_count: number | null
-          display_name: string | null
-          email: string | null
-          last_recipe_at: string | null
-          recipe_count: number | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
-      admin_subscriptions: {
-        Row: {
-          created_at: string | null
-          display_name: string | null
-          email: string | null
-          id: string | null
-          is_active: boolean | null
-          next_billing_date: string | null
-          payment_method: string | null
-          plan: Database["public"]["Enums"]["subscription_plan"] | null
-          price_monthly: number | null
-          recipe_limit: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       [_ in never]: never
