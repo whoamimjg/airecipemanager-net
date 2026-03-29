@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_totp: {
+        Row: {
+          created_at: string
+          id: string
+          is_verified: boolean
+          totp_secret: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          totp_secret: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          totp_secret?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       billing_history: {
         Row: {
           amount: number
