@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const ADMIN_EMAILS = ["ADMIN_EMAIL_PLACEHOLDER"]; // Will be updated with real email
+const ADMIN_EMAILS = ["whoamimjg50@gmail.com"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -14,7 +14,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify JWT and check admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -26,7 +25,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify the user's token
     const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -46,7 +44,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role to query all data
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const url = new URL(req.url);
@@ -77,7 +74,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Signups over time (last 30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const signupsByDay: Record<string, number> = {};
@@ -135,7 +131,6 @@ Deno.serve(async (req) => {
           .select("*")
           .order("date", { ascending: false });
 
-        // Join with profiles
         const userIds = [...new Set((billing ?? []).map((b: any) => b.user_id))];
         const { data: profiles } = await adminClient
           .from("profiles")

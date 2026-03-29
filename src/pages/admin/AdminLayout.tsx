@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Outlet, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminTotpGate } from "@/components/admin/AdminTotpGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useAdmin";
 import { Shield } from "lucide-react";
@@ -8,6 +10,7 @@ import { Shield } from "lucide-react";
 export default function AdminLayout() {
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
+  const [totpVerified, setTotpVerified] = useState(false);
 
   if (loading) {
     return (
@@ -19,6 +22,10 @@ export default function AdminLayout() {
 
   if (!user) return <Navigate to="/auth" replace />;
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
+
+  if (!totpVerified) {
+    return <AdminTotpGate onVerified={() => setTotpVerified(true)} />;
+  }
 
   return (
     <SidebarProvider>
