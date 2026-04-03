@@ -34,6 +34,7 @@ const App = () => (
               <Route path="users" element={<AdminUsers />} />
               <Route path="payments" element={<AdminPayments />} />
             </Route>
+            <Route path="/recipe/:id" element={<SharedRecipe />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
