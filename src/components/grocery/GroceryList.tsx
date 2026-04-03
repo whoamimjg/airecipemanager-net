@@ -298,10 +298,10 @@ const GroceryList = () => {
     });
   };
 
-  const needToBuy = groceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
-  const alreadyHave = groceryItems.filter(i => i.inInventory);
+  const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
+  const alreadyHave = allGroceryItems.filter(i => i.inInventory);
   const checkedCount = checkedItems.size;
-  const totalToBuy = groceryItems.filter(i => !i.inInventory).length;
+  const totalToBuy = allGroceryItems.filter(i => !i.inInventory).length;
 
   return (
     <div className="space-y-6">
