@@ -13,6 +13,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPayments from "./pages/admin/AdminPayments";
+import SharedRecipe from "./pages/SharedRecipe";
 
 const queryClient = new QueryClient();
 
