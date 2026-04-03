@@ -562,14 +562,26 @@ const GroceryList = () => {
                             )}
                           </div>
                           {!isEditing && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 flex-shrink-0"
-                              onClick={e => { e.stopPropagation(); setEditingItem(key); }}
-                            >
-                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                            </Button>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={e => { e.stopPropagation(); setEditingItem(key); }}
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                              </Button>
+                              {item.recipes.length === 1 && item.recipes[0] === "Manual" && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-destructive"
+                                  onClick={e => { e.stopPropagation(); removeManualItem(item.name); }}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </div>
                       );
