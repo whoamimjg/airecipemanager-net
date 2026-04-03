@@ -255,7 +255,7 @@ const GroceryList = () => {
     setManualItems(prev => prev.filter(i => i.name.toLowerCase() !== itemName.toLowerCase()));
   };
 
-
+  const applyOverrides = (items: GroceryItem[]) =>
     items.map(item => {
       const o = itemOverrides[item.name.toLowerCase()];
       if (!o) return item;
@@ -275,7 +275,7 @@ const GroceryList = () => {
   };
 
   // Apply overrides then group by store category in aisle order
-  const adjustedItems = useMemo(() => applyOverrides(groceryItems), [groceryItems, itemOverrides]);
+  const adjustedItems = useMemo(() => applyOverrides(allGroceryItems), [allGroceryItems, itemOverrides]);
 
   const groupedItems = useMemo(() => {
     const groups: Record<string, GroceryItem[]> = {};
