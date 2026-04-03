@@ -459,7 +459,7 @@ const GroceryList = () => {
         </Card>
       </div>
 
-      {groceryItems.length === 0 ? (
+      {allGroceryItems.length === 0 ? (
         <Card className="border-border">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mb-4" />
