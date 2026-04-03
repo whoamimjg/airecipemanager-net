@@ -207,7 +207,55 @@ const GroceryList = () => {
     });
   }, [mealPlans, inventory, aiCategories]);
 
-  const applyOverrides = (items: GroceryItem[]) =>
+  // Combine recipe-derived items with manually added items
+  const allGroceryItems = useMemo(() => {
+    const combined = [...groceryItems];
+    manualItems.forEach(manual => {
+      const key = manual.name.toLowerCase();
+      const existing = combined.find(i => i.name.toLowerCase() === key);
+      if (existing) {
+        const mNum = parseFloat(manual.quantity);
+        const eNum = parseFloat(existing.quantity);
+        if (!isNaN(mNum) && mNum > 0) {
+          existing.quantity = !isNaN(eNum) ? String(eNum + mNum) : String(mNum);
+        }
+        if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
+      } else {
+        combined.push(manual);
+      }
+    });
+    return combined.sort((a, b) => {
+      if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [groceryItems, manualItems]);
+
+  const addManualItem = () => {
+    const name = newItemName.trim();
+    if (!name) return;
+    setManualItems(prev => [
+      ...prev,
+      {
+        name,
+        quantity: newItemQuantity || "1",
+        unit: newItemUnit,
+        category: newItemCategory,
+        recipes: ["Manual"],
+        inInventory: false,
+      },
+    ]);
+    setNewItemName("");
+    setNewItemQuantity("");
+    setNewItemUnit("");
+    setNewItemCategory("Other");
+    setShowAddForm(false);
+  };
+
+  const removeManualItem = (itemName: string) => {
+    setManualItems(prev => prev.filter(i => i.name.toLowerCase() !== itemName.toLowerCase()));
+  };
+
+
     items.map(item => {
       const o = itemOverrides[item.name.toLowerCase()];
       if (!o) return item;
