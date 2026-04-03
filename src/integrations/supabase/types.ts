@@ -212,6 +212,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           breakfast_time: string | null
+          calendar_token: string
           created_at: string
           diet_restrictions: string[] | null
           dinner_time: string | null
@@ -226,6 +227,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           breakfast_time?: string | null
+          calendar_token?: string
           created_at?: string
           diet_restrictions?: string[] | null
           dinner_time?: string | null
@@ -240,6 +242,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           breakfast_time?: string | null
+          calendar_token?: string
           created_at?: string
           diet_restrictions?: string[] | null
           dinner_time?: string | null
