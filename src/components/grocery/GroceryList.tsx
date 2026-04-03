@@ -306,13 +306,17 @@ const GroceryList = () => {
   return (
     <div className="space-y-6">
       {/* Header with date range selection */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold font-serif text-foreground">Grocery List</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Auto-generated from your meal plan. Items already in your inventory are excluded.
+            Auto-generated from your meal plan. Add extra items manually too.
           </p>
         </div>
+        <Button onClick={() => setShowAddForm(true)} size="sm">
+          <Plus className="mr-2 h-4 w-4" /> Add Item
+        </Button>
+      </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {(
