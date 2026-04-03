@@ -211,6 +211,7 @@ const RecipeManager = () => {
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base line-clamp-2 text-card-foreground">{recipe.title}</CardTitle>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <PlanRecipeButton recipeId={recipe.id} recipeTitle={recipe.title} />
                     <Button
                       variant="ghost"
                       size="icon"
