@@ -13,6 +13,7 @@ import CookingMode from "./CookingMode";
 import StarRating from "./StarRating";
 import { Button } from "@/components/ui/button";
 import { PlayCircle } from "lucide-react";
+import ShareRecipeButton from "./ShareRecipeButton";
 
 interface Recipe {
   id: string;
@@ -61,9 +62,12 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
           )}
           <div className="p-6 space-y-5">
             <DialogHeader>
-              <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
-                {recipe.title}
-              </DialogTitle>
+              <div className="flex items-start justify-between gap-2">
+                <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
+                  {recipe.title}
+                </DialogTitle>
+                <ShareRecipeButton recipeId={recipe.id} recipeTitle={recipe.title} />
+              </div>
               {recipe.description && (
                 <p className="text-sm text-muted-foreground mt-1">{recipe.description}</p>
               )}
