@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil
+  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -43,6 +43,12 @@ const GroceryList = () => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
+  const [manualItems, setManualItems] = useState<GroceryItem[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemQuantity, setNewItemQuantity] = useState("");
+  const [newItemUnit, setNewItemUnit] = useState("");
+  const [newItemCategory, setNewItemCategory] = useState("Other");
 
   const { rangeStart, rangeEnd } = useMemo(() => {
     switch (preset) {
@@ -201,6 +207,54 @@ const GroceryList = () => {
     });
   }, [mealPlans, inventory, aiCategories]);
 
+  // Combine recipe-derived items with manually added items
+  const allGroceryItems = useMemo(() => {
+    const combined = [...groceryItems];
+    manualItems.forEach(manual => {
+      const key = manual.name.toLowerCase();
+      const existing = combined.find(i => i.name.toLowerCase() === key);
+      if (existing) {
+        const mNum = parseFloat(manual.quantity);
+        const eNum = parseFloat(existing.quantity);
+        if (!isNaN(mNum) && mNum > 0) {
+          existing.quantity = !isNaN(eNum) ? String(eNum + mNum) : String(mNum);
+        }
+        if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
+      } else {
+        combined.push(manual);
+      }
+    });
+    return combined.sort((a, b) => {
+      if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [groceryItems, manualItems]);
+
+  const addManualItem = () => {
+    const name = newItemName.trim();
+    if (!name) return;
+    setManualItems(prev => [
+      ...prev,
+      {
+        name,
+        quantity: newItemQuantity || "1",
+        unit: newItemUnit,
+        category: newItemCategory,
+        recipes: ["Manual"],
+        inInventory: false,
+      },
+    ]);
+    setNewItemName("");
+    setNewItemQuantity("");
+    setNewItemUnit("");
+    setNewItemCategory("Other");
+    setShowAddForm(false);
+  };
+
+  const removeManualItem = (itemName: string) => {
+    setManualItems(prev => prev.filter(i => i.name.toLowerCase() !== itemName.toLowerCase()));
+  };
+
   const applyOverrides = (items: GroceryItem[]) =>
     items.map(item => {
       const o = itemOverrides[item.name.toLowerCase()];
@@ -221,7 +275,7 @@ const GroceryList = () => {
   };
 
   // Apply overrides then group by store category in aisle order
-  const adjustedItems = useMemo(() => applyOverrides(groceryItems), [groceryItems, itemOverrides]);
+  const adjustedItems = useMemo(() => applyOverrides(allGroceryItems), [allGroceryItems, itemOverrides]);
 
   const groupedItems = useMemo(() => {
     const groups: Record<string, GroceryItem[]> = {};
@@ -244,20 +298,25 @@ const GroceryList = () => {
     });
   };
 
-  const needToBuy = groceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
-  const alreadyHave = groceryItems.filter(i => i.inInventory);
+  const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
+  const alreadyHave = allGroceryItems.filter(i => i.inInventory);
   const checkedCount = checkedItems.size;
-  const totalToBuy = groceryItems.filter(i => !i.inInventory).length;
+  const totalToBuy = allGroceryItems.filter(i => !i.inInventory).length;
 
   return (
     <div className="space-y-6">
       {/* Header with date range selection */}
       <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-2xl font-bold font-serif text-foreground">Grocery List</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Auto-generated from your meal plan. Items already in your inventory are excluded.
-          </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold font-serif text-foreground">Grocery List</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Auto-generated from your meal plan. Add extra items manually too.
+            </p>
+          </div>
+          <Button onClick={() => setShowAddForm(true)} size="sm">
+            <Plus className="mr-2 h-4 w-4" /> Add Item
+          </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -314,6 +373,52 @@ const GroceryList = () => {
         </p>
       </div>
 
+      {/* Add Item Form */}
+      {showAddForm && (
+        <Card className="border-border">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">Add Grocery Item</p>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowAddForm(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="Item name *"
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                className="flex-1"
+                onKeyDown={(e) => e.key === "Enter" && addManualItem()}
+              />
+              <Input
+                placeholder="Qty"
+                value={newItemQuantity}
+                onChange={(e) => setNewItemQuantity(e.target.value)}
+                className="w-20"
+              />
+              <Input
+                placeholder="Unit"
+                value={newItemUnit}
+                onChange={(e) => setNewItemUnit(e.target.value)}
+                className="w-24"
+              />
+              <Select value={newItemCategory} onValueChange={setNewItemCategory}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STORE_CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={addManualItem} disabled={!newItemName.trim()}>Add</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="border-border">
@@ -354,7 +459,7 @@ const GroceryList = () => {
         </Card>
       </div>
 
-      {groceryItems.length === 0 ? (
+      {allGroceryItems.length === 0 ? (
         <Card className="border-border">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mb-4" />
@@ -457,14 +562,26 @@ const GroceryList = () => {
                             )}
                           </div>
                           {!isEditing && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7 flex-shrink-0"
-                              onClick={e => { e.stopPropagation(); setEditingItem(key); }}
-                            >
-                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                            </Button>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7"
+                                onClick={e => { e.stopPropagation(); setEditingItem(key); }}
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                              </Button>
+                              {item.recipes.length === 1 && item.recipes[0] === "Manual" && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-destructive"
+                                  onClick={e => { e.stopPropagation(); removeManualItem(item.name); }}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </div>
                       );
