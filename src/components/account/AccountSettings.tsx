@@ -599,6 +599,9 @@ const AccountSettings = () => {
       </Card>
 
 
+      {/* Calendar Integration */}
+      <CalendarSync />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Account Actions</CardTitle>
