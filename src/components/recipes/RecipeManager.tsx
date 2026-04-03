@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe, Star, CalendarDays, Camera } from "lucide-react";
+import PlanRecipeButton from "./PlanRecipeButton";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
 import ImportRecipe from "./ImportRecipe";
