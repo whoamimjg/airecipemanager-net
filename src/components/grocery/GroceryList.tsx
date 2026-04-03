@@ -43,6 +43,12 @@ const GroceryList = () => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
+  const [manualItems, setManualItems] = useState<GroceryItem[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemQuantity, setNewItemQuantity] = useState("");
+  const [newItemUnit, setNewItemUnit] = useState("");
+  const [newItemCategory, setNewItemCategory] = useState("Other");
 
   const { rangeStart, rangeEnd } = useMemo(() => {
     switch (preset) {
