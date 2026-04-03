@@ -13,6 +13,7 @@ import CookingMode from "./CookingMode";
 import StarRating from "./StarRating";
 import { Button } from "@/components/ui/button";
 import { PlayCircle } from "lucide-react";
+import ShareRecipeButton from "./ShareRecipeButton";
 
 interface Recipe {
   id: string;
