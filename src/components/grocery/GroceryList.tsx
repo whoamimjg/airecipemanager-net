@@ -372,6 +372,15 @@ const GroceryList = () => {
   }, [adjustedItems]);
 
   const toggleCheck = (name: string) => {
+    const isManualOnly = dbManualItems.some(i => i.name.toLowerCase() === name) &&
+      !groceryItems.some(i => i.name.toLowerCase() === name);
+    if (isManualOnly) {
+      checkManualItemMutation.mutate({ name, checked: true });
+    }
+    const isCheckedManual = dbCheckedManualItems.some(i => i.name.toLowerCase() === name);
+    if (isCheckedManual) {
+      checkManualItemMutation.mutate({ name, checked: false });
+    }
     setCheckedItems(prev => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
@@ -382,7 +391,11 @@ const GroceryList = () => {
 
   const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
   const alreadyHave = allGroceryItems.filter(i => i.inInventory);
-  const checkedCount = checkedItems.size;
+  const allCheckedItems = [
+    ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(i.name.toLowerCase())),
+    ...dbCheckedManualItems.filter(mi => !checkedItems.has(mi.name.toLowerCase()) && !adjustedItems.some(ai => ai.name.toLowerCase() === mi.name.toLowerCase())),
+  ];
+  const checkedCount = allCheckedItems.length;
   const totalToBuy = allGroceryItems.filter(i => !i.inInventory).length;
 
   return (
