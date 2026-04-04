@@ -684,8 +684,8 @@ const GroceryList = () => {
           </div>
 
           {/* Sidebar: items already in inventory */}
-          <div className="space-y-4">
-            <Card className="border-border sticky top-24">
+          <div className="lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto space-y-4 scrollbar-thin">
+            <Card className="border-border">
               <CardHeader className="py-3 px-4">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Package className="h-4 w-4 text-primary" />
