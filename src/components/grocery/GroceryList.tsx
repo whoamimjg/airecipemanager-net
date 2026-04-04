@@ -474,7 +474,7 @@ const GroceryList = () => {
           {/* Main grocery list */}
           <div className="lg:col-span-2 space-y-4">
             {groupedItems.map(([category, items]) => {
-              const toBuyItems = items.filter(i => !i.inInventory);
+              const toBuyItems = items.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
               if (toBuyItems.length === 0) return null;
 
               return (
