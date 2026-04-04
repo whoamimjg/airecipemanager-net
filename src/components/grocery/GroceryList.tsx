@@ -733,9 +733,7 @@ const GroceryList = () => {
                 <CardContent className="px-4 pb-4">
                   <ScrollArea className="max-h-[400px]">
                     <div className="space-y-1">
-                      {adjustedItems
-                        .filter(i => !i.inInventory && checkedItems.has(i.name.toLowerCase()))
-                        .map(item => {
+                      {allCheckedItems.map(item => {
                           const key = item.name.toLowerCase();
                           return (
                             <div
