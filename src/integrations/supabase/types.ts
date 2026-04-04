@@ -77,6 +77,39 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_items: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_checked: boolean
+          name: string
+          quantity: string
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_checked?: boolean
+          name: string
+          quantity?: string
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_checked?: boolean
+          name?: string
+          quantity?: string
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_deletions: {
         Row: {
           category: string | null

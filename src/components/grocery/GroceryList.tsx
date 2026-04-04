@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { format, startOfWeek, addDays, addWeeks, startOfDay } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ const GroceryList = () => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
-  const [manualItems, setManualItems] = useState<GroceryItem[]>([]);
+  const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState("");
@@ -207,10 +207,97 @@ const GroceryList = () => {
     });
   }, [mealPlans, inventory, aiCategories]);
 
+  // Fetch manually added grocery items from database
+  const { data: dbManualItems = [] } = useQuery({
+    queryKey: ["manual-grocery-items"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("grocery_items")
+        .select("*")
+        .eq("is_checked", false);
+      if (error) throw error;
+      return (data || []).map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity || "1",
+        unit: item.unit || "",
+        category: item.category || "Other",
+        recipes: ["Manual"] as string[],
+        inInventory: false,
+        dbId: item.id,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  const { data: dbCheckedManualItems = [] } = useQuery({
+    queryKey: ["checked-grocery-items"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("grocery_items")
+        .select("*")
+        .eq("is_checked", true);
+      if (error) throw error;
+      return (data || []).map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity || "1",
+        unit: item.unit || "",
+        category: item.category || "Other",
+        recipes: ["Manual"] as string[],
+        inInventory: false,
+        dbId: item.id,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  const addManualItemMutation = useMutation({
+    mutationFn: async (item: { name: string; quantity: string; unit: string; category: string }) => {
+      const { error } = await supabase.from("grocery_items").insert({
+        user_id: user!.id,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        category: item.category,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+    },
+  });
+
+  const checkManualItemMutation = useMutation({
+    mutationFn: async ({ name, checked }: { name: string; checked: boolean }) => {
+      const { error } = await supabase
+        .from("grocery_items")
+        .update({ is_checked: checked })
+        .ilike("name", name);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
+    },
+  });
+
+  const deleteManualItemMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase
+        .from("grocery_items")
+        .delete()
+        .ilike("name", name);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
+    },
+  });
+
   // Combine recipe-derived items with manually added items
   const allGroceryItems = useMemo(() => {
     const combined = [...groceryItems];
-    manualItems.forEach(manual => {
+    dbManualItems.forEach(manual => {
       const key = manual.name.toLowerCase();
       const existing = combined.find(i => i.name.toLowerCase() === key);
       if (existing) {
@@ -228,22 +315,17 @@ const GroceryList = () => {
       if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
-  }, [groceryItems, manualItems]);
+  }, [groceryItems, dbManualItems]);
 
   const addManualItem = () => {
     const name = newItemName.trim();
     if (!name) return;
-    setManualItems(prev => [
-      ...prev,
-      {
-        name,
-        quantity: newItemQuantity || "1",
-        unit: newItemUnit,
-        category: newItemCategory,
-        recipes: ["Manual"],
-        inInventory: false,
-      },
-    ]);
+    addManualItemMutation.mutate({
+      name,
+      quantity: newItemQuantity || "1",
+      unit: newItemUnit,
+      category: newItemCategory,
+    });
     setNewItemName("");
     setNewItemQuantity("");
     setNewItemUnit("");
@@ -252,7 +334,7 @@ const GroceryList = () => {
   };
 
   const removeManualItem = (itemName: string) => {
-    setManualItems(prev => prev.filter(i => i.name.toLowerCase() !== itemName.toLowerCase()));
+    deleteManualItemMutation.mutate(itemName);
   };
 
   const applyOverrides = (items: GroceryItem[]) =>
@@ -290,6 +372,15 @@ const GroceryList = () => {
   }, [adjustedItems]);
 
   const toggleCheck = (name: string) => {
+    const isManualOnly = dbManualItems.some(i => i.name.toLowerCase() === name) &&
+      !groceryItems.some(i => i.name.toLowerCase() === name);
+    if (isManualOnly) {
+      checkManualItemMutation.mutate({ name, checked: true });
+    }
+    const isCheckedManual = dbCheckedManualItems.some(i => i.name.toLowerCase() === name);
+    if (isCheckedManual) {
+      checkManualItemMutation.mutate({ name, checked: false });
+    }
     setCheckedItems(prev => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
@@ -300,7 +391,11 @@ const GroceryList = () => {
 
   const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
   const alreadyHave = allGroceryItems.filter(i => i.inInventory);
-  const checkedCount = checkedItems.size;
+  const allCheckedItems = [
+    ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(i.name.toLowerCase())),
+    ...dbCheckedManualItems.filter(mi => !checkedItems.has(mi.name.toLowerCase()) && !adjustedItems.some(ai => ai.name.toLowerCase() === mi.name.toLowerCase())),
+  ];
+  const checkedCount = allCheckedItems.length;
   const totalToBuy = allGroceryItems.filter(i => !i.inInventory).length;
 
   return (
@@ -638,9 +733,7 @@ const GroceryList = () => {
                 <CardContent className="px-4 pb-4">
                   <ScrollArea className="max-h-[400px]">
                     <div className="space-y-1">
-                      {adjustedItems
-                        .filter(i => !i.inInventory && checkedItems.has(i.name.toLowerCase()))
-                        .map(item => {
+                      {allCheckedItems.map(item => {
                           const key = item.name.toLowerCase();
                           return (
                             <div
