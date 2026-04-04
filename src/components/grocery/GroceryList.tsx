@@ -589,7 +589,7 @@ const GroceryList = () => {
           </div>
 
           {/* Sidebar: items already in inventory */}
-          <div>
+          <div className="space-y-4">
             <Card className="border-border sticky top-24">
               <CardHeader className="py-3 px-4">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -625,6 +625,55 @@ const GroceryList = () => {
                 )}
               </CardContent>
             </Card>
+
+            {checkedCount > 0 && (
+              <Card className="border-border">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4 text-primary" />
+                    All Bought Items
+                    <Badge variant="secondary" className="text-xs ml-auto">{checkedCount}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <ScrollArea className="max-h-[400px]">
+                    <div className="space-y-1">
+                      {adjustedItems
+                        .filter(i => !i.inInventory && checkedItems.has(i.name.toLowerCase()))
+                        .map(item => {
+                          const key = item.name.toLowerCase();
+                          return (
+                            <div
+                              key={key}
+                              className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => toggleCheck(key)}
+                            >
+                              <Checkbox
+                                checked={true}
+                                onCheckedChange={() => toggleCheck(key)}
+                                className="flex-shrink-0 h-3.5 w-3.5"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-muted-foreground line-through truncate">
+                                  {item.name}
+                                  {item.quantity && (
+                                    <span className="font-normal ml-1">
+                                      — {item.quantity}{item.unit ? ` ${item.unit}` : ""}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground/70 truncate">
+                                  {item.recipes.join(", ")}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       )}
