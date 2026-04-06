@@ -155,10 +155,7 @@ const InventoryManager = () => {
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setShowReceiptScanner(true)}>
-            <Receipt className="mr-2 h-4 w-4" /> Receipt
-          </Button>
-          <Button variant="outline" onClick={() => setShowScanner(true)}>
-            <ScanLine className="mr-2 h-4 w-4" /> Scan
+            <Receipt className="mr-2 h-4 w-4" /> Scan Receipt into Inventory
           </Button>
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add Item
