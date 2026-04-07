@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine, Receipt } from "lucide-react";
+import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine, Receipt, CheckSquare, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
 import InventoryFormDialog from "./InventoryFormDialog";
@@ -87,6 +88,11 @@ const InventoryManager = () => {
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteNotes, setDeleteNotes] = useState("");
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkNotes, setBulkNotes] = useState("");
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["inventory", user?.id],
@@ -106,7 +112,6 @@ const InventoryManager = () => {
       const item = items.find((i) => i.id === id);
       if (!item) throw new Error("Item not found");
 
-      // Log the deletion with reason
       const { error: logError } = await supabase.from("inventory_deletions").insert({
         user_id: user!.id,
         item_name: item.name,
@@ -133,6 +138,59 @@ const InventoryManager = () => {
     onError: () => toast.error("Failed to delete item"),
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async ({ ids, reason, notes }: { ids: string[]; reason: string; notes: string }) => {
+      const selectedItems = items.filter((i) => ids.includes(i.id));
+      if (selectedItems.length === 0) throw new Error("No items found");
+
+      // Log all deletions
+      const deletionLogs = selectedItems.map((item) => ({
+        user_id: user!.id,
+        item_name: item.name,
+        category: item.category,
+        quantity: item.quantity,
+        unit: item.unit,
+        price_per_unit: item.price_per_unit,
+        total_cost: item.price_per_unit ? item.price_per_unit * item.quantity : null,
+        reason,
+        notes: notes || null,
+      }));
+
+      const { error: logError } = await supabase.from("inventory_deletions").insert(deletionLogs);
+      if (logError) throw logError;
+
+      const { error } = await supabase.from("inventory_items").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success(`${variables.ids.length} item${variables.ids.length > 1 ? "s" : ""} removed`);
+      setShowBulkDelete(false);
+      setBulkReason("");
+      setBulkNotes("");
+      setSelectedIds(new Set());
+      setBulkMode(false);
+    },
+    onError: () => toast.error("Failed to delete items"),
+  });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((i) => i.id)));
+    }
+  };
+
   const filtered = items.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -154,8 +212,20 @@ const InventoryManager = () => {
           <p className="text-sm text-muted-foreground">{items.length} items tracked</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {items.length > 0 && (
+            <Button
+              variant={bulkMode ? "secondary" : "outline"}
+              onClick={() => {
+                setBulkMode(!bulkMode);
+                setSelectedIds(new Set());
+              }}
+            >
+              <CheckSquare className="mr-2 h-4 w-4" />
+              {bulkMode ? "Cancel Select" : "Select Items"}
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setShowReceiptScanner(true)}>
-            <Receipt className="mr-2 h-4 w-4" /> Scan Receipt into Inventory
+            <Receipt className="mr-2 h-4 w-4" /> Scan Receipt
           </Button>
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add Item
@@ -244,11 +314,65 @@ const InventoryManager = () => {
         </div>
       ) : (
         <div className="space-y-2">
+          {bulkMode && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+              <Checkbox
+                checked={selectedIds.size === filtered.length && filtered.length > 0}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+              </span>
+              {selectedIds.size > 0 && (
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setBulkReason("Used / Consumed"); setShowBulkDelete(true); }}
+                  >
+                    Mark Used
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setBulkReason("Spoiled"); setShowBulkDelete(true); }}
+                  >
+                    Mark Spoiled
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setBulkReason("Expired"); setShowBulkDelete(true); }}
+                  >
+                    Mark Expired
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => { setBulkReason(""); setShowBulkDelete(true); }}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
           {filtered.map((item) => {
             const expStatus = getExpirationStatus(item.expiration_date);
             return (
-              <Card key={item.id} className="border-border bg-card">
+              <Card
+                key={item.id}
+                className={`border-border bg-card ${bulkMode && selectedIds.has(item.id) ? "ring-2 ring-primary" : ""}`}
+                onClick={bulkMode ? () => toggleSelect(item.id) : undefined}
+              >
                 <CardContent className="flex items-center gap-3 py-3 px-4">
+                  {bulkMode && (
+                    <Checkbox
+                      checked={selectedIds.has(item.id)}
+                      onCheckedChange={() => toggleSelect(item.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-foreground truncate">{item.name}</span>
@@ -268,24 +392,26 @@ const InventoryManager = () => {
                       {item.price_per_unit != null && <span>${item.price_per_unit.toFixed(2)}/unit</span>}
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setEditingItem(item)}
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => setDeleteId(item.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {!bulkMode && (
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setEditingItem(item)}
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => setDeleteId(item.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -366,6 +492,75 @@ const InventoryManager = () => {
               onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={showBulkDelete} onOpenChange={(open) => { if (!open) { setShowBulkDelete(false); setBulkReason(""); setBulkNotes(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {selectedIds.size} item{selectedIds.size > 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkReason
+                ? `These items will be logged as "${bulkReason}".`
+                : "Please select a reason for removing these items."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Reason *</Label>
+              <Select value={bulkReason} onValueChange={setBulkReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DELETE_REASONS.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(() => {
+              const selected = items.filter((i) => selectedIds.has(i.id));
+              const totalCost = selected.reduce((sum, i) => sum + (i.price_per_unit ? i.price_per_unit * i.quantity : 0), 0);
+              if (totalCost > 0) {
+                return (
+                  <div className="rounded-md bg-muted/50 p-3 text-sm">
+                    <span className="text-muted-foreground">Total estimated cost: </span>
+                    <span className="font-semibold text-foreground">${totalCost.toFixed(2)}</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            <div className="max-h-32 overflow-y-auto rounded-md border border-border p-2">
+              <div className="flex flex-wrap gap-1">
+                {items.filter((i) => selectedIds.has(i.id)).map((item) => (
+                  <Badge key={item.id} variant="secondary" className="text-xs">
+                    {item.name} ({item.quantity} {item.unit || "pcs"})
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Additional notes</Label>
+              <Textarea
+                value={bulkNotes}
+                onChange={(e) => setBulkNotes(e.target.value)}
+                placeholder="Optional details..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!bulkReason}
+              onClick={() => bulkDeleteMutation.mutate({ ids: Array.from(selectedIds), reason: bulkReason, notes: bulkNotes })}
+            >
+              Remove {selectedIds.size} Item{selectedIds.size > 1 ? "s" : ""}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
