@@ -138,6 +138,38 @@ const InventoryManager = () => {
     onError: () => toast.error("Failed to delete item"),
   });
 
+  const quickDeleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("inventory_items").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success("Item deleted");
+      setDeleteId(null);
+      setDeleteReason("");
+      setDeleteNotes("");
+    },
+    onError: () => toast.error("Failed to delete item"),
+  });
+
+  const bulkQuickDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("inventory_items").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success(`${ids.length} item${ids.length > 1 ? "s" : ""} deleted`);
+      setShowBulkDelete(false);
+      setBulkReason("");
+      setBulkNotes("");
+      setSelectedIds(new Set());
+      setBulkMode(false);
+    },
+    onError: () => toast.error("Failed to delete items"),
+  });
+
   const bulkDeleteMutation = useMutation({
     mutationFn: async ({ ids, reason, notes }: { ids: string[]; reason: string; notes: string }) => {
       const selectedItems = items.filter((i) => ids.includes(i.id));
@@ -485,14 +517,23 @@ const InventoryManager = () => {
               />
             </div>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={!deleteReason}
-              onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="ghost"
+              className="text-muted-foreground"
+              onClick={() => deleteId && quickDeleteMutation.mutate(deleteId)}
             >
-              Delete
-            </AlertDialogAction>
+              Just Delete (no tracking)
+            </Button>
+            <div className="flex gap-2 ml-auto">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!deleteReason}
+                onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
+              >
+                Delete &amp; Track
+              </AlertDialogAction>
+            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -554,14 +595,23 @@ const InventoryManager = () => {
               />
             </div>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={!bulkReason}
-              onClick={() => bulkDeleteMutation.mutate({ ids: Array.from(selectedIds), reason: bulkReason, notes: bulkNotes })}
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="ghost"
+              className="text-muted-foreground"
+              onClick={() => bulkQuickDeleteMutation.mutate(Array.from(selectedIds))}
             >
-              Remove {selectedIds.size} Item{selectedIds.size > 1 ? "s" : ""}
-            </AlertDialogAction>
+              Just Delete (no tracking)
+            </Button>
+            <div className="flex gap-2 ml-auto">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!bulkReason}
+                onClick={() => bulkDeleteMutation.mutate({ ids: Array.from(selectedIds), reason: bulkReason, notes: bulkNotes })}
+              >
+                Remove &amp; Track {selectedIds.size} Item{selectedIds.size > 1 ? "s" : ""}
+              </AlertDialogAction>
+            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
