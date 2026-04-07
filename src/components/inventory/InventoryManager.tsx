@@ -88,6 +88,11 @@ const InventoryManager = () => {
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteNotes, setDeleteNotes] = useState("");
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkNotes, setBulkNotes] = useState("");
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["inventory", user?.id],
