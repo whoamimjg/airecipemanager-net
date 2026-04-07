@@ -112,7 +112,6 @@ const InventoryManager = () => {
       const item = items.find((i) => i.id === id);
       if (!item) throw new Error("Item not found");
 
-      // Log the deletion with reason
       const { error: logError } = await supabase.from("inventory_deletions").insert({
         user_id: user!.id,
         item_name: item.name,
@@ -138,6 +137,59 @@ const InventoryManager = () => {
     },
     onError: () => toast.error("Failed to delete item"),
   });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async ({ ids, reason, notes }: { ids: string[]; reason: string; notes: string }) => {
+      const selectedItems = items.filter((i) => ids.includes(i.id));
+      if (selectedItems.length === 0) throw new Error("No items found");
+
+      // Log all deletions
+      const deletionLogs = selectedItems.map((item) => ({
+        user_id: user!.id,
+        item_name: item.name,
+        category: item.category,
+        quantity: item.quantity,
+        unit: item.unit,
+        price_per_unit: item.price_per_unit,
+        total_cost: item.price_per_unit ? item.price_per_unit * item.quantity : null,
+        reason,
+        notes: notes || null,
+      }));
+
+      const { error: logError } = await supabase.from("inventory_deletions").insert(deletionLogs);
+      if (logError) throw logError;
+
+      const { error } = await supabase.from("inventory_items").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success(`${variables.ids.length} item${variables.ids.length > 1 ? "s" : ""} removed`);
+      setShowBulkDelete(false);
+      setBulkReason("");
+      setBulkNotes("");
+      setSelectedIds(new Set());
+      setBulkMode(false);
+    },
+    onError: () => toast.error("Failed to delete items"),
+  });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((i) => i.id)));
+    }
+  };
 
   const filtered = items.filter((item) => {
     const matchesSearch =
