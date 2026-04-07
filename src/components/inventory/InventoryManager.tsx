@@ -212,8 +212,20 @@ const InventoryManager = () => {
           <p className="text-sm text-muted-foreground">{items.length} items tracked</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {items.length > 0 && (
+            <Button
+              variant={bulkMode ? "secondary" : "outline"}
+              onClick={() => {
+                setBulkMode(!bulkMode);
+                setSelectedIds(new Set());
+              }}
+            >
+              <CheckSquare className="mr-2 h-4 w-4" />
+              {bulkMode ? "Cancel Select" : "Select Items"}
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setShowReceiptScanner(true)}>
-            <Receipt className="mr-2 h-4 w-4" /> Scan Receipt into Inventory
+            <Receipt className="mr-2 h-4 w-4" /> Scan Receipt
           </Button>
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add Item
