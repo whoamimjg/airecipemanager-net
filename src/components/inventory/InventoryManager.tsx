@@ -138,6 +138,38 @@ const InventoryManager = () => {
     onError: () => toast.error("Failed to delete item"),
   });
 
+  const quickDeleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("inventory_items").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success("Item deleted");
+      setDeleteId(null);
+      setDeleteReason("");
+      setDeleteNotes("");
+    },
+    onError: () => toast.error("Failed to delete item"),
+  });
+
+  const bulkQuickDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("inventory_items").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      toast.success(`${ids.length} item${ids.length > 1 ? "s" : ""} deleted`);
+      setShowBulkDelete(false);
+      setBulkReason("");
+      setBulkNotes("");
+      setSelectedIds(new Set());
+      setBulkMode(false);
+    },
+    onError: () => toast.error("Failed to delete items"),
+  });
+
   const bulkDeleteMutation = useMutation({
     mutationFn: async ({ ids, reason, notes }: { ids: string[]; reason: string; notes: string }) => {
       const selectedItems = items.filter((i) => ids.includes(i.id));

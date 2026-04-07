@@ -56,6 +56,8 @@ Important:
 - Price should be the total price for that line item
 - If quantity > 1 is shown, include it; otherwise default to 1
 - Include subtotal, tax, and total if visible
+- EXCLUDE non-food items such as: coupons, discounts, loyalty rewards, store perks, bag fees, bottle deposits, gift cards, cash back, savings lines, tax lines, subtotal lines, membership fees, and any other non-grocery items
+- Only include actual food/grocery products that were purchased
 - Return ONLY valid JSON, no markdown or explanation`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
