@@ -314,11 +314,65 @@ const InventoryManager = () => {
         </div>
       ) : (
         <div className="space-y-2">
+          {bulkMode && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+              <Checkbox
+                checked={selectedIds.size === filtered.length && filtered.length > 0}
+                onCheckedChange={toggleSelectAll}
+              />
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
+              </span>
+              {selectedIds.size > 0 && (
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setBulkReason("Used / Consumed"); setShowBulkDelete(true); }}
+                  >
+                    Mark Used
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setBulkReason("Spoiled"); setShowBulkDelete(true); }}
+                  >
+                    Mark Spoiled
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setBulkReason("Expired"); setShowBulkDelete(true); }}
+                  >
+                    Mark Expired
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => { setBulkReason(""); setShowBulkDelete(true); }}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" /> Remove
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
           {filtered.map((item) => {
             const expStatus = getExpirationStatus(item.expiration_date);
             return (
-              <Card key={item.id} className="border-border bg-card">
+              <Card
+                key={item.id}
+                className={`border-border bg-card ${bulkMode && selectedIds.has(item.id) ? "ring-2 ring-primary" : ""}`}
+                onClick={bulkMode ? () => toggleSelect(item.id) : undefined}
+              >
                 <CardContent className="flex items-center gap-3 py-3 px-4">
+                  {bulkMode && (
+                    <Checkbox
+                      checked={selectedIds.has(item.id)}
+                      onCheckedChange={() => toggleSelect(item.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-foreground truncate">{item.name}</span>
@@ -338,24 +392,26 @@ const InventoryManager = () => {
                       {item.price_per_unit != null && <span>${item.price_per_unit.toFixed(2)}/unit</span>}
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setEditingItem(item)}
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => setDeleteId(item.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {!bulkMode && (
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setEditingItem(item)}
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => setDeleteId(item.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
