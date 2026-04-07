@@ -517,14 +517,23 @@ const InventoryManager = () => {
               />
             </div>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={!deleteReason}
-              onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="ghost"
+              className="text-muted-foreground"
+              onClick={() => deleteId && quickDeleteMutation.mutate(deleteId)}
             >
-              Delete
-            </AlertDialogAction>
+              Just Delete (no tracking)
+            </Button>
+            <div className="flex gap-2 ml-auto">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!deleteReason}
+                onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
+              >
+                Delete &amp; Track
+              </AlertDialogAction>
+            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -586,14 +595,23 @@ const InventoryManager = () => {
               />
             </div>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={!bulkReason}
-              onClick={() => bulkDeleteMutation.mutate({ ids: Array.from(selectedIds), reason: bulkReason, notes: bulkNotes })}
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="ghost"
+              className="text-muted-foreground"
+              onClick={() => bulkQuickDeleteMutation.mutate(Array.from(selectedIds))}
             >
-              Remove {selectedIds.size} Item{selectedIds.size > 1 ? "s" : ""}
-            </AlertDialogAction>
+              Just Delete (no tracking)
+            </Button>
+            <div className="flex gap-2 ml-auto">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={!bulkReason}
+                onClick={() => bulkDeleteMutation.mutate({ ids: Array.from(selectedIds), reason: bulkReason, notes: bulkNotes })}
+              >
+                Remove &amp; Track {selectedIds.size} Item{selectedIds.size > 1 ? "s" : ""}
+              </AlertDialogAction>
+            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
