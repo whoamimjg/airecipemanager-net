@@ -496,6 +496,75 @@ const InventoryManager = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog open={showBulkDelete} onOpenChange={(open) => { if (!open) { setShowBulkDelete(false); setBulkReason(""); setBulkNotes(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {selectedIds.size} item{selectedIds.size > 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkReason
+                ? `These items will be logged as "${bulkReason}".`
+                : "Please select a reason for removing these items."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Reason *</Label>
+              <Select value={bulkReason} onValueChange={setBulkReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DELETE_REASONS.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {(() => {
+              const selected = items.filter((i) => selectedIds.has(i.id));
+              const totalCost = selected.reduce((sum, i) => sum + (i.price_per_unit ? i.price_per_unit * i.quantity : 0), 0);
+              if (totalCost > 0) {
+                return (
+                  <div className="rounded-md bg-muted/50 p-3 text-sm">
+                    <span className="text-muted-foreground">Total estimated cost: </span>
+                    <span className="font-semibold text-foreground">${totalCost.toFixed(2)}</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            <div className="max-h-32 overflow-y-auto rounded-md border border-border p-2">
+              <div className="flex flex-wrap gap-1">
+                {items.filter((i) => selectedIds.has(i.id)).map((item) => (
+                  <Badge key={item.id} variant="secondary" className="text-xs">
+                    {item.name} ({item.quantity} {item.unit || "pcs"})
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Additional notes</Label>
+              <Textarea
+                value={bulkNotes}
+                onChange={(e) => setBulkNotes(e.target.value)}
+                placeholder="Optional details..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!bulkReason}
+              onClick={() => bulkDeleteMutation.mutate({ ids: Array.from(selectedIds), reason: bulkReason, notes: bulkNotes })}
+            >
+              Remove {selectedIds.size} Item{selectedIds.size > 1 ? "s" : ""}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
