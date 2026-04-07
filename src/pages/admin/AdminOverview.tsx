@@ -4,9 +4,11 @@ import { Users, CreditCard, ChefHat, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminOverview() {
   const { data, isLoading, error } = useAdminOverview();
+  const navigate = useNavigate();
 
   if (error) {
     return (
@@ -33,18 +35,21 @@ export default function AdminOverview() {
           value={data?.totalUsers}
           icon={<Users className="h-5 w-5 text-primary" />}
           loading={isLoading}
+          onClick={() => navigate("/admin/users")}
         />
         <StatCard
           title="Paid Subscribers"
           value={data?.activeSubscribers}
           icon={<TrendingUp className="h-5 w-5 text-primary" />}
           loading={isLoading}
+          onClick={() => navigate("/admin/users")}
         />
         <StatCard
           title="Monthly Revenue"
           value={data?.monthlyRevenue != null ? `$${data.monthlyRevenue}` : undefined}
           icon={<CreditCard className="h-5 w-5 text-primary" />}
           loading={isLoading}
+          onClick={() => navigate("/admin/payments")}
         />
         <StatCard
           title="Total Recipes"
@@ -97,7 +102,7 @@ export default function AdminOverview() {
 
       {/* Recent payments */}
       {data?.recentPayments && (data.recentPayments as any[]).length > 0 && (
-        <Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate("/admin/payments")}>
           <CardHeader>
             <CardTitle className="text-lg">Recent Payments</CardTitle>
           </CardHeader>
@@ -125,15 +130,19 @@ export default function AdminOverview() {
   );
 }
 
-function StatCard({ title, value, subtitle, icon, loading }: {
+function StatCard({ title, value, subtitle, icon, loading, onClick }: {
   title: string;
   value?: string | number;
   subtitle?: string;
   icon: React.ReactNode;
   loading: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <Card>
+    <Card
+      className={onClick ? "cursor-pointer hover:border-primary/50 transition-colors" : ""}
+      onClick={onClick}
+    >
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
