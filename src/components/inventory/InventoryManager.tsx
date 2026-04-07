@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine, Receipt } from "lucide-react";
+import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine, Receipt, CheckSquare, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
 import InventoryFormDialog from "./InventoryFormDialog";
