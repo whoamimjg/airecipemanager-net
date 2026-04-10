@@ -52,7 +52,7 @@ const ResetPassword = () => {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md border-border bg-card shadow-xl">
         <CardHeader className="text-center">
-          <ChefHat className="mx-auto h-8 w-8 text-primary mb-2" />
+          <img src="/logo.png" alt="AI Recipe Manager" className="mx-auto h-8 w-8 mb-2" />
           <CardTitle className="text-card-foreground">Set New Password</CardTitle>
         </CardHeader>
         <CardContent>

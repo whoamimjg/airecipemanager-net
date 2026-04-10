@@ -32,7 +32,7 @@ const Dashboard = () => {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <ChefHat className="h-7 w-7 text-primary" />
+            <img src="/logo.png" alt="AI Recipe Manager" className="h-7 w-7" />
             <span className="text-lg font-bold font-serif text-foreground hidden sm:inline">AI Recipe Manager</span>
           </div>
           <div className="flex items-center gap-2">

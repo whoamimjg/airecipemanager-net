@@ -99,7 +99,7 @@ const Landing = () => {
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
-            <ChefHat className="h-8 w-8 text-primary" />
+            <img src="/logo.png" alt="AI Recipe Manager" className="h-8 w-8" />
             <span className="text-xl font-bold font-serif text-foreground">AI Recipe Manager</span>
           </div>
           <div className="hidden items-center gap-6 md:flex">
