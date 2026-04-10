@@ -66,7 +66,7 @@ const Auth = () => {
       <Card className="relative z-10 w-full max-w-md border-border bg-card shadow-xl">
         <CardHeader className="text-center">
           <Link to="/" className="inline-flex items-center justify-center gap-2 mb-4">
-            <ChefHat className="h-8 w-8 text-primary" />
+            <img src="/logo.png" alt="AI Recipe Manager" className="h-8 w-8" />
             <span className="text-xl font-bold font-serif text-card-foreground">AI Recipe Manager</span>
           </Link>
           <CardTitle className="text-2xl text-card-foreground">
