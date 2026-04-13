@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, FileText, Download, Calendar } from "lucide-react";
+import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, FileText, Download, Calendar, MessageSquare, BookOpen, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PaymentDialog from "@/components/payment/PaymentDialog";
 import CalendarSync from "@/components/account/CalendarSync";
+import FeedbackForm from "@/components/account/FeedbackForm";
+import KnowledgeBase from "@/components/account/KnowledgeBase";
 
 const DIET_OPTIONS = [
   "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Keto",
@@ -294,6 +297,28 @@ const AccountSettings = () => {
   }
 
   return (
+    <Tabs defaultValue="settings" className="space-y-4">
+      <TabsList className="bg-muted">
+        <TabsTrigger value="settings" className="gap-1.5 text-xs sm:text-sm">
+          <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Settings</span>
+        </TabsTrigger>
+        <TabsTrigger value="feedback" className="gap-1.5 text-xs sm:text-sm">
+          <MessageSquare className="h-4 w-4" /> <span className="hidden sm:inline">Feedback</span>
+        </TabsTrigger>
+        <TabsTrigger value="knowledge" className="gap-1.5 text-xs sm:text-sm">
+          <BookOpen className="h-4 w-4" /> <span className="hidden sm:inline">Knowledge Base</span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="feedback">
+        <FeedbackForm />
+      </TabsContent>
+
+      <TabsContent value="knowledge">
+        <KnowledgeBase />
+      </TabsContent>
+
+      <TabsContent value="settings">
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Profile Section */}
       <Card>
@@ -692,6 +717,8 @@ const AccountSettings = () => {
         />
       )}
     </div>
+      </TabsContent>
+    </Tabs>
   );
 };
 
