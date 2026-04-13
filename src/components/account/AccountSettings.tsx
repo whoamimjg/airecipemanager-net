@@ -297,6 +297,28 @@ const AccountSettings = () => {
   }
 
   return (
+    <Tabs defaultValue="settings" className="space-y-4">
+      <TabsList className="bg-muted">
+        <TabsTrigger value="settings" className="gap-1.5 text-xs sm:text-sm">
+          <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Settings</span>
+        </TabsTrigger>
+        <TabsTrigger value="feedback" className="gap-1.5 text-xs sm:text-sm">
+          <MessageSquare className="h-4 w-4" /> <span className="hidden sm:inline">Feedback</span>
+        </TabsTrigger>
+        <TabsTrigger value="knowledge" className="gap-1.5 text-xs sm:text-sm">
+          <BookOpen className="h-4 w-4" /> <span className="hidden sm:inline">Knowledge Base</span>
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="feedback">
+        <FeedbackForm />
+      </TabsContent>
+
+      <TabsContent value="knowledge">
+        <KnowledgeBase />
+      </TabsContent>
+
+      <TabsContent value="settings">
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Profile Section */}
       <Card>
@@ -695,6 +717,8 @@ const AccountSettings = () => {
         />
       )}
     </div>
+      </TabsContent>
+    </Tabs>
   );
 };
 
