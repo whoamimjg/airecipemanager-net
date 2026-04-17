@@ -125,6 +125,31 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "feedback": {
+        const { data: feedback } = await adminClient
+          .from("feedback")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        const userIds = [...new Set((feedback ?? []).map((f: any) => f.user_id))];
+        const { data: profiles } = await adminClient
+          .from("profiles")
+          .select("user_id, display_name, email")
+          .in("user_id", userIds);
+
+        const profileMap: Record<string, any> = {};
+        for (const p of profiles ?? []) {
+          profileMap[p.user_id] = p;
+        }
+
+        data = (feedback ?? []).map((f: any) => ({
+          ...f,
+          user_display_name: profileMap[f.user_id]?.display_name ?? "Unknown",
+          user_email: profileMap[f.user_id]?.email ?? "Unknown",
+        }));
+        break;
+      }
+
       case "payments": {
         const { data: billing } = await adminClient
           .from("billing_history")
