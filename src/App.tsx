@@ -13,6 +13,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPayments from "./pages/admin/AdminPayments";
+import AdminFeedback from "./pages/admin/AdminFeedback";
 import SharedRecipe from "./pages/SharedRecipe";
 
 const queryClient = new QueryClient({
@@ -41,6 +42,7 @@ const App = () => (
               <Route index element={<AdminOverview />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="payments" element={<AdminPayments />} />
+              <Route path="feedback" element={<AdminFeedback />} />
             </Route>
             <Route path="/recipe/:id" element={<SharedRecipe />} />
             <Route path="*" element={<NotFound />} />
