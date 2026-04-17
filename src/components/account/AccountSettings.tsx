@@ -19,10 +19,43 @@ import CalendarSync from "@/components/account/CalendarSync";
 import FeedbackForm from "@/components/account/FeedbackForm";
 import KnowledgeBase from "@/components/account/KnowledgeBase";
 
-const DIET_OPTIONS = [
-  "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Keto",
-  "Paleo", "Nut-Free", "Low-Carb", "Halal", "Kosher",
+const DIET_GROUPS: { label: string; options: string[] }[] = [
+  {
+    label: "Diets",
+    options: ["Vegetarian", "Vegan", "Pescatarian", "Keto", "Paleo", "Low-Carb", "Mediterranean", "Whole30"],
+  },
+  {
+    label: "Religious / Cultural",
+    options: ["Halal", "Kosher"],
+  },
+  {
+    label: "Intolerances",
+    options: ["Gluten-Free", "Dairy-Free", "Lactose-Free", "Egg-Free", "Soy-Free", "Shellfish-Free", "Fish-Free"],
+  },
+  {
+    label: "Nut Allergies",
+    options: [
+      "Peanut Allergy",
+      "Tree Nut Allergy (all)",
+      "Almond Allergy",
+      "Cashew Allergy",
+      "Walnut Allergy",
+      "Pecan Allergy",
+      "Pistachio Allergy",
+      "Hazelnut Allergy",
+      "Brazil Nut Allergy",
+      "Macadamia Allergy",
+      "Pine Nut Allergy",
+      "Coconut Allergy",
+    ],
+  },
+  {
+    label: "Seed Allergies",
+    options: ["Sesame Allergy", "Sunflower Seed Allergy", "Poppy Seed Allergy"],
+  },
 ];
+
+const DIET_OPTIONS = DIET_GROUPS.flatMap((g) => g.options);
 
 const PLAN_DETAILS = {
   free: { name: "Free", price: 0, recipes: 25, features: ["25 recipes", "Basic AI generation", "Grocery list"] },
