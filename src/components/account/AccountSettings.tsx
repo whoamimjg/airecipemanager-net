@@ -410,29 +410,39 @@ const AccountSettings = () => {
           <CardDescription>Personalize your recipe and meal plan suggestions</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Diet restrictions */}
-          <div className="space-y-2">
-            <Label>Diet Restrictions</Label>
-            <div className="flex flex-wrap gap-2">
-              {DIET_OPTIONS.map((diet) => {
-                const active = dietRestrictions.includes(diet);
-                return (
-                  <Badge
-                    key={diet}
-                    variant={active ? "default" : "outline"}
-                    className={`cursor-pointer transition-colors ${
-                      active
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "hover:bg-muted"
-                    }`}
-                    onClick={() => toggleDiet(diet)}
-                  >
-                    {active && <Check className="h-3 w-3 mr-1" />}
-                    {diet}
-                  </Badge>
-                );
-              })}
-            </div>
+          {/* Diet restrictions & allergies */}
+          <div className="space-y-3">
+            <Label>Diet Restrictions & Allergies</Label>
+            <p className="text-xs text-muted-foreground">
+              Selected items will be strictly avoided in AI-generated recipes and meal suggestions.
+            </p>
+            {DIET_GROUPS.map((group) => (
+              <div key={group.label} className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {group.label}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {group.options.map((diet) => {
+                    const active = dietRestrictions.includes(diet);
+                    return (
+                      <Badge
+                        key={diet}
+                        variant={active ? "default" : "outline"}
+                        className={`cursor-pointer transition-colors ${
+                          active
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "hover:bg-muted"
+                        }`}
+                        onClick={() => toggleDiet(diet)}
+                      >
+                        {active && <Check className="h-3 w-3 mr-1" />}
+                        {diet}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Meal Times */}
