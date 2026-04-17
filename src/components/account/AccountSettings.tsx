@@ -19,10 +19,43 @@ import CalendarSync from "@/components/account/CalendarSync";
 import FeedbackForm from "@/components/account/FeedbackForm";
 import KnowledgeBase from "@/components/account/KnowledgeBase";
 
-const DIET_OPTIONS = [
-  "Vegetarian", "Vegan", "Gluten-Free", "Dairy-Free", "Keto",
-  "Paleo", "Nut-Free", "Low-Carb", "Halal", "Kosher",
+const DIET_GROUPS: { label: string; options: string[] }[] = [
+  {
+    label: "Diets",
+    options: ["Vegetarian", "Vegan", "Pescatarian", "Keto", "Paleo", "Low-Carb", "Mediterranean", "Whole30"],
+  },
+  {
+    label: "Religious / Cultural",
+    options: ["Halal", "Kosher"],
+  },
+  {
+    label: "Intolerances",
+    options: ["Gluten-Free", "Dairy-Free", "Lactose-Free", "Egg-Free", "Soy-Free", "Shellfish-Free", "Fish-Free"],
+  },
+  {
+    label: "Nut Allergies",
+    options: [
+      "Peanut Allergy",
+      "Tree Nut Allergy (all)",
+      "Almond Allergy",
+      "Cashew Allergy",
+      "Walnut Allergy",
+      "Pecan Allergy",
+      "Pistachio Allergy",
+      "Hazelnut Allergy",
+      "Brazil Nut Allergy",
+      "Macadamia Allergy",
+      "Pine Nut Allergy",
+      "Coconut Allergy",
+    ],
+  },
+  {
+    label: "Seed Allergies",
+    options: ["Sesame Allergy", "Sunflower Seed Allergy", "Poppy Seed Allergy"],
+  },
 ];
+
+const DIET_OPTIONS = DIET_GROUPS.flatMap((g) => g.options);
 
 const PLAN_DETAILS = {
   free: { name: "Free", price: 0, recipes: 25, features: ["25 recipes", "Basic AI generation", "Grocery list"] },
@@ -377,29 +410,39 @@ const AccountSettings = () => {
           <CardDescription>Personalize your recipe and meal plan suggestions</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Diet restrictions */}
-          <div className="space-y-2">
-            <Label>Diet Restrictions</Label>
-            <div className="flex flex-wrap gap-2">
-              {DIET_OPTIONS.map((diet) => {
-                const active = dietRestrictions.includes(diet);
-                return (
-                  <Badge
-                    key={diet}
-                    variant={active ? "default" : "outline"}
-                    className={`cursor-pointer transition-colors ${
-                      active
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "hover:bg-muted"
-                    }`}
-                    onClick={() => toggleDiet(diet)}
-                  >
-                    {active && <Check className="h-3 w-3 mr-1" />}
-                    {diet}
-                  </Badge>
-                );
-              })}
-            </div>
+          {/* Diet restrictions & allergies */}
+          <div className="space-y-3">
+            <Label>Diet Restrictions & Allergies</Label>
+            <p className="text-xs text-muted-foreground">
+              Selected items will be strictly avoided in AI-generated recipes and meal suggestions.
+            </p>
+            {DIET_GROUPS.map((group) => (
+              <div key={group.label} className="space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {group.label}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {group.options.map((diet) => {
+                    const active = dietRestrictions.includes(diet);
+                    return (
+                      <Badge
+                        key={diet}
+                        variant={active ? "default" : "outline"}
+                        className={`cursor-pointer transition-colors ${
+                          active
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "hover:bg-muted"
+                        }`}
+                        onClick={() => toggleDiet(diet)}
+                      >
+                        {active && <Check className="h-3 w-3 mr-1" />}
+                        {diet}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Meal Times */}

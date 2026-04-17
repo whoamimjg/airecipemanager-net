@@ -47,10 +47,26 @@ const AIRecipeGenerator = () => {
     enabled: !!user,
   });
 
+  const { data: profile } = useQuery({
+    queryKey: ["profile-diet", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("diet_restrictions")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const dietRestrictions = profile?.diet_restrictions ?? [];
+
   const generateMutation = useMutation({
     mutationFn: async ({ mode, preferences }: { mode: string; preferences?: string }) => {
       const { data, error } = await supabase.functions.invoke("generate-recipe", {
-        body: { inventory, mode, preferences },
+        body: { inventory, mode, preferences, dietRestrictions },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
