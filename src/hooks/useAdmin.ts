@@ -61,3 +61,6 @@ export const useAdminUsers = () =>
 
 export const useAdminPayments = () =>
   useQuery({ queryKey: ["admin", "payments"], queryFn: () => fetchAdminData("payments") });
+
+export const useAdminFeedback = () =>
+  useQuery({ queryKey: ["admin", "feedback"], queryFn: () => fetchAdminData("feedback") });
