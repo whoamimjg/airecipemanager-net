@@ -10,9 +10,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { inventory, preferences, mode } = await req.json();
+    const { inventory, preferences, mode, dietRestrictions } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const restrictions: string[] = Array.isArray(dietRestrictions) ? dietRestrictions : [];
+    const restrictionsBlock =
+      restrictions.length > 0
+        ? `\n\nCRITICAL DIETARY RESTRICTIONS & ALLERGIES (MUST be strictly respected — never include these ingredients or any derivatives, oils, or trace sources):\n${restrictions
+            .map((r) => `- ${r}`)
+            .join("\n")}\n\nIf an inventory item conflicts with a restriction, DO NOT use it. Allergy entries (e.g. "Peanut Allergy", "Tree Nut Allergy", "Sesame Allergy") mean the user can have a severe reaction — exclude all forms of that ingredient including oils, flours, butters, and cross-contamination risks.`
+        : "";
 
     let systemPrompt = `You are a creative, professional chef AI. You generate delicious, practical recipes.
 Always respond with valid JSON matching this exact structure:
@@ -33,7 +41,7 @@ Always respond with valid JSON matching this exact structure:
   ]
 }
 Mark each ingredient's "available" field as true if it's in the user's inventory, false if not.
-List any ingredients not in the inventory under "missing_ingredients".`;
+List any ingredients not in the inventory under "missing_ingredients".${restrictionsBlock}`;
 
     let userPrompt = "";
 
