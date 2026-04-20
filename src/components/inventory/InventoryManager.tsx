@@ -391,18 +391,19 @@ const InventoryManager = () => {
           )}
           {filtered.map((item) => {
             const expStatus = getExpirationStatus(item.expiration_date);
+            const isSelected = selectedIds.has(item.id);
             return (
               <Card
                 key={item.id}
-                className={`border-border bg-card ${bulkMode && selectedIds.has(item.id) ? "ring-2 ring-primary" : ""}`}
+                className={`border-border bg-card ${bulkMode ? "cursor-pointer" : ""} ${bulkMode && isSelected ? "ring-2 ring-primary" : ""}`}
                 onClick={bulkMode ? () => toggleSelect(item.id) : undefined}
               >
                 <CardContent className="flex items-center gap-3 py-3 px-4">
                   {bulkMode && (
                     <Checkbox
-                      checked={selectedIds.has(item.id)}
-                      onCheckedChange={() => toggleSelect(item.id)}
-                      onClick={(e) => e.stopPropagation()}
+                      checked={isSelected}
+                      tabIndex={-1}
+                      className="pointer-events-none"
                     />
                   )}
                   <div className="flex-1 min-w-0">
