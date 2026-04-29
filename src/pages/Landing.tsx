@@ -418,6 +418,39 @@ const Landing = () => {
               © {new Date().getFullYear()} airecipemanager.com
             </p>
           </div>
+          <div className="mt-8 flex flex-col items-center gap-3 border-t border-white/10 pt-6">
+            <p className="text-xs uppercase tracking-wider text-white/50">We accept</p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {/* Visa */}
+              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-2" aria-label="Visa">
+                <svg viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg" className="h-4 w-auto" aria-hidden="true">
+                  <text x="0" y="13" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="14" fontStyle="italic" fill="#1A1F71">VISA</text>
+                </svg>
+              </div>
+              {/* Mastercard */}
+              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-2" aria-label="Mastercard">
+                <svg viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto" aria-hidden="true">
+                  <circle cx="12" cy="10" r="7" fill="#EB001B" />
+                  <circle cx="20" cy="10" r="7" fill="#F79E1B" />
+                  <path d="M16 4.6a7 7 0 0 0 0 10.8 7 7 0 0 0 0-10.8z" fill="#FF5F00" />
+                </svg>
+              </div>
+              {/* American Express */}
+              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-[#2E77BC] px-1" aria-label="American Express">
+                <svg viewBox="0 0 56 16" xmlns="http://www.w3.org/2000/svg" className="h-3 w-auto" aria-hidden="true">
+                  <text x="0" y="13" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="11" fill="#FFFFFF">AMEX</text>
+                </svg>
+              </div>
+              {/* Discover */}
+              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-1" aria-label="Discover">
+                <svg viewBox="0 0 80 16" xmlns="http://www.w3.org/2000/svg" className="h-3 w-auto" aria-hidden="true">
+                  <text x="0" y="12" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="11" fill="#000000">DISC</text>
+                  <circle cx="44" cy="8" r="5" fill="#F58220" />
+                  <text x="52" y="12" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="11" fill="#000000">VER</text>
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
