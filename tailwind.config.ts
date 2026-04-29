@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['DM Sans', 'sans-serif'],
-        serif: ['Playfair Display', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -64,6 +65,16 @@ export default {
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
         info: "hsl(var(--info))",
+        cta: {
+          DEFAULT: "hsl(var(--cta))",
+          foreground: "hsl(var(--cta-foreground))",
+        },
+        brand: {
+          navy: "hsl(var(--brand-navy))",
+          slate: "hsl(var(--brand-slate))",
+          gold: "hsl(var(--brand-gold))",
+          "gold-deep": "hsl(var(--brand-gold-deep))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
