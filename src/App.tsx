@@ -15,6 +15,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminFeedback from "./pages/admin/AdminFeedback";
 import SharedRecipe from "./pages/SharedRecipe";
+import Terms from "./pages/Terms";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="feedback" element={<AdminFeedback />} />
             </Route>
             <Route path="/recipe/:id" element={<SharedRecipe />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
