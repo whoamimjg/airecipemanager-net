@@ -96,23 +96,23 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <nav className="sticky top-0 z-50 border-b border-border/20 bg-brand-slate text-white">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="AI Recipe Manager" className="h-8 w-8" />
-            <span className="text-xl font-bold font-serif text-foreground">AI Recipe Manager</span>
+            <img src="/logo.png" alt="AI Recipe Manager" className="h-8 w-8 rounded" />
+            <span className="text-xl font-bold tracking-tight">AI Recipe Manager</span>
           </div>
           <div className="hidden items-center gap-6 md:flex">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
-            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
+            <a href="#features" className="text-sm text-white/80 hover:text-white transition-colors">Features</a>
+            <a href="#how-it-works" className="text-sm text-white/80 hover:text-white transition-colors">How It Works</a>
+            <a href="#pricing" className="text-sm text-white/80 hover:text-white transition-colors">Pricing</a>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth">
-              <Button variant="ghost" size="sm">Log in</Button>
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white">Log in</Button>
             </Link>
             <Link to="/auth?mode=signup">
-              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button size="sm" className="bg-cta text-cta-foreground hover:bg-cta/90 rounded-lg font-medium">
                 Get Started <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
@@ -121,33 +121,32 @@ const Landing = () => {
       </nav>
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={heroImg} alt="Kitchen with fresh ingredients and recipe app" width={1920} height={1080} className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/40" />
+      <section className="relative overflow-hidden bg-brand-slate text-white">
+        <div className="absolute inset-0 opacity-20">
+          <img src={heroImg} alt="" width={1920} height={1080} className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-brand-slate/60" />
         </div>
         <div className="container relative mx-auto px-4 py-24 md:py-36 lg:py-44">
           <div className="max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm border border-primary/20">
-              <Sparkles className="h-4 w-4" /> AI-Powered Kitchen Management
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-accent/20 px-4 py-1.5 text-sm font-medium text-accent backdrop-blur-sm border border-accent/30">
+              <Sparkles className="h-4 w-4" /> Your kitchen. Simplified.
             </div>
-            <h1 className="text-4xl font-bold leading-[1.1] md:text-5xl lg:text-6xl text-foreground">
-              Your Smart
-              <span className="block text-primary">Kitchen Companion</span>
+            <h1 className="text-4xl font-bold leading-[1.1] md:text-5xl lg:text-6xl text-white">
+              Your kitchen.
+              <span className="block text-accent">Simplified.</span>
             </h1>
-            <p className="mt-6 max-w-lg text-lg text-muted-foreground leading-relaxed">
-              Manage recipes, track inventory, plan meals, and generate grocery lists — all powered by AI.
-              From your pantry to your plate, simplified.
+            <p className="mt-6 max-w-xl text-lg text-white/85 leading-relaxed">
+              AI Recipe Manager helps you plan meals, discover new ideas, and cook with what you already have — powered by AI that knows your kitchen.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link to="/auth?mode=signup">
-                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 text-base px-8 h-12 shadow-lg shadow-primary/25">
-                  Start Free — No Card Required
+                <Button size="lg" className="bg-cta text-cta-foreground hover:bg-cta/90 text-base px-8 h-12 rounded-lg font-medium shadow-lg">
+                  Start cooking smarter <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <a href="#how-it-works">
-                <Button size="lg" variant="outline" className="text-base px-8 h-12 bg-background/60 backdrop-blur-sm">
-                  See How It Works
+                <Button size="lg" variant="outline" className="text-base px-8 h-12 rounded-lg font-medium bg-transparent border-2 border-white/80 text-white hover:bg-white hover:text-brand-slate">
+                  See how it works
                 </Button>
               </a>
             </div>
@@ -384,17 +383,17 @@ const Landing = () => {
       {/* Final CTA */}
       <section className="py-20 md:py-28">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl rounded-3xl bg-gradient-to-br from-primary to-primary/80 p-12 text-center shadow-2xl shadow-primary/20 md:p-16">
-            <ChefHat className="mx-auto mb-6 h-12 w-12 text-primary-foreground/80" />
-            <h2 className="text-3xl font-bold text-primary-foreground md:text-4xl">
-              Ready to Transform Your Kitchen?
+          <div className="mx-auto max-w-3xl rounded-2xl bg-brand-navy p-12 text-center shadow-2xl md:p-16">
+            <img src="/logo.png" alt="" className="mx-auto mb-6 h-14 w-14 rounded" />
+            <h2 className="text-3xl font-bold text-white md:text-4xl">
+              Ready to transform your kitchen?
             </h2>
-            <p className="mx-auto mt-4 max-w-lg text-primary-foreground/80 text-lg">
+            <p className="mx-auto mt-4 max-w-lg text-white/80 text-lg">
               Join thousands of home cooks who save time, reduce waste, and eat better with AI Recipe Manager.
             </p>
             <Link to="/auth?mode=signup">
-              <Button size="lg" className="mt-8 bg-background text-foreground hover:bg-background/90 text-base px-10 h-12 shadow-lg">
-                Start Free Today <ArrowRight className="ml-2 h-4 w-4" />
+              <Button size="lg" className="mt-8 bg-cta text-cta-foreground hover:bg-cta/90 text-base px-10 h-12 rounded-lg font-medium shadow-lg">
+                Start cooking smarter <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -402,19 +401,19 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card py-12">
+      <footer className="bg-brand-navy text-white py-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center gap-6 md:flex-row md:justify-between">
             <div className="flex items-center gap-2">
-              <ChefHat className="h-6 w-6 text-primary" />
-              <span className="font-bold font-serif text-foreground">AI Recipe Manager</span>
+              <img src="/logo.png" alt="AI Recipe Manager" className="h-7 w-7 rounded" />
+              <span className="font-bold text-white">AI Recipe Manager</span>
             </div>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-              <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-              <Link to="/auth" className="hover:text-foreground transition-colors">Sign In</Link>
+            <div className="flex gap-6 text-sm text-white/70">
+              <a href="#features" className="hover:text-accent transition-colors">Features</a>
+              <a href="#pricing" className="hover:text-accent transition-colors">Pricing</a>
+              <Link to="/auth" className="hover:text-accent transition-colors">Sign In</Link>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/60">
               © {new Date().getFullYear()} airecipemanager.com
             </p>
           </div>
