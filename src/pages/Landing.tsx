@@ -412,6 +412,7 @@ const Landing = () => {
               <a href="#features" className="hover:text-accent transition-colors">Features</a>
               <a href="#pricing" className="hover:text-accent transition-colors">Pricing</a>
               <Link to="/terms" className="hover:text-accent transition-colors">Terms & Conditions</Link>
+              <Link to="/privacy" className="hover:text-accent transition-colors">Privacy Policy</Link>
               <Link to="/auth" className="hover:text-accent transition-colors">Sign In</Link>
             </div>
             <p className="text-sm text-white/60">
