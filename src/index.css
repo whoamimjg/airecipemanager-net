@@ -1,92 +1,127 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Brand palette (HSL):
+   #4B6981 slate blue   -> 210 27% 40%
+   #1B2A3A deep navy    -> 211 37% 17%
+   #F2EA77 warm gold    -> 56 82% 71%
+   #D4A030 deep gold    -> 41 64% 51%
+   #F5F5F5 page bg      -> 0 0% 96%
+   #FFFFFF surface      -> 0 0% 100%
+   #1A1A1A near black   -> 0 0% 10%
+   #4A4A4A body gray    -> 0 0% 29%
+   #E8E8E8 border       -> 0 0% 91%
+   #2D8F5E success      -> 148 52% 37%
+   #D4573A error        -> 12 64% 53%
+   #E8A830 warning      -> 37 79% 55%
+*/
+
 @layer base {
   :root {
-    --background: 40 33% 98%;
-    --foreground: 24 10% 15%;
+    --background: 0 0% 96%;
+    --foreground: 0 0% 10%;
 
-    --card: 40 25% 97%;
-    --card-foreground: 24 10% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
 
-    --popover: 40 33% 98%;
-    --popover-foreground: 24 10% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 142 55% 35%;
-    --primary-foreground: 40 33% 98%;
+    /* Primary = slate blue (brand surfaces / nav / hero) */
+    --primary: 210 27% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 60% 94%;
-    --secondary-foreground: 24 10% 15%;
+    /* Brand navy (deep sections / footer) */
+    --brand-navy: 211 37% 17%;
+    --brand-slate: 210 27% 40%;
+    --brand-gold: 56 82% 71%;
+    --brand-gold-deep: 41 64% 51%;
 
-    --muted: 30 20% 93%;
-    --muted-foreground: 24 10% 40%;
+    --secondary: 210 27% 95%;
+    --secondary-foreground: 211 37% 17%;
 
-    --accent: 24 80% 55%;
-    --accent-foreground: 40 33% 98%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 29%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 40 33% 98%;
+    /* Accent = warm gold */
+    --accent: 56 82% 71%;
+    --accent-foreground: 211 37% 17%;
 
-    --border: 30 20% 88%;
-    --input: 30 20% 88%;
-    --ring: 142 55% 35%;
+    /* CTA = deep gold */
+    --cta: 41 64% 51%;
+    --cta-foreground: 211 37% 17%;
 
-    --radius: 0.75rem;
+    --destructive: 12 64% 53%;
+    --destructive-foreground: 0 0% 100%;
 
-    --sidebar-background: 40 25% 96%;
-    --sidebar-foreground: 24 10% 15%;
-    --sidebar-primary: 142 55% 35%;
-    --sidebar-primary-foreground: 40 33% 98%;
-    --sidebar-accent: 30 60% 94%;
-    --sidebar-accent-foreground: 24 10% 15%;
-    --sidebar-border: 30 20% 88%;
-    --sidebar-ring: 142 55% 35%;
+    --border: 0 0% 91%;
+    --input: 0 0% 91%;
+    --ring: 210 27% 40%;
 
-    --success: 142 55% 35%;
-    --warning: 38 92% 50%;
-    --info: 210 80% 55%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 210 27% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 27% 95%;
+    --sidebar-accent-foreground: 211 37% 17%;
+    --sidebar-border: 0 0% 91%;
+    --sidebar-ring: 210 27% 40%;
+
+    --success: 148 52% 37%;
+    --warning: 37 79% 55%;
+    --info: 210 27% 40%;
   }
 
   .dark {
-    --background: 24 10% 10%;
-    --foreground: 40 33% 95%;
+    --background: 211 37% 12%;
+    --foreground: 0 0% 96%;
 
-    --card: 24 10% 13%;
-    --card-foreground: 40 33% 95%;
+    --card: 211 37% 17%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 24 10% 10%;
-    --popover-foreground: 40 33% 95%;
+    --popover: 211 37% 17%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 142 55% 42%;
-    --primary-foreground: 24 10% 10%;
+    --primary: 210 27% 55%;
+    --primary-foreground: 211 37% 12%;
 
-    --secondary: 30 15% 20%;
-    --secondary-foreground: 40 33% 95%;
+    --brand-navy: 211 37% 12%;
+    --brand-slate: 210 27% 40%;
+    --brand-gold: 56 82% 71%;
+    --brand-gold-deep: 41 64% 51%;
 
-    --muted: 24 10% 18%;
-    --muted-foreground: 30 15% 60%;
+    --secondary: 211 30% 22%;
+    --secondary-foreground: 0 0% 96%;
 
-    --accent: 24 80% 55%;
-    --accent-foreground: 40 33% 98%;
+    --muted: 211 30% 22%;
+    --muted-foreground: 0 0% 70%;
 
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 40 33% 95%;
+    --accent: 56 82% 71%;
+    --accent-foreground: 211 37% 12%;
 
-    --border: 24 10% 20%;
-    --input: 24 10% 20%;
-    --ring: 142 55% 42%;
+    --cta: 41 64% 51%;
+    --cta-foreground: 211 37% 12%;
 
-    --sidebar-background: 24 10% 8%;
-    --sidebar-foreground: 40 33% 95%;
-    --sidebar-primary: 142 55% 42%;
-    --sidebar-primary-foreground: 24 10% 10%;
-    --sidebar-accent: 30 15% 20%;
-    --sidebar-accent-foreground: 40 33% 95%;
-    --sidebar-border: 24 10% 20%;
-    --sidebar-ring: 142 55% 42%;
+    --destructive: 12 64% 53%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 211 30% 25%;
+    --input: 211 30% 25%;
+    --ring: 210 27% 55%;
+
+    --sidebar-background: 211 37% 12%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 210 27% 55%;
+    --sidebar-primary-foreground: 211 37% 12%;
+    --sidebar-accent: 211 30% 22%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 211 30% 25%;
+    --sidebar-ring: 210 27% 55%;
   }
 }
 
@@ -97,10 +132,26 @@
 
   body {
     @apply bg-background text-foreground font-sans;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .btn-cta {
+    @apply inline-flex items-center justify-center rounded-lg px-6 h-11 font-medium text-sm transition-colors;
+    background-color: hsl(var(--cta));
+    color: hsl(var(--cta-foreground));
+  }
+  .btn-cta:hover {
+    background-color: hsl(var(--cta) / 0.9);
   }
 }
