@@ -74,16 +74,33 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
       : emptyRows(8)
   );
   const addIngredientBtnRef = useRef<HTMLButtonElement>(null);
-  const ingredientNameRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const ingredientAmountRefs = useRef<Array<HTMLInputElement | null>>([]);
   const focusIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (focusIndexRef.current !== null) {
       const idx = focusIndexRef.current;
-      ingredientNameRefs.current[idx]?.focus();
+      ingredientAmountRefs.current[idx]?.focus();
       focusIndexRef.current = null;
     }
   }, [ingredients.length]);
+
+  const UNIT_OPTIONS = [
+    "each", "cup", "cups", "tsp", "tbsp", "teaspoon", "tablespoon",
+    "oz", "fl oz", "lb", "lbs", "g", "kg", "mg", "ml", "l", "liter",
+    "pinch", "dash", "clove", "cloves", "slice", "slices", "can", "cans",
+    "package", "stick", "sticks", "bunch", "head", "piece", "pieces",
+    "quart", "pint", "gallon",
+  ];
+
+  const completeUnit = (value: string): string => {
+    const v = value.trim().toLowerCase();
+    if (!v) return value;
+    const exact = UNIT_OPTIONS.find((u) => u.toLowerCase() === v);
+    if (exact) return exact;
+    const matches = UNIT_OPTIONS.filter((u) => u.toLowerCase().startsWith(v));
+    return matches.length === 1 ? matches[0] : value;
+  };
   const [instructions, setInstructions] = useState<string[]>(
     Array.isArray(recipe?.instructions) ? recipe.instructions : [""]
   );
