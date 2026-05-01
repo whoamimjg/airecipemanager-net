@@ -9,8 +9,8 @@ interface CookingModeProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  ingredients: string[];
-  instructions: string[];
+  ingredients: any[];
+  instructions: any[];
   prepTime: number | null;
   cookTime: number | null;
 }
@@ -79,12 +79,19 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
               <h3 className="text-xl font-semibold text-foreground">Before you start</h3>
               <p className="text-sm text-muted-foreground">Gather these ingredients:</p>
               <ul className="space-y-2">
-                {ingredients.map((ing, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-foreground">
-                    <span className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
-                    {ing}
-                  </li>
-                ))}
+                {ingredients.map((ing, i) => {
+                  const text = typeof ing === "string"
+                    ? ing
+                    : [ing?.quantity || ing?.amount, ing?.unit, ing?.name, ing?.notes ? `(${ing.notes})` : ""]
+                        .filter(Boolean)
+                        .join(" ");
+                  return (
+                    <li key={i} className="flex items-start gap-3 text-sm text-foreground">
+                      <span className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />
+                      {text}
+                    </li>
+                  );
+                })}
               </ul>
               {ingredients.length === 0 && (
                 <p className="text-sm text-muted-foreground italic">No ingredients listed.</p>
@@ -96,7 +103,7 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
                 {currentStep + 1}
               </div>
               <p className="text-lg leading-relaxed text-foreground max-w-md">
-                {instructions[currentStep]}
+                {typeof instructions[currentStep] === "string" ? instructions[currentStep] : (instructions[currentStep] as any)?.text || ""}
               </p>
               {completedSteps.has(currentStep) && (
                 <span className="flex items-center gap-1 text-sm text-green-600">
