@@ -41,7 +41,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const [servings, setServings] = useState(recipe?.servings?.toString() || "");
   const [sourceUrl, setSourceUrl] = useState(recipe?.source_url || "");
   const [imageUrl, setImageUrl] = useState(recipe?.image_url || "");
-  type IngredientRow = { quantity: string; unit: string; name: string };
+  type IngredientRow = { quantity: string; unit: string; name: string; notes: string };
 
   const parseIngredient = (ing: any): IngredientRow => {
     if (ing && typeof ing === "object") {
@@ -49,24 +49,24 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
         quantity: ing.quantity?.toString() || ing.amount?.toString() || "",
         unit: ing.unit || "",
         name: ing.name || "",
+        notes: ing.notes || "",
       };
     }
     const str = (ing || "").toString().trim();
-    // Try to parse "1 cup flour" style strings
     const match = str.match(/^([\d./\s]+)?\s*(\S+)?\s*(.*)$/);
     if (match && str) {
       const [, qty, maybeUnit, rest] = match;
       const commonUnits = ["cup","cups","tsp","tbsp","teaspoon","tablespoon","oz","lb","g","kg","ml","l","pinch","clove","cloves"];
       if (qty && maybeUnit && commonUnits.includes(maybeUnit.toLowerCase())) {
-        return { quantity: qty.trim(), unit: maybeUnit, name: rest.trim() };
+        return { quantity: qty.trim(), unit: maybeUnit, name: rest.trim(), notes: "" };
       }
-      if (qty) return { quantity: qty.trim(), unit: "", name: `${maybeUnit || ""} ${rest}`.trim() };
+      if (qty) return { quantity: qty.trim(), unit: "", name: `${maybeUnit || ""} ${rest}`.trim(), notes: "" };
     }
-    return { quantity: "", unit: "", name: str };
+    return { quantity: "", unit: "", name: str, notes: "" };
   };
 
   const emptyRows = (n: number): IngredientRow[] =>
-    Array.from({ length: n }, () => ({ quantity: "", unit: "", name: "" }));
+    Array.from({ length: n }, () => ({ quantity: "", unit: "", name: "", notes: "" }));
 
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     Array.isArray(recipe?.ingredients) && recipe!.ingredients.length > 0
