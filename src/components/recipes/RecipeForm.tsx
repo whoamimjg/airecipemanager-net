@@ -77,10 +77,13 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const ingredientNameRefs = useRef<Array<HTMLInputElement | null>>([]);
   const focusIndexRef = useRef<number | null>(null);
 
-  // Focus newly added ingredient name input
-  if (focusIndexRef.current !== null) {
-    // handled via useEffect below
-  }
+  useEffect(() => {
+    if (focusIndexRef.current !== null) {
+      const idx = focusIndexRef.current;
+      ingredientNameRefs.current[idx]?.focus();
+      focusIndexRef.current = null;
+    }
+  }, [ingredients.length]);
   const [instructions, setInstructions] = useState<string[]>(
     Array.isArray(recipe?.instructions) ? recipe.instructions : [""]
   );
