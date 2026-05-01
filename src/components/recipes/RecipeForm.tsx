@@ -105,6 +105,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
             quantity: ing.quantity.trim(),
             unit: ing.unit.trim(),
             name: ing.name.trim(),
+            notes: ing.notes.trim(),
           })),
         instructions: instructions.filter(Boolean),
         user_id: user!.id,
