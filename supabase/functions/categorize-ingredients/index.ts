@@ -16,6 +16,7 @@ const CATEGORIES = [
   "Canned Goods",
   "Bread",
   "Frozen",
+  "Snacks",
   "Condiments & Spices",
   "Other",
 ];
@@ -57,6 +58,7 @@ Rules:
 - "Canned Goods" = canned/jarred items, broth, stock, canned beans, canned tomatoes, coconut milk (canned)
 - "Bread" = bread, buns, rolls, tortillas, pita, naan, bagels, wraps
 - "Frozen" = frozen foods, ice cream, frozen vegetables, frozen pizza
+- "Snacks" = chips, crackers, pretzels, popcorn, cookies, candy, snack bars, trail mix, jerky, fruit snacks
 - "Condiments & Spices" = all spices, seasonings, dried herbs, salt, pepper, oils, vinegars, sauces, dressings, honey, syrups, mustard, ketchup, mayo, hot sauce, soy sauce, extracts
 - "Other" = anything that doesn't fit above (cleaning supplies, paper goods, etc.)
 
