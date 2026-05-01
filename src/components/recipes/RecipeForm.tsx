@@ -212,11 +212,67 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
           }}
           className="space-y-6"
         >
-          {imageUrl && (
-            <div className="sm:col-span-2">
-              <img src={imageUrl} alt={title} className="w-full max-h-48 object-cover rounded-lg border border-border" />
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label className="text-card-foreground">Recipe Photo</Label>
+            {imageUrl ? (
+              <div className="relative group">
+                <img src={imageUrl} alt={title || "Recipe"} className="w-full max-h-64 object-cover rounded-lg border border-border" />
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    <span className="ml-1">Replace</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setImageUrl("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="w-full flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-border rounded-lg hover:bg-muted/40 transition-colors disabled:opacity-50"
+              >
+                {uploadingImage ? (
+                  <>
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Click to upload a photo</span>
+                    <span className="text-xs text-muted-foreground">PNG, JPG up to 5MB</span>
+                  </>
+                )}
+              </button>
+            )}
+            <Input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Or paste an image URL"
+              className="text-xs"
+            />
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
               <Label className="text-card-foreground">Title *</Label>
