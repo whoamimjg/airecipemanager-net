@@ -109,12 +109,19 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Ingredients</h3>
                 <ul className="space-y-1">
-                  {ingredients.map((ing: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                      {ing}
-                    </li>
-                  ))}
+                  {ingredients.map((ing: any, i: number) => {
+                    const text = typeof ing === "string"
+                      ? ing
+                      : [ing?.quantity || ing?.amount, ing?.unit, ing?.name, ing?.notes ? `(${ing.notes})` : ""]
+                          .filter(Boolean)
+                          .join(" ");
+                    return (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        {text}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
