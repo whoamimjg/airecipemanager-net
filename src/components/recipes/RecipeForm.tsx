@@ -41,7 +41,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const [servings, setServings] = useState(recipe?.servings?.toString() || "");
   const [sourceUrl, setSourceUrl] = useState(recipe?.source_url || "");
   const [imageUrl, setImageUrl] = useState(recipe?.image_url || "");
-  type IngredientRow = { quantity: string; unit: string; name: string };
+  type IngredientRow = { quantity: string; unit: string; name: string; notes: string };
 
   const parseIngredient = (ing: any): IngredientRow => {
     if (ing && typeof ing === "object") {
@@ -49,24 +49,24 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
         quantity: ing.quantity?.toString() || ing.amount?.toString() || "",
         unit: ing.unit || "",
         name: ing.name || "",
+        notes: ing.notes || "",
       };
     }
     const str = (ing || "").toString().trim();
-    // Try to parse "1 cup flour" style strings
     const match = str.match(/^([\d./\s]+)?\s*(\S+)?\s*(.*)$/);
     if (match && str) {
       const [, qty, maybeUnit, rest] = match;
       const commonUnits = ["cup","cups","tsp","tbsp","teaspoon","tablespoon","oz","lb","g","kg","ml","l","pinch","clove","cloves"];
       if (qty && maybeUnit && commonUnits.includes(maybeUnit.toLowerCase())) {
-        return { quantity: qty.trim(), unit: maybeUnit, name: rest.trim() };
+        return { quantity: qty.trim(), unit: maybeUnit, name: rest.trim(), notes: "" };
       }
-      if (qty) return { quantity: qty.trim(), unit: "", name: `${maybeUnit || ""} ${rest}`.trim() };
+      if (qty) return { quantity: qty.trim(), unit: "", name: `${maybeUnit || ""} ${rest}`.trim(), notes: "" };
     }
-    return { quantity: "", unit: "", name: str };
+    return { quantity: "", unit: "", name: str, notes: "" };
   };
 
   const emptyRows = (n: number): IngredientRow[] =>
-    Array.from({ length: n }, () => ({ quantity: "", unit: "", name: "" }));
+    Array.from({ length: n }, () => ({ quantity: "", unit: "", name: "", notes: "" }));
 
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     Array.isArray(recipe?.ingredients) && recipe!.ingredients.length > 0
@@ -105,6 +105,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
             quantity: ing.quantity.trim(),
             unit: ing.unit.trim(),
             name: ing.name.trim(),
+            notes: ing.notes.trim(),
           })),
         instructions: instructions.filter(Boolean),
         user_id: user!.id,
@@ -197,18 +198,19 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
           {/* Ingredients */}
           <div className="space-y-3">
             <Label className="text-card-foreground">Ingredients</Label>
-            <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground px-1">
-              <div className="col-span-3 sm:col-span-2">Qty</div>
-              <div className="col-span-3 sm:col-span-2">Unit</div>
-              <div className="col-span-5 sm:col-span-7">Ingredient</div>
+            <div className="grid grid-cols-13 gap-2 text-xs text-muted-foreground px-1" style={{ gridTemplateColumns: "repeat(13, minmax(0, 1fr))" }}>
+              <div className="col-span-2">Amount</div>
+              <div className="col-span-2">Unit</div>
+              <div className="col-span-4">Ingredient</div>
+              <div className="col-span-4">Notes</div>
               <div className="col-span-1" />
             </div>
             {ingredients.map((ing, i) => {
               const isLast = i === ingredients.length - 1;
               return (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                <div key={i} className="grid gap-2 items-center" style={{ gridTemplateColumns: "repeat(13, minmax(0, 1fr))" }}>
                   <Input
-                    className="col-span-3 sm:col-span-2"
+                    className="col-span-2"
                     value={ing.quantity}
                     onChange={(e) => {
                       const next = [...ingredients];
@@ -218,7 +220,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                     placeholder="1"
                   />
                   <Input
-                    className="col-span-3 sm:col-span-2"
+                    className="col-span-2"
                     value={ing.unit}
                     onChange={(e) => {
                       const next = [...ingredients];
@@ -229,11 +231,21 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                   />
                   <Input
                     ref={(el) => (ingredientNameRefs.current[i] = el)}
-                    className="col-span-5 sm:col-span-7"
+                    className="col-span-4"
                     value={ing.name}
                     onChange={(e) => {
                       const next = [...ingredients];
                       next[i] = { ...next[i], name: e.target.value };
+                      setIngredients(next);
+                    }}
+                    placeholder={`Ingredient ${i + 1}`}
+                  />
+                  <Input
+                    className="col-span-4"
+                    value={ing.notes}
+                    onChange={(e) => {
+                      const next = [...ingredients];
+                      next[i] = { ...next[i], notes: e.target.value };
                       setIngredients(next);
                     }}
                     onKeyDown={(e) => {
@@ -242,7 +254,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                         addIngredientBtnRef.current?.focus();
                       }
                     }}
-                    placeholder={`Ingredient ${i + 1}`}
+                    placeholder="optional"
                   />
                   {ingredients.length > 1 ? (
                     <Button
@@ -267,7 +279,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
               size="sm"
               onClick={() => {
                 focusIndexRef.current = ingredients.length;
-                setIngredients([...ingredients, { quantity: "", unit: "", name: "" }]);
+                setIngredients([...ingredients, { quantity: "", unit: "", name: "", notes: "" }]);
               }}
             >
               <Plus className="mr-1 h-3 w-3" /> Add Ingredient
