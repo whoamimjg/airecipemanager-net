@@ -294,6 +294,26 @@ const GroceryList = () => {
     },
   });
 
+  const clearAllCheckedMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("grocery_items")
+        .delete()
+        .eq("user_id", user!.id)
+        .eq("is_checked", true);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
+    },
+  });
+
+  const clearAllChecked = () => {
+    setCheckedItems(new Set());
+    clearAllCheckedMutation.mutate();
+  };
+
   // Combine recipe-derived items with manually added items
   const allGroceryItems = useMemo(() => {
     const combined = [...groceryItems];
@@ -728,6 +748,14 @@ const GroceryList = () => {
                     <ShoppingCart className="h-4 w-4 text-primary" />
                     All Bought Items
                     <Badge variant="secondary" className="text-xs ml-auto">{checkedCount}</Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-destructive hover:text-destructive"
+                      onClick={clearAllChecked}
+                    >
+                      Clear
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
