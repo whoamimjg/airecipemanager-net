@@ -228,6 +228,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                     placeholder="cup"
                   />
                   <Input
+                    ref={(el) => (ingredientNameRefs.current[i] = el)}
                     className="col-span-5 sm:col-span-7"
                     value={ing.name}
                     onChange={(e) => {
