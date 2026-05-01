@@ -748,6 +748,14 @@ const GroceryList = () => {
                     <ShoppingCart className="h-4 w-4 text-primary" />
                     All Bought Items
                     <Badge variant="secondary" className="text-xs ml-auto">{checkedCount}</Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-destructive hover:text-destructive"
+                      onClick={clearAllChecked}
+                    >
+                      Clear
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
