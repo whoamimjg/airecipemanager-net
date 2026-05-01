@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 const SharedRecipe = () => {
   const { id } = useParams<{ id: string }>();
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   const { data: recipe, isLoading, error } = useQuery({
     queryKey: ["shared-recipe", id],
