@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,15 +41,36 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const [servings, setServings] = useState(recipe?.servings?.toString() || "");
   const [sourceUrl, setSourceUrl] = useState(recipe?.source_url || "");
   const [imageUrl, setImageUrl] = useState(recipe?.image_url || "");
-  const [ingredients, setIngredients] = useState<string[]>(
-    Array.isArray(recipe?.ingredients)
-      ? recipe.ingredients.map((ing: any) =>
-          typeof ing === "string"
-            ? ing
-            : [ing.amount, ing.unit, ing.name].filter(Boolean).join(" ")
-        )
-      : [""]
+  type IngredientRow = { quantity: string; unit: string; name: string };
+
+  const parseIngredient = (ing: any): IngredientRow => {
+    if (ing && typeof ing === "object") {
+      return {
+        quantity: ing.quantity?.toString() || ing.amount?.toString() || "",
+        unit: ing.unit || "",
+        name: ing.name || "",
+      };
+    }
+    const str = (ing || "").toString().trim();
+    // Try to parse "1 cup flour" style strings
+    const match = str.match(/^([\d./\s]+)?\s*(\S+)?\s*(.*)$/);
+    if (match && str) {
+      const [, qty, maybeUnit, rest] = match;
+      const commonUnits = ["cup","cups","tsp","tbsp","teaspoon","tablespoon","oz","lb","g","kg","ml","l","pinch","clove","cloves"];
+      if (qty && maybeUnit && commonUnits.includes(maybeUnit.toLowerCase())) {
+        return { quantity: qty.trim(), unit: maybeUnit, name: rest.trim() };
+      }
+      if (qty) return { quantity: qty.trim(), unit: "", name: `${maybeUnit || ""} ${rest}`.trim() };
+    }
+    return { quantity: "", unit: "", name: str };
+  };
+
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(
+    Array.isArray(recipe?.ingredients) && recipe!.ingredients.length > 0
+      ? recipe!.ingredients.map(parseIngredient)
+      : [{ quantity: "", unit: "", name: "" }]
   );
+  const addIngredientBtnRef = useRef<HTMLButtonElement>(null);
   const [instructions, setInstructions] = useState<string[]>(
     Array.isArray(recipe?.instructions) ? recipe.instructions : [""]
   );
