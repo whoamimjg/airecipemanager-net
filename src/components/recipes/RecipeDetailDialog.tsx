@@ -183,6 +183,17 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
         prepTime={recipe.prep_time}
         cookTime={recipe.cook_time}
       />
+
+      <Dialog open={!!expandedImage} onOpenChange={(o) => !o && setExpandedImage(null)}>
+        <DialogContent className="max-w-3xl p-2 bg-background">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Step image</DialogTitle>
+          </DialogHeader>
+          {expandedImage && (
+            <img src={expandedImage} alt="Step" className="w-full h-auto max-h-[80vh] object-contain rounded" />
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };
