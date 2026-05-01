@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, X, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Plus, X, Loader2, Save, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface RecipeFormProps {
