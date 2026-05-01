@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,12 +65,25 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
     return { quantity: "", unit: "", name: str };
   };
 
+  const emptyRows = (n: number): IngredientRow[] =>
+    Array.from({ length: n }, () => ({ quantity: "", unit: "", name: "" }));
+
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     Array.isArray(recipe?.ingredients) && recipe!.ingredients.length > 0
       ? recipe!.ingredients.map(parseIngredient)
-      : [{ quantity: "", unit: "", name: "" }]
+      : emptyRows(8)
   );
   const addIngredientBtnRef = useRef<HTMLButtonElement>(null);
+  const ingredientNameRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const focusIndexRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (focusIndexRef.current !== null) {
+      const idx = focusIndexRef.current;
+      ingredientNameRefs.current[idx]?.focus();
+      focusIndexRef.current = null;
+    }
+  }, [ingredients.length]);
   const [instructions, setInstructions] = useState<string[]>(
     Array.isArray(recipe?.instructions) ? recipe.instructions : [""]
   );
@@ -215,6 +228,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                     placeholder="cup"
                   />
                   <Input
+                    ref={(el) => (ingredientNameRefs.current[i] = el)}
                     className="col-span-5 sm:col-span-7"
                     value={ing.name}
                     onChange={(e) => {
@@ -251,7 +265,10 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setIngredients([...ingredients, { quantity: "", unit: "", name: "" }])}
+              onClick={() => {
+                focusIndexRef.current = ingredients.length;
+                setIngredients([...ingredients, { quantity: "", unit: "", name: "" }]);
+              }}
             >
               <Plus className="mr-1 h-3 w-3" /> Add Ingredient
             </Button>
