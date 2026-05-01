@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,9 +6,11 @@ import { Clock, Users, ExternalLink, ChefHat, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import StarRating from "@/components/recipes/StarRating";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const SharedRecipe = () => {
   const { id } = useParams<{ id: string }>();
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   const { data: recipe, isLoading, error } = useQuery({
     queryKey: ["shared-recipe", id],
@@ -110,14 +113,25 @@ const SharedRecipe = () => {
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-3">Instructions</h2>
             <ol className="space-y-3">
-              {instructions.map((step: any, i: number) => (
-                <li key={i} className="flex gap-3 text-sm">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
-                    {i + 1}
-                  </span>
-                  <span className="text-muted-foreground pt-0.5">{typeof step === "string" ? step : step.text || JSON.stringify(step)}</span>
-                </li>
-              ))}
+              {instructions.map((step: any, i: number) => {
+                const text = typeof step === "string" ? step : step?.text || "";
+                const img = typeof step === "object" ? step?.image_url : "";
+                return (
+                  <li key={i} className="flex gap-3 text-sm">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 flex items-start gap-3">
+                      <span className="text-muted-foreground pt-0.5 flex-1">{text}</span>
+                      {img && (
+                        <button type="button" onClick={() => setExpandedImage(img)} className="shrink-0 hover:opacity-80 transition-opacity">
+                          <img src={img} alt={`Step ${i + 1}`} className="h-14 w-14 object-cover rounded border border-border cursor-pointer" />
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           </div>
         )}
@@ -126,6 +140,15 @@ const SharedRecipe = () => {
           Shared from <Link to="/" className="text-primary hover:underline font-medium">AI Appetite Aid</Link>
         </div>
       </div>
+
+      <Dialog open={!!expandedImage} onOpenChange={(o) => !o && setExpandedImage(null)}>
+        <DialogContent className="max-w-3xl p-2 bg-background">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Step image</DialogTitle>
+          </DialogHeader>
+          {expandedImage && <img src={expandedImage} alt="Step" className="w-full h-auto max-h-[80vh] object-contain rounded" />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

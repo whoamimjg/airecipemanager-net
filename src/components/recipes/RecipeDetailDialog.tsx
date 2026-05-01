@@ -40,6 +40,7 @@ interface RecipeDetailDialogProps {
 
 const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogProps) => {
   const [showCookingMode, setShowCookingMode] = useState(false);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   if (!recipe) return null;
 
@@ -130,14 +131,30 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Instructions</h3>
                 <ol className="space-y-3">
-                  {instructions.map((step: any, i: number) => (
-                    <li key={i} className="flex gap-3 text-sm">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
-                        {i + 1}
-                      </span>
-                      <span className="text-muted-foreground pt-0.5">{typeof step === "string" ? step : step?.text || ""}</span>
-                    </li>
-                  ))}
+                  {instructions.map((step: any, i: number) => {
+                    const text = typeof step === "string" ? step : step?.text || "";
+                    const img = typeof step === "object" ? step?.image_url : "";
+                    return (
+                      <li key={i} className="flex gap-3 text-sm">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 flex items-start gap-3">
+                          <span className="text-muted-foreground pt-0.5 flex-1">{text}</span>
+                          {img && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedImage(img)}
+                              className="shrink-0 hover:opacity-80 transition-opacity"
+                              aria-label={`View image for step ${i + 1}`}
+                            >
+                              <img src={img} alt={`Step ${i + 1}`} className="h-14 w-14 object-cover rounded border border-border cursor-pointer" />
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ol>
               </div>
             )}
@@ -166,6 +183,17 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
         prepTime={recipe.prep_time}
         cookTime={recipe.cook_time}
       />
+
+      <Dialog open={!!expandedImage} onOpenChange={(o) => !o && setExpandedImage(null)}>
+        <DialogContent className="max-w-3xl p-2 bg-background">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Step image</DialogTitle>
+          </DialogHeader>
+          {expandedImage && (
+            <img src={expandedImage} alt="Step" className="w-full h-auto max-h-[80vh] object-contain rounded" />
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };

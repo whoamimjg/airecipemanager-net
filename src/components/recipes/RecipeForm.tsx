@@ -137,9 +137,43 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
     const matches = UNIT_OPTIONS.filter((u) => u.toLowerCase().startsWith(v));
     return matches.length === 1 ? matches[0] : value;
   };
-  const [instructions, setInstructions] = useState<string[]>(
-    Array.isArray(recipe?.instructions) ? recipe.instructions : [""]
+  type InstructionRow = { text: string; image_url: string };
+  const parseInstruction = (s: any): InstructionRow => {
+    if (s && typeof s === "object") return { text: s.text || "", image_url: s.image_url || "" };
+    return { text: (s || "").toString(), image_url: "" };
+  };
+  const [instructions, setInstructions] = useState<InstructionRow[]>(
+    Array.isArray(recipe?.instructions) && recipe!.instructions.length > 0
+      ? recipe!.instructions.map(parseInstruction)
+      : [{ text: "", image_url: "" }]
   );
+  const [uploadingStepIdx, setUploadingStepIdx] = useState<number | null>(null);
+  const stepImageRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const handleStepImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be smaller than 5MB"); return; }
+    setUploadingStepIdx(idx);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/steps/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("recipe-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("recipe-images").getPublicUrl(path);
+      const next = [...instructions];
+      next[idx] = { ...next[idx], image_url: data.publicUrl };
+      setInstructions(next);
+      toast.success("Step image added!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setUploadingStepIdx(null);
+      if (stepImageRefs.current[idx]) stepImageRefs.current[idx]!.value = "";
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -160,7 +194,9 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
             name: ing.name.trim(),
             notes: ing.notes.trim(),
           })),
-        instructions: instructions.filter(Boolean),
+        instructions: instructions
+          .filter((s) => s.text.trim() || s.image_url)
+          .map((s) => ({ text: s.text.trim(), image_url: s.image_url || "" })),
         user_id: user!.id,
       };
 
@@ -414,23 +450,62 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
           <div className="space-y-3">
             <Label className="text-card-foreground">Instructions</Label>
             {instructions.map((step, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="flex gap-2 items-start">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">
                   {i + 1}
                 </span>
-                <Input
-                  value={step}
-                  onChange={(e) => updateItem(instructions, setInstructions, i, e.target.value)}
-                  placeholder={`Step ${i + 1}`}
+                <div className="flex-1 space-y-2">
+                  <Input
+                    value={step.text}
+                    onChange={(e) => {
+                      const next = [...instructions];
+                      next[i] = { ...next[i], text: e.target.value };
+                      setInstructions(next);
+                    }}
+                    placeholder={`Step ${i + 1}`}
+                  />
+                  {step.image_url && (
+                    <div className="relative inline-block">
+                      <img src={step.image_url} alt={`Step ${i + 1}`} className="h-16 w-16 object-cover rounded border border-border" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = [...instructions];
+                          next[i] = { ...next[i], image_url: "" };
+                          setInstructions(next);
+                        }}
+                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => stepImageRefs.current[i]?.click()}
+                  disabled={uploadingStepIdx === i}
+                  title="Add step photo"
+                >
+                  {uploadingStepIdx === i ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                </Button>
+                <input
+                  ref={(el) => (stepImageRefs.current[i] = el)}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleStepImageUpload(e, i)}
                 />
                 {instructions.length > 1 && (
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(instructions, setInstructions, i)}>
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setInstructions(instructions.filter((_, idx) => idx !== i))}>
                     <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => addItem(instructions, setInstructions)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setInstructions([...instructions, { text: "", image_url: "" }])}>
               <Plus className="mr-1 h-3 w-3" /> Add Step
             </Button>
           </div>
