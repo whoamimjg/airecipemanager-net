@@ -58,6 +58,47 @@ interface Recipe {
   ingredients: any;
 }
 
+const MealHoverCard = ({ meal, children }: { meal: MealPlan; children: React.ReactNode }) => {
+  const recipe = meal.recipe;
+  if (!recipe) return <>{children}</>;
+  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  return (
+    <HoverCard openDelay={150} closeDelay={50}>
+      <HoverCardTrigger asChild>{children}</HoverCardTrigger>
+      <HoverCardContent className="w-72 p-0 overflow-hidden" side="top">
+        {recipe.image_url && (
+          <img src={recipe.image_url} alt={recipe.title} className="h-32 w-full object-cover" />
+        )}
+        <div className="p-3 space-y-2">
+          <p className="font-semibold text-sm text-foreground line-clamp-2">{recipe.title}</p>
+          {totalTime > 0 && (
+            <p className="text-xs text-muted-foreground">{totalTime} min total</p>
+          )}
+          {ingredients.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                Ingredients ({ingredients.length})
+              </p>
+              <ul className="text-xs text-foreground space-y-0.5 max-h-40 overflow-y-auto">
+                {ingredients.slice(0, 12).map((ing: any, i: number) => {
+                  const text = typeof ing === "string"
+                    ? ing
+                    : [ing?.quantity || ing?.amount, ing?.unit, ing?.name].filter(Boolean).join(" ");
+                  return <li key={i} className="line-clamp-1">• {text}</li>;
+                })}
+                {ingredients.length > 12 && (
+                  <li className="text-muted-foreground italic">+ {ingredients.length - 12} more…</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+};
+
 const MealPlanner = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
