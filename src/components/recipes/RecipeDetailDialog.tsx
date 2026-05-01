@@ -130,12 +130,12 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Instructions</h3>
                 <ol className="space-y-3">
-                  {instructions.map((step: string, i: number) => (
+                  {instructions.map((step: any, i: number) => (
                     <li key={i} className="flex gap-3 text-sm">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
                         {i + 1}
                       </span>
-                      <span className="text-muted-foreground pt-0.5">{step}</span>
+                      <span className="text-muted-foreground pt-0.5">{typeof step === "string" ? step : step?.text || ""}</span>
                     </li>
                   ))}
                 </ol>
