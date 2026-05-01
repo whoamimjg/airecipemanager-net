@@ -65,12 +65,22 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
     return { quantity: "", unit: "", name: str };
   };
 
+  const emptyRows = (n: number): IngredientRow[] =>
+    Array.from({ length: n }, () => ({ quantity: "", unit: "", name: "" }));
+
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     Array.isArray(recipe?.ingredients) && recipe!.ingredients.length > 0
       ? recipe!.ingredients.map(parseIngredient)
-      : [{ quantity: "", unit: "", name: "" }]
+      : emptyRows(8)
   );
   const addIngredientBtnRef = useRef<HTMLButtonElement>(null);
+  const ingredientNameRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const focusIndexRef = useRef<number | null>(null);
+
+  // Focus newly added ingredient name input
+  if (focusIndexRef.current !== null) {
+    // handled via useEffect below
+  }
   const [instructions, setInstructions] = useState<string[]>(
     Array.isArray(recipe?.instructions) ? recipe.instructions : [""]
   );
