@@ -194,7 +194,9 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
             name: ing.name.trim(),
             notes: ing.notes.trim(),
           })),
-        instructions: instructions.filter(Boolean),
+        instructions: instructions
+          .filter((s) => s.text.trim() || s.image_url)
+          .map((s) => ({ text: s.text.trim(), image_url: s.image_url || "" })),
         user_id: user!.id,
       };
 
