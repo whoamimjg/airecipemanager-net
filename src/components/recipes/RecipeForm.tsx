@@ -198,18 +198,19 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
           {/* Ingredients */}
           <div className="space-y-3">
             <Label className="text-card-foreground">Ingredients</Label>
-            <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground px-1">
-              <div className="col-span-3 sm:col-span-2">Qty</div>
-              <div className="col-span-3 sm:col-span-2">Unit</div>
-              <div className="col-span-5 sm:col-span-7">Ingredient</div>
+            <div className="grid grid-cols-13 gap-2 text-xs text-muted-foreground px-1" style={{ gridTemplateColumns: "repeat(13, minmax(0, 1fr))" }}>
+              <div className="col-span-2">Amount</div>
+              <div className="col-span-2">Unit</div>
+              <div className="col-span-4">Ingredient</div>
+              <div className="col-span-4">Notes</div>
               <div className="col-span-1" />
             </div>
             {ingredients.map((ing, i) => {
               const isLast = i === ingredients.length - 1;
               return (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                <div key={i} className="grid gap-2 items-center" style={{ gridTemplateColumns: "repeat(13, minmax(0, 1fr))" }}>
                   <Input
-                    className="col-span-3 sm:col-span-2"
+                    className="col-span-2"
                     value={ing.quantity}
                     onChange={(e) => {
                       const next = [...ingredients];
@@ -219,7 +220,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                     placeholder="1"
                   />
                   <Input
-                    className="col-span-3 sm:col-span-2"
+                    className="col-span-2"
                     value={ing.unit}
                     onChange={(e) => {
                       const next = [...ingredients];
@@ -230,11 +231,21 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                   />
                   <Input
                     ref={(el) => (ingredientNameRefs.current[i] = el)}
-                    className="col-span-5 sm:col-span-7"
+                    className="col-span-4"
                     value={ing.name}
                     onChange={(e) => {
                       const next = [...ingredients];
                       next[i] = { ...next[i], name: e.target.value };
+                      setIngredients(next);
+                    }}
+                    placeholder={`Ingredient ${i + 1}`}
+                  />
+                  <Input
+                    className="col-span-4"
+                    value={ing.notes}
+                    onChange={(e) => {
+                      const next = [...ingredients];
+                      next[i] = { ...next[i], notes: e.target.value };
                       setIngredients(next);
                     }}
                     onKeyDown={(e) => {
@@ -243,7 +254,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                         addIngredientBtnRef.current?.focus();
                       }
                     }}
-                    placeholder={`Ingredient ${i + 1}`}
+                    placeholder="optional"
                   />
                   {ingredients.length > 1 ? (
                     <Button
