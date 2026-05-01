@@ -268,7 +268,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
               size="sm"
               onClick={() => {
                 focusIndexRef.current = ingredients.length;
-                setIngredients([...ingredients, { quantity: "", unit: "", name: "" }]);
+                setIngredients([...ingredients, { quantity: "", unit: "", name: "", notes: "" }]);
               }}
             >
               <Plus className="mr-1 h-3 w-3" /> Add Ingredient
