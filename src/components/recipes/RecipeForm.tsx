@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,15 +41,36 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const [servings, setServings] = useState(recipe?.servings?.toString() || "");
   const [sourceUrl, setSourceUrl] = useState(recipe?.source_url || "");
   const [imageUrl, setImageUrl] = useState(recipe?.image_url || "");
-  const [ingredients, setIngredients] = useState<string[]>(
-    Array.isArray(recipe?.ingredients)
-      ? recipe.ingredients.map((ing: any) =>
-          typeof ing === "string"
-            ? ing
-            : [ing.amount, ing.unit, ing.name].filter(Boolean).join(" ")
-        )
-      : [""]
+  type IngredientRow = { quantity: string; unit: string; name: string };
+
+  const parseIngredient = (ing: any): IngredientRow => {
+    if (ing && typeof ing === "object") {
+      return {
+        quantity: ing.quantity?.toString() || ing.amount?.toString() || "",
+        unit: ing.unit || "",
+        name: ing.name || "",
+      };
+    }
+    const str = (ing || "").toString().trim();
+    // Try to parse "1 cup flour" style strings
+    const match = str.match(/^([\d./\s]+)?\s*(\S+)?\s*(.*)$/);
+    if (match && str) {
+      const [, qty, maybeUnit, rest] = match;
+      const commonUnits = ["cup","cups","tsp","tbsp","teaspoon","tablespoon","oz","lb","g","kg","ml","l","pinch","clove","cloves"];
+      if (qty && maybeUnit && commonUnits.includes(maybeUnit.toLowerCase())) {
+        return { quantity: qty.trim(), unit: maybeUnit, name: rest.trim() };
+      }
+      if (qty) return { quantity: qty.trim(), unit: "", name: `${maybeUnit || ""} ${rest}`.trim() };
+    }
+    return { quantity: "", unit: "", name: str };
+  };
+
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(
+    Array.isArray(recipe?.ingredients) && recipe!.ingredients.length > 0
+      ? recipe!.ingredients.map(parseIngredient)
+      : [{ quantity: "", unit: "", name: "" }]
   );
+  const addIngredientBtnRef = useRef<HTMLButtonElement>(null);
   const [instructions, setInstructions] = useState<string[]>(
     Array.isArray(recipe?.instructions) ? recipe.instructions : [""]
   );
@@ -65,7 +86,13 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
         servings: servings ? parseInt(servings) : null,
         source_url: sourceUrl || null,
         image_url: imageUrl || null,
-        ingredients: ingredients.filter(Boolean),
+        ingredients: ingredients
+          .filter((ing) => ing.name.trim() || ing.quantity.trim())
+          .map((ing) => ({
+            quantity: ing.quantity.trim(),
+            unit: ing.unit.trim(),
+            name: ing.name.trim(),
+          })),
         instructions: instructions.filter(Boolean),
         user_id: user!.id,
       };
@@ -157,24 +184,79 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
           {/* Ingredients */}
           <div className="space-y-3">
             <Label className="text-card-foreground">Ingredients</Label>
-            {ingredients.map((ing, i) => (
-              <div key={i} className="flex gap-2">
-                <Input
-                  value={ing}
-                  onChange={(e) => updateItem(ingredients, setIngredients, i, e.target.value)}
-                  placeholder={`Ingredient ${i + 1}`}
-                />
-                {ingredients.length > 1 && (
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(ingredients, setIngredients, i)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => addItem(ingredients, setIngredients)}>
+            <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground px-1">
+              <div className="col-span-3 sm:col-span-2">Qty</div>
+              <div className="col-span-3 sm:col-span-2">Unit</div>
+              <div className="col-span-5 sm:col-span-7">Ingredient</div>
+              <div className="col-span-1" />
+            </div>
+            {ingredients.map((ing, i) => {
+              const isLast = i === ingredients.length - 1;
+              return (
+                <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                  <Input
+                    className="col-span-3 sm:col-span-2"
+                    value={ing.quantity}
+                    onChange={(e) => {
+                      const next = [...ingredients];
+                      next[i] = { ...next[i], quantity: e.target.value };
+                      setIngredients(next);
+                    }}
+                    placeholder="1"
+                  />
+                  <Input
+                    className="col-span-3 sm:col-span-2"
+                    value={ing.unit}
+                    onChange={(e) => {
+                      const next = [...ingredients];
+                      next[i] = { ...next[i], unit: e.target.value };
+                      setIngredients(next);
+                    }}
+                    placeholder="cup"
+                  />
+                  <Input
+                    className="col-span-5 sm:col-span-7"
+                    value={ing.name}
+                    onChange={(e) => {
+                      const next = [...ingredients];
+                      next[i] = { ...next[i], name: e.target.value };
+                      setIngredients(next);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Tab" && !e.shiftKey && isLast) {
+                        e.preventDefault();
+                        addIngredientBtnRef.current?.focus();
+                      }
+                    }}
+                    placeholder={`Ingredient ${i + 1}`}
+                  />
+                  {ingredients.length > 1 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="col-span-1"
+                      onClick={() => setIngredients(ingredients.filter((_, idx) => idx !== i))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <div className="col-span-1" />
+                  )}
+                </div>
+              );
+            })}
+            <Button
+              ref={addIngredientBtnRef}
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIngredients([...ingredients, { quantity: "", unit: "", name: "" }])}
+            >
               <Plus className="mr-1 h-3 w-3" /> Add Ingredient
             </Button>
           </div>
+
 
           {/* Instructions */}
           <div className="space-y-3">
