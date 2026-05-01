@@ -222,6 +222,11 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
               <div className="col-span-4">Notes</div>
               <div className="col-span-1" />
             </div>
+            <datalist id="unit-options">
+              {UNIT_OPTIONS.map((u) => (
+                <option key={u} value={u} />
+              ))}
+            </datalist>
             {ingredients.map((ing, i) => {
               const isLast = i === ingredients.length - 1;
               return (
