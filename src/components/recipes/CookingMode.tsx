@@ -9,8 +9,8 @@ interface CookingModeProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  ingredients: string[];
-  instructions: string[];
+  ingredients: any[];
+  instructions: any[];
   prepTime: number | null;
   cookTime: number | null;
 }
