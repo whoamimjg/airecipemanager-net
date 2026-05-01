@@ -16,6 +16,7 @@ const CATEGORIES = [
   "Canned Goods",
   "Bread",
   "Frozen",
+  "Snacks",
   "Condiments & Spices",
   "Other",
 ];
