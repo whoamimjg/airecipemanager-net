@@ -137,9 +137,43 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
     const matches = UNIT_OPTIONS.filter((u) => u.toLowerCase().startsWith(v));
     return matches.length === 1 ? matches[0] : value;
   };
-  const [instructions, setInstructions] = useState<string[]>(
-    Array.isArray(recipe?.instructions) ? recipe.instructions : [""]
+  type InstructionRow = { text: string; image_url: string };
+  const parseInstruction = (s: any): InstructionRow => {
+    if (s && typeof s === "object") return { text: s.text || "", image_url: s.image_url || "" };
+    return { text: (s || "").toString(), image_url: "" };
+  };
+  const [instructions, setInstructions] = useState<InstructionRow[]>(
+    Array.isArray(recipe?.instructions) && recipe!.instructions.length > 0
+      ? recipe!.instructions.map(parseInstruction)
+      : [{ text: "", image_url: "" }]
   );
+  const [uploadingStepIdx, setUploadingStepIdx] = useState<number | null>(null);
+  const stepImageRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const handleStepImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) { toast.error("Please select an image file"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be smaller than 5MB"); return; }
+    setUploadingStepIdx(idx);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/steps/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("recipe-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("recipe-images").getPublicUrl(path);
+      const next = [...instructions];
+      next[idx] = { ...next[idx], image_url: data.publicUrl };
+      setInstructions(next);
+      toast.success("Step image added!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setUploadingStepIdx(null);
+      if (stepImageRefs.current[idx]) stepImageRefs.current[idx]!.value = "";
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
