@@ -31,7 +31,7 @@ type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 const MEAL_SLOTS: { key: MealSlot; label: string; color: string; bgCard: string }[] = [
   { key: "breakfast", label: "Breakfast", color: "bg-warning/15 text-warning border-warning/30", bgCard: "bg-warning/10 border-warning/20" },
   { key: "lunch", label: "Lunch", color: "bg-primary/15 text-primary border-primary/30", bgCard: "bg-primary/10 border-primary/20" },
-  { key: "dinner", label: "Dinner", color: "bg-accent/15 text-accent border-accent/30", bgCard: "bg-accent/10 border-accent/20" },
+  { key: "dinner", label: "Dinner", color: "bg-secondary/30 text-secondary-foreground border-secondary", bgCard: "bg-secondary/20 border-secondary/40" },
   { key: "snack", label: "Snack", color: "bg-info/15 text-info border-info/30", bgCard: "bg-info/10 border-info/20" },
 ];
 
