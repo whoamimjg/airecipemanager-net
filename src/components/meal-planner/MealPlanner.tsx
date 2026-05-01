@@ -396,26 +396,27 @@ const MealPlanner = () => {
 
                         {/* Meal cards */}
                         {meals.map(meal => (
-                          <div
-                            key={meal.id}
-                            className={cn(
-                              "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-default",
-                              slot.bgCard
-                            )}
-                          >
-                            <div className="flex items-center gap-1">
-                              <GripVertical className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 opacity-0 group-hover:opacity-100" />
-                              <span className="font-medium line-clamp-1 flex-1">
-                                {meal.recipe?.title || meal.notes || "Untitled"}
-                              </span>
-                              <button
-                                onClick={() => removeMealPlan.mutate(meal.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
+                          <MealHoverCard key={meal.id} meal={meal}>
+                            <div
+                              className={cn(
+                                "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-default",
+                                slot.bgCard
+                              )}
+                            >
+                              <div className="flex items-center gap-1">
+                                <GripVertical className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 opacity-0 group-hover:opacity-100" />
+                                <span className="font-medium line-clamp-1 flex-1">
+                                  {meal.recipe?.title || meal.notes || "Untitled"}
+                                </span>
+                                <button
+                                  onClick={() => removeMealPlan.mutate(meal.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          </MealHoverCard>
                         ))}
 
                         {/* Drop hint */}
