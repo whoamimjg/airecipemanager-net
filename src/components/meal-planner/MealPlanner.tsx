@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,47 @@ interface Recipe {
   image_url: string | null;
   ingredients: any;
 }
+
+const MealHoverCard = ({ meal, children }: { meal: MealPlan; children: React.ReactNode }) => {
+  const recipe = meal.recipe;
+  if (!recipe) return <>{children}</>;
+  const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  return (
+    <HoverCard openDelay={150} closeDelay={50}>
+      <HoverCardTrigger asChild>{children}</HoverCardTrigger>
+      <HoverCardContent className="w-72 p-0 overflow-hidden" side="top">
+        {recipe.image_url && (
+          <img src={recipe.image_url} alt={recipe.title} className="h-32 w-full object-cover" />
+        )}
+        <div className="p-3 space-y-2">
+          <p className="font-semibold text-sm text-foreground line-clamp-2">{recipe.title}</p>
+          {totalTime > 0 && (
+            <p className="text-xs text-muted-foreground">{totalTime} min total</p>
+          )}
+          {ingredients.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                Ingredients ({ingredients.length})
+              </p>
+              <ul className="text-xs text-foreground space-y-0.5 max-h-40 overflow-y-auto">
+                {ingredients.slice(0, 12).map((ing: any, i: number) => {
+                  const text = typeof ing === "string"
+                    ? ing
+                    : [ing?.quantity || ing?.amount, ing?.unit, ing?.name].filter(Boolean).join(" ");
+                  return <li key={i} className="line-clamp-1">• {text}</li>;
+                })}
+                {ingredients.length > 12 && (
+                  <li className="text-muted-foreground italic">+ {ingredients.length - 12} more…</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+};
 
 const MealPlanner = () => {
   const { user } = useAuth();
@@ -354,26 +396,27 @@ const MealPlanner = () => {
 
                         {/* Meal cards */}
                         {meals.map(meal => (
-                          <div
-                            key={meal.id}
-                            className={cn(
-                              "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-default",
-                              slot.bgCard
-                            )}
-                          >
-                            <div className="flex items-center gap-1">
-                              <GripVertical className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 opacity-0 group-hover:opacity-100" />
-                              <span className="font-medium line-clamp-1 flex-1">
-                                {meal.recipe?.title || meal.notes || "Untitled"}
-                              </span>
-                              <button
-                                onClick={() => removeMealPlan.mutate(meal.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
+                          <MealHoverCard key={meal.id} meal={meal}>
+                            <div
+                              className={cn(
+                                "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-default",
+                                slot.bgCard
+                              )}
+                            >
+                              <div className="flex items-center gap-1">
+                                <GripVertical className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 opacity-0 group-hover:opacity-100" />
+                                <span className="font-medium line-clamp-1 flex-1">
+                                  {meal.recipe?.title || meal.notes || "Untitled"}
+                                </span>
+                                <button
+                                  onClick={() => removeMealPlan.mutate(meal.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          </MealHoverCard>
                         ))}
 
                         {/* Drop hint */}
@@ -430,22 +473,23 @@ const MealPlanner = () => {
                   {slot.label}
                 </div>
                 {meals.map(meal => (
-                  <div
-                    key={meal.id}
-                    className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-default", slot.color)}
-                  >
-                    <div className="flex items-start justify-between gap-1">
-                      <span className="font-medium line-clamp-2 flex-1">
-                        {meal.recipe?.title || meal.notes || "Untitled"}
-                      </span>
-                      <button
-                        onClick={() => removeMealPlan.mutate(meal.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                  <MealHoverCard key={meal.id} meal={meal}>
+                    <div
+                      className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-default", slot.color)}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <span className="font-medium line-clamp-2 flex-1">
+                          {meal.recipe?.title || meal.notes || "Untitled"}
+                        </span>
+                        <button
+                          onClick={() => removeMealPlan.mutate(meal.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </MealHoverCard>
                 ))}
                 {meals.length === 0 && (
                   <button
