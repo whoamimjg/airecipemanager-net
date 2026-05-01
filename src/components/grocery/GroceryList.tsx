@@ -294,6 +294,26 @@ const GroceryList = () => {
     },
   });
 
+  const clearAllCheckedMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("grocery_items")
+        .delete()
+        .eq("user_id", user!.id)
+        .eq("is_checked", true);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
+    },
+  });
+
+  const clearAllChecked = () => {
+    setCheckedItems(new Set());
+    clearAllCheckedMutation.mutate();
+  };
+
   // Combine recipe-derived items with manually added items
   const allGroceryItems = useMemo(() => {
     const combined = [...groceryItems];
