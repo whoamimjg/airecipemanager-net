@@ -41,6 +41,42 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
   const [servings, setServings] = useState(recipe?.servings?.toString() || "");
   const [sourceUrl, setSourceUrl] = useState(recipe?.source_url || "");
   const [imageUrl, setImageUrl] = useState(recipe?.image_url || "");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!user) {
+      toast.error("You must be signed in to upload images");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5MB");
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("recipe-images")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("recipe-images").getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+      toast.success("Image uploaded!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
   type IngredientRow = { quantity: string; unit: string; name: string; notes: string };
 
   const parseIngredient = (ing: any): IngredientRow => {
