@@ -227,6 +227,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
               return (
                 <div key={i} className="grid gap-2 items-center" style={{ gridTemplateColumns: "repeat(13, minmax(0, 1fr))" }}>
                   <Input
+                    ref={(el) => (ingredientAmountRefs.current[i] = el)}
                     className="col-span-2"
                     value={ing.quantity}
                     onChange={(e) => {
@@ -238,16 +239,24 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                   />
                   <Input
                     className="col-span-2"
+                    list="unit-options"
                     value={ing.unit}
                     onChange={(e) => {
                       const next = [...ingredients];
                       next[i] = { ...next[i], unit: e.target.value };
                       setIngredients(next);
                     }}
+                    onBlur={(e) => {
+                      const completed = completeUnit(e.target.value);
+                      if (completed !== ing.unit) {
+                        const next = [...ingredients];
+                        next[i] = { ...next[i], unit: completed };
+                        setIngredients(next);
+                      }
+                    }}
                     placeholder="cup"
                   />
                   <Input
-                    ref={(el) => (ingredientNameRefs.current[i] = el)}
                     className="col-span-4"
                     value={ing.name}
                     onChange={(e) => {
