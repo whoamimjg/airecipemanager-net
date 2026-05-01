@@ -6,6 +6,7 @@ import { Clock, Users, ExternalLink, ChefHat, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import StarRating from "@/components/recipes/StarRating";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const SharedRecipe = () => {
   const { id } = useParams<{ id: string }>();
