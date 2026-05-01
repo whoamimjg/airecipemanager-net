@@ -27,7 +27,7 @@ interface GroceryItem {
 }
 
 const STORE_CATEGORIES = [
-  "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Condiments & Spices", "Other"
+  "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Snacks", "Condiments & Spices", "Other"
 ];
 
 type RangePreset = "this-week" | "next-week" | "2-weeks" | "this-month" | "custom";
