@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: "airecipemanager-net",
   webDir: "dist",
   server: {
-    url: "https://eb0ea9cd-50dd-4c48-b617-6f06524e2575.lovableproject.com?forceHideBadge=true",
-    cleartext: true,
+    url: "https://airecipemanager.com",
+    cleartext: false,
   },
 };
 
