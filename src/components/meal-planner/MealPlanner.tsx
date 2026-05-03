@@ -114,6 +114,22 @@ const MealPlanner = () => {
   const [recipePanelOpen, setRecipePanelOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<{ date: Date; slot: MealSlot } | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
+  const [viewingRecipeId, setViewingRecipeId] = useState<string | null>(null);
+
+  const { data: viewingRecipe = null } = useQuery({
+    queryKey: ["recipe-detail", viewingRecipeId],
+    queryFn: async () => {
+      if (!viewingRecipeId) return null;
+      const { data, error } = await supabase
+        .from("recipes")
+        .select("*")
+        .eq("id", viewingRecipeId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!viewingRecipeId,
+  });
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
