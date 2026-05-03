@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
+import { haptics } from "@/lib/native";
 
 interface InventoryItem {
   id: string;
@@ -101,9 +102,10 @@ const InventoryFormDialog = ({ item, open, onOpenChange }: InventoryFormDialogPr
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       toast.success(isEditing ? "Item updated!" : "Item added!");
+      haptics.light();
       onOpenChange(false);
     },
-    onError: () => toast.error("Failed to save item"),
+    onError: () => { toast.error("Failed to save item"); haptics.error(); },
   });
 
   return (
