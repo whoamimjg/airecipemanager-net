@@ -82,6 +82,7 @@ const getExpirationStatus = (date: string | null) => {
 const InventoryManager = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [filterLocation, setFilterLocation] = useState("all");
   const [showForm, setShowForm] = useState(false);
