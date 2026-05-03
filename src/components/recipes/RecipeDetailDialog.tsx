@@ -48,6 +48,7 @@ interface RecipeDetailDialogProps {
 const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogProps) => {
   const [showCookingMode, setShowCookingMode] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   if (!recipe) return null;
 
