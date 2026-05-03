@@ -68,7 +68,8 @@ const STORAGE_LOCATIONS = [
 const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<"capture" | "review" | "saving">("capture");
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
