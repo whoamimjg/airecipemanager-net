@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Camera, Loader2, Receipt, Check, Package, X } from "lucide-react";
 import { toast } from "sonner";
+import { isNative, captureNativePhoto, haptics } from "@/lib/native";
 
 interface ScannedItem {
   name: string;
@@ -154,10 +155,12 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["receipt_scans"] });
       toast.success(`${items.filter((i) => i.selected).length} items added to inventory!`);
+      haptics.success();
       handleClose();
     },
     onError: (err) => {
       toast.error("Failed to save: " + (err instanceof Error ? err.message : "Unknown error"));
+      haptics.error();
     },
   });
 
@@ -191,6 +194,22 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
       scanMutation.mutate(base64);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCaptureClick = async () => {
+    if (isNative()) {
+      try {
+        const base64 = await captureNativePhoto();
+        if (!base64) return;
+        setPreviewUrl(`data:image/jpeg;base64,${base64}`);
+        scanMutation.mutate(base64);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Camera unavailable";
+        if (!/cancel/i.test(msg)) toast.error(msg);
+      }
+      return;
+    }
+    fileInputRef.current?.click();
   };
 
   const toggleItem = (idx: number) => {
@@ -244,7 +263,7 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                   Analyzing receipt...
                 </div>
               ) : (
-                <Button onClick={() => fileInputRef.current?.click()}>
+                <Button onClick={handleCaptureClick}>
                   <Camera className="mr-2 h-4 w-4" />
                   {previewUrl ? "Retake Photo" : "Take Photo / Upload"}
                 </Button>
