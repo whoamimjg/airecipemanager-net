@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Plus, X, Loader2, Save, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { haptics } from "@/lib/native";
 
 interface RecipeFormProps {
   recipe?: {
@@ -211,9 +212,10 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
       toast.success(isEditing ? "Recipe updated!" : "Recipe added!");
+      haptics.success();
       onClose();
     },
-    onError: () => toast.error("Failed to save recipe"),
+    onError: () => { toast.error("Failed to save recipe"); haptics.error(); },
   });
 
   const addItem = (list: string[], setter: (v: string[]) => void) => {
