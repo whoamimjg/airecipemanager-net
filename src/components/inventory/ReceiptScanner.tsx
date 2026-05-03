@@ -186,30 +186,45 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setPreviewUrl(URL.createObjectURL(file));
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isPdf) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
 
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = (reader.result as string).split(",")[1];
-      scanMutation.mutate(base64);
+      scanMutation.mutate({
+        file_base64: base64,
+        mime_type: file.type || (isPdf ? "application/pdf" : "image/jpeg"),
+      });
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
-  const handleCaptureClick = async () => {
+  const handleTakePhoto = async () => {
+    haptics.light();
     if (isNative()) {
       try {
         const base64 = await captureNativePhoto();
         if (!base64) return;
         setPreviewUrl(`data:image/jpeg;base64,${base64}`);
-        scanMutation.mutate(base64);
+        scanMutation.mutate({ file_base64: base64, mime_type: "image/jpeg" });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Camera unavailable";
         if (!/cancel/i.test(msg)) toast.error(msg);
       }
       return;
     }
-    fileInputRef.current?.click();
+    cameraInputRef.current?.click();
+  };
+
+  const handleUploadClick = () => {
+    haptics.light();
+    uploadInputRef.current?.click();
   };
 
   const toggleItem = (idx: number) => {
