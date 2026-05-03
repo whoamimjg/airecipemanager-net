@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import RecipeDetailDialog from "@/components/recipes/RecipeDetailDialog";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -113,6 +114,22 @@ const MealPlanner = () => {
   const [recipePanelOpen, setRecipePanelOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<{ date: Date; slot: MealSlot } | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
+  const [viewingRecipeId, setViewingRecipeId] = useState<string | null>(null);
+
+  const { data: viewingRecipe = null } = useQuery({
+    queryKey: ["recipe-detail", viewingRecipeId],
+    queryFn: async () => {
+      if (!viewingRecipeId) return null;
+      const { data, error } = await supabase
+        .from("recipes")
+        .select("*")
+        .eq("id", viewingRecipeId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!viewingRecipeId,
+  });
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const weekEnd = addDays(currentWeekStart, 6);
@@ -398,8 +415,9 @@ const MealPlanner = () => {
                         {meals.map(meal => (
                           <MealHoverCard key={meal.id} meal={meal}>
                             <div
+                              onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
                               className={cn(
-                                "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-default",
+                                "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-pointer",
                                 slot.bgCard
                               )}
                             >
@@ -409,7 +427,7 @@ const MealPlanner = () => {
                                   {meal.recipe?.title || meal.notes || "Untitled"}
                                 </span>
                                 <button
-                                  onClick={() => removeMealPlan.mutate(meal.id)}
+                                  onClick={(e) => { e.stopPropagation(); removeMealPlan.mutate(meal.id); }}
                                   className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
                                 >
                                   <X className="h-3 w-3" />
@@ -475,14 +493,15 @@ const MealPlanner = () => {
                 {meals.map(meal => (
                   <MealHoverCard key={meal.id} meal={meal}>
                     <div
-                      className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-default", slot.color)}
+                      onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
+                      className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-pointer", slot.color)}
                     >
                       <div className="flex items-start justify-between gap-1">
                         <span className="font-medium line-clamp-2 flex-1">
                           {meal.recipe?.title || meal.notes || "Untitled"}
                         </span>
                         <button
-                          onClick={() => removeMealPlan.mutate(meal.id)}
+                          onClick={(e) => { e.stopPropagation(); removeMealPlan.mutate(meal.id); }}
                           className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
                         >
                           <X className="h-3 w-3" />
@@ -541,7 +560,8 @@ const MealPlanner = () => {
                     {meals.map(meal => (
                       <div
                         key={meal.id}
-                        className={cn("flex items-center gap-3 p-3 rounded-lg border", slot.color)}
+                        onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
+                        className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity", slot.color)}
                       >
                         {meal.recipe?.image_url && (
                           <img src={meal.recipe.image_url} alt="" className="h-12 w-12 rounded-md object-cover flex-shrink-0" />
@@ -558,7 +578,7 @@ const MealPlanner = () => {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                          onClick={() => removeMealPlan.mutate(meal.id)}
+                          onClick={(e) => { e.stopPropagation(); removeMealPlan.mutate(meal.id); }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -810,6 +830,12 @@ const MealPlanner = () => {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <RecipeDetailDialog
+        recipe={viewingRecipe as any}
+        open={!!viewingRecipeId}
+        onOpenChange={(open) => { if (!open) setViewingRecipeId(null); }}
+      />
     </div>
   );
 };
