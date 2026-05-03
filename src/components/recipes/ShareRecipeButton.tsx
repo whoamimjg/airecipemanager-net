@@ -18,8 +18,17 @@ interface ShareRecipeButtonProps {
 
 const ShareRecipeButton = ({ recipeId, recipeTitle, variant = "icon" }: ShareRecipeButtonProps) => {
   const [copied, setCopied] = useState(false);
-  const shareUrl = `${window.location.origin}/recipe/${recipeId}`;
+  const shareUrl = `https://airecipemanager.com/recipe/${recipeId}`;
   const shareText = `Check out this recipe: ${recipeTitle}`;
+
+  const nativeShare = async () => {
+    const res = await shareContent({ title: recipeTitle, text: shareText, url: shareUrl });
+    if (res.method === "clipboard" && res.ok) {
+      toast.success("Link copied to clipboard!");
+    } else if (!res.ok) {
+      toast.error("Failed to share");
+    }
+  };
 
   const copyLink = async () => {
     try {
