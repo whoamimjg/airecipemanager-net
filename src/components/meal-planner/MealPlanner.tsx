@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import RecipeDetailDialog from "@/components/recipes/RecipeDetailDialog";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
