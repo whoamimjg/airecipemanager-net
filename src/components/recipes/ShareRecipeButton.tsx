@@ -71,6 +71,11 @@ const ShareRecipeButton = ({ recipeId, recipeTitle, variant = "icon" }: ShareRec
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        {isNative() && (
+          <DropdownMenuItem onClick={nativeShare}>
+            <Smartphone className="mr-2 h-4 w-4" /> Share via…
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={copyLink}>
           {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
           {copied ? "Copied!" : "Copy Link"}
