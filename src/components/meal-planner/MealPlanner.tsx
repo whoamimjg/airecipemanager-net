@@ -415,8 +415,9 @@ const MealPlanner = () => {
                         {meals.map(meal => (
                           <MealHoverCard key={meal.id} meal={meal}>
                             <div
+                              onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
                               className={cn(
-                                "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-default",
+                                "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-pointer",
                                 slot.bgCard
                               )}
                             >
@@ -426,7 +427,7 @@ const MealPlanner = () => {
                                   {meal.recipe?.title || meal.notes || "Untitled"}
                                 </span>
                                 <button
-                                  onClick={() => removeMealPlan.mutate(meal.id)}
+                                  onClick={(e) => { e.stopPropagation(); removeMealPlan.mutate(meal.id); }}
                                   className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
                                 >
                                   <X className="h-3 w-3" />
