@@ -560,7 +560,8 @@ const MealPlanner = () => {
                     {meals.map(meal => (
                       <div
                         key={meal.id}
-                        className={cn("flex items-center gap-3 p-3 rounded-lg border", slot.color)}
+                        onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
+                        className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity", slot.color)}
                       >
                         {meal.recipe?.image_url && (
                           <img src={meal.recipe.image_url} alt="" className="h-12 w-12 rounded-md object-cover flex-shrink-0" />
@@ -577,7 +578,7 @@ const MealPlanner = () => {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                          onClick={() => removeMealPlan.mutate(meal.id)}
+                          onClick={(e) => { e.stopPropagation(); removeMealPlan.mutate(meal.id); }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
