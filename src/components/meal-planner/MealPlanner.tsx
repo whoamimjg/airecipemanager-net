@@ -416,7 +416,7 @@ const MealPlanner = () => {
                         {meals.map(meal => (
                           <MealHoverCard key={meal.id} meal={meal}>
                             <div
-                              onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
+                              onClick={() => { if (meal.recipe_id) { haptics.light(); setViewingRecipeId(meal.recipe_id); } }}
                               className={cn(
                                 "group rounded px-1.5 py-1 mb-0.5 text-[11px] border cursor-pointer",
                                 slot.bgCard
@@ -494,7 +494,7 @@ const MealPlanner = () => {
                 {meals.map(meal => (
                   <MealHoverCard key={meal.id} meal={meal}>
                     <div
-                      onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
+                      onClick={() => { if (meal.recipe_id) { haptics.light(); setViewingRecipeId(meal.recipe_id); } }}
                       className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-pointer", slot.color)}
                     >
                       <div className="flex items-start justify-between gap-1">
@@ -561,7 +561,7 @@ const MealPlanner = () => {
                     {meals.map(meal => (
                       <div
                         key={meal.id}
-                        onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
+                        onClick={() => { if (meal.recipe_id) { haptics.light(); setViewingRecipeId(meal.recipe_id); } }}
                         className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity", slot.color)}
                       >
                         {meal.recipe?.image_url && (
