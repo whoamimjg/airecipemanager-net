@@ -27,6 +27,12 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import RecipeDetailDialog from "@/components/recipes/RecipeDetailDialog";
+import { haptics } from "@/lib/native";
+
+const openRecipeDetail = (id: string, setter: (id: string) => void) => {
+  haptics.light();
+  setter(id);
+};
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
