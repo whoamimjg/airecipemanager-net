@@ -78,9 +78,9 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const scanMutation = useMutation({
-    mutationFn: async (base64: string) => {
+    mutationFn: async (payload: { file_base64: string; mime_type: string }) => {
       const { data, error } = await supabase.functions.invoke("scan-receipt", {
-        body: { image_base64: base64 },
+        body: payload,
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
