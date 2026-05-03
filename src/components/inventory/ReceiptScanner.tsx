@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Camera, Loader2, Receipt, Check, Package, X } from "lucide-react";
+import { Camera, Loader2, Receipt, Check, Package, X, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { isNative, captureNativePhoto, haptics } from "@/lib/native";
 
