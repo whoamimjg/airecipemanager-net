@@ -493,14 +493,15 @@ const MealPlanner = () => {
                 {meals.map(meal => (
                   <MealHoverCard key={meal.id} meal={meal}>
                     <div
-                      className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-default", slot.color)}
+                      onClick={() => meal.recipe_id && setViewingRecipeId(meal.recipe_id)}
+                      className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-pointer", slot.color)}
                     >
                       <div className="flex items-start justify-between gap-1">
                         <span className="font-medium line-clamp-2 flex-1">
                           {meal.recipe?.title || meal.notes || "Untitled"}
                         </span>
                         <button
-                          onClick={() => removeMealPlan.mutate(meal.id)}
+                          onClick={(e) => { e.stopPropagation(); removeMealPlan.mutate(meal.id); }}
                           className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 hover:text-destructive"
                         >
                           <X className="h-3 w-3" />
