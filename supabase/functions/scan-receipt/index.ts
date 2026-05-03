@@ -77,7 +77,7 @@ Important:
               { type: "text", text: prompt },
               {
                 type: "image_url",
-                image_url: { url: `data:image/jpeg;base64,${image_base64}` },
+                image_url: { url: `data:${mime_type};base64,${file_base64}` },
               },
             ],
           },
