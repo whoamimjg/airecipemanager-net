@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { haptics } from "@/lib/native";
 
 interface GroceryItem {
   name: string;
@@ -346,6 +347,7 @@ const GroceryList = () => {
       unit: newItemUnit,
       category: newItemCategory,
     });
+    haptics.light();
     setNewItemName("");
     setNewItemQuantity("");
     setNewItemUnit("");
