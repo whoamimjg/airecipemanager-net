@@ -830,6 +830,12 @@ const MealPlanner = () => {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <RecipeDetailDialog
+        recipe={viewingRecipe as any}
+        open={!!viewingRecipeId}
+        onOpenChange={(open) => { if (!open) setViewingRecipeId(null); }}
+      />
     </div>
   );
 };
