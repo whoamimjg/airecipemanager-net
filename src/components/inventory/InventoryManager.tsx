@@ -262,8 +262,8 @@ const InventoryManager = () => {
               {bulkMode ? "Cancel Select" : "Select Items"}
             </Button>
           )}
-          <Button variant="outline" onClick={() => setShowReceiptScanner(true)}>
-            <Receipt className="mr-2 h-4 w-4" /> Scan Receipt
+          <Button variant="outline" onClick={() => { haptics.light(); setShowReceiptScanner(true); }}>
+            <Receipt className="mr-2 h-4 w-4" /> Add Receipt
           </Button>
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add Item

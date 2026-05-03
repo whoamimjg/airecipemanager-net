@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Camera, Loader2, Receipt, Check, Package, X } from "lucide-react";
+import { Camera, Loader2, Receipt, Check, Package, X, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { isNative, captureNativePhoto, haptics } from "@/lib/native";
 
@@ -68,7 +68,8 @@ const STORAGE_LOCATIONS = [
 const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<"capture" | "review" | "saving">("capture");
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
@@ -78,9 +79,9 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const scanMutation = useMutation({
-    mutationFn: async (base64: string) => {
+    mutationFn: async (payload: { file_base64: string; mime_type: string }) => {
       const { data, error } = await supabase.functions.invoke("scan-receipt", {
-        body: { image_base64: base64 },
+        body: payload,
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
@@ -186,30 +187,45 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setPreviewUrl(URL.createObjectURL(file));
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isPdf) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
 
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = (reader.result as string).split(",")[1];
-      scanMutation.mutate(base64);
+      scanMutation.mutate({
+        file_base64: base64,
+        mime_type: file.type || (isPdf ? "application/pdf" : "image/jpeg"),
+      });
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
-  const handleCaptureClick = async () => {
+  const handleTakePhoto = async () => {
+    haptics.light();
     if (isNative()) {
       try {
         const base64 = await captureNativePhoto();
         if (!base64) return;
         setPreviewUrl(`data:image/jpeg;base64,${base64}`);
-        scanMutation.mutate(base64);
+        scanMutation.mutate({ file_base64: base64, mime_type: "image/jpeg" });
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Camera unavailable";
         if (!/cancel/i.test(msg)) toast.error(msg);
       }
       return;
     }
-    fileInputRef.current?.click();
+    cameraInputRef.current?.click();
+  };
+
+  const handleUploadClick = () => {
+    haptics.light();
+    uploadInputRef.current?.click();
   };
 
   const toggleItem = (idx: number) => {
@@ -241,7 +257,7 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" /> Scan Receipt
+            <Receipt className="h-5 w-5" /> Add Receipt
           </DialogTitle>
         </DialogHeader>
 
@@ -252,8 +268,8 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                 <img src={previewUrl} alt="Receipt preview" className="max-h-48 rounded-lg border border-border" />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <Camera className="h-16 w-16" />
-                  <p className="text-sm">Take a photo of your grocery receipt</p>
+                  <Receipt className="h-16 w-16" />
+                  <p className="text-sm text-center">Take a photo of your receipt or upload a digital receipt (image or PDF)</p>
                 </div>
               )}
 
@@ -263,20 +279,38 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                   Analyzing receipt...
                 </div>
               ) : (
-                <Button onClick={handleCaptureClick}>
-                  <Camera className="mr-2 h-4 w-4" />
-                  {previewUrl ? "Retake Photo" : "Take Photo / Upload"}
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Button onClick={handleTakePhoto} className="w-full sm:w-auto">
+                    <Camera className="mr-2 h-4 w-4" />
+                    {previewUrl ? "Retake Photo" : "Take Photo"}
+                  </Button>
+                  <Button onClick={handleUploadClick} variant="outline" className="w-full sm:w-auto">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Receipt
+                  </Button>
+                </div>
               )}
 
+              <p className="text-xs text-muted-foreground text-center">
+                Supports JPG, PNG, HEIC and PDF
+              </p>
+
               <input
-                ref={fileInputRef}
+                ref={cameraInputRef}
                 type="file"
                 accept="image/*"
                 capture="environment"
                 className="hidden"
                 onChange={handleFileChange}
               />
+              <input
+                ref={uploadInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+
             </div>
           </div>
         )}

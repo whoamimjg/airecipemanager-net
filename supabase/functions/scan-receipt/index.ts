@@ -12,11 +12,13 @@ serve(async (req) => {
   }
 
   try {
-    const { image_base64 } = await req.json();
+    const body = await req.json();
+    const file_base64: string | undefined = body.file_base64 ?? body.image_base64;
+    const mime_type: string = body.mime_type ?? "image/jpeg";
 
-    if (!image_base64 || typeof image_base64 !== "string") {
+    if (!file_base64 || typeof file_base64 !== "string") {
       return new Response(
-        JSON.stringify({ error: "image_base64 is required" }),
+        JSON.stringify({ error: "file_base64 is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -75,7 +77,7 @@ Important:
               { type: "text", text: prompt },
               {
                 type: "image_url",
-                image_url: { url: `data:image/jpeg;base64,${image_base64}` },
+                image_url: { url: `data:${mime_type};base64,${file_base64}` },
               },
             ],
           },
