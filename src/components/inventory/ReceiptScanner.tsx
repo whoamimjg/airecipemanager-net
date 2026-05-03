@@ -257,7 +257,7 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" /> Scan Receipt
+            <Receipt className="h-5 w-5" /> Add Receipt
           </DialogTitle>
         </DialogHeader>
 
