@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Share2, Mail, Copy, Check, Facebook } from "lucide-react";
+import { Share2, Mail, Copy, Check, Facebook, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { isNative, shareContent } from "@/lib/native";
 
 interface ShareRecipeButtonProps {
   recipeId: string;
