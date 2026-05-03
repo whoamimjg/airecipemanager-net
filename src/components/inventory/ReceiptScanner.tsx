@@ -268,8 +268,8 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                 <img src={previewUrl} alt="Receipt preview" className="max-h-48 rounded-lg border border-border" />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <Camera className="h-16 w-16" />
-                  <p className="text-sm">Take a photo of your grocery receipt</p>
+                  <Receipt className="h-16 w-16" />
+                  <p className="text-sm text-center">Take a photo of your receipt or upload a digital receipt (image or PDF)</p>
                 </div>
               )}
 
@@ -279,20 +279,38 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                   Analyzing receipt...
                 </div>
               ) : (
-                <Button onClick={handleCaptureClick}>
-                  <Camera className="mr-2 h-4 w-4" />
-                  {previewUrl ? "Retake Photo" : "Take Photo / Upload"}
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Button onClick={handleTakePhoto} className="w-full sm:w-auto">
+                    <Camera className="mr-2 h-4 w-4" />
+                    {previewUrl ? "Retake Photo" : "Take Photo"}
+                  </Button>
+                  <Button onClick={handleUploadClick} variant="outline" className="w-full sm:w-auto">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Receipt
+                  </Button>
+                </div>
               )}
 
+              <p className="text-xs text-muted-foreground text-center">
+                Supports JPG, PNG, HEIC and PDF
+              </p>
+
               <input
-                ref={fileInputRef}
+                ref={cameraInputRef}
                 type="file"
                 accept="image/*"
                 capture="environment"
                 className="hidden"
                 onChange={handleFileChange}
               />
+              <input
+                ref={uploadInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+
             </div>
           </div>
         )}
