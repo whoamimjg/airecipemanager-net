@@ -476,74 +476,101 @@ const InventoryManager = () => {
       {/* Receipt Scanner */}
       <ReceiptScanner open={showReceiptScanner} onOpenChange={setShowReceiptScanner} />
 
-      {/* Delete confirmation with reason */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) { setDeleteId(null); setDeleteReason(""); setDeleteNotes(""); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete item?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Please select a reason for removing this item. This helps track food costs.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Reason *</Label>
-              <Select value={deleteReason} onValueChange={setDeleteReason}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a reason" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DELETE_REASONS.map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Delete confirmation with reason - responsive Dialog (desktop) / Sheet (mobile) */}
+      {(() => {
+        const open = !!deleteId;
+        const handleOpenChange = (o: boolean) => {
+          if (!o) { setDeleteId(null); setDeleteReason(""); setDeleteNotes(""); }
+        };
+        const body = (
+          <>
+            <div className="space-y-4 py-2 px-1">
+              <div className="space-y-2">
+                <Label>Reason *</Label>
+                <Select value={deleteReason} onValueChange={setDeleteReason}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DELETE_REASONS.map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {deleteId && (() => {
+                const item = items.find((i) => i.id === deleteId);
+                if (item?.price_per_unit) {
+                  return (
+                    <div className="rounded-md bg-muted/50 p-3 text-sm">
+                      <span className="text-muted-foreground">Estimated cost: </span>
+                      <span className="font-semibold text-foreground">
+                        ${(item.price_per_unit * item.quantity).toFixed(2)}
+                      </span>
+                      <span className="text-muted-foreground"> ({item.quantity} {item.unit || "pcs"} × ${item.price_per_unit.toFixed(2)})</span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              <div className="space-y-2">
+                <Label>Additional notes</Label>
+                <Textarea
+                  value={deleteNotes}
+                  onChange={(e) => setDeleteNotes(e.target.value)}
+                  placeholder="Optional details..."
+                  rows={2}
+                />
+              </div>
             </div>
-            {deleteId && (() => {
-              const item = items.find((i) => i.id === deleteId);
-              if (item?.price_per_unit) {
-                return (
-                  <div className="rounded-md bg-muted/50 p-3 text-sm">
-                    <span className="text-muted-foreground">Estimated cost: </span>
-                    <span className="font-semibold text-foreground">
-                      ${(item.price_per_unit * item.quantity).toFixed(2)}
-                    </span>
-                    <span className="text-muted-foreground"> ({item.quantity} {item.unit || "pcs"} × ${item.price_per_unit.toFixed(2)})</span>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-            <div className="space-y-2">
-              <Label>Additional notes</Label>
-              <Textarea
-                value={deleteNotes}
-                onChange={(e) => setDeleteNotes(e.target.value)}
-                placeholder="Optional details..."
-                rows={2}
-              />
-            </div>
-          </div>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="ghost"
-              className="text-muted-foreground"
-              onClick={() => deleteId && quickDeleteMutation.mutate(deleteId)}
-            >
-              Just Delete (no tracking)
-            </Button>
-            <div className="flex gap-2 ml-auto">
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={!deleteReason}
-                onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button
+                variant="ghost"
+                className="text-muted-foreground"
+                onClick={() => deleteId && quickDeleteMutation.mutate(deleteId)}
               >
-                Delete &amp; Track
-              </AlertDialogAction>
+                Just Delete (no tracking)
+              </Button>
+              <div className="flex gap-2 sm:ml-auto">
+                <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
+                <Button
+                  variant="destructive"
+                  disabled={!deleteReason}
+                  onClick={() => deleteId && deleteMutation.mutate({ id: deleteId, reason: deleteReason, notes: deleteNotes })}
+                >
+                  Delete &amp; Track
+                </Button>
+              </div>
             </div>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </>
+        );
+
+        return isMobile ? (
+          <Sheet open={open} onOpenChange={handleOpenChange}>
+            <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+              <SheetHeader className="text-left">
+                <SheetTitle>Delete item?</SheetTitle>
+                <SheetDescription>
+                  Please select a reason for removing this item. This helps track food costs.
+                </SheetDescription>
+              </SheetHeader>
+              {body}
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete item?</DialogTitle>
+                <DialogDescription>
+                  Please select a reason for removing this item. This helps track food costs.
+                </DialogDescription>
+              </DialogHeader>
+              {body}
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* Bulk delete confirmation */}
       <AlertDialog open={showBulkDelete} onOpenChange={(open) => { if (!open) { setShowBulkDelete(false); setBulkReason(""); setBulkNotes(""); } }}>
