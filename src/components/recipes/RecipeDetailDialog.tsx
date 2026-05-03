@@ -222,7 +222,7 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
           )}
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   );
 };
 
