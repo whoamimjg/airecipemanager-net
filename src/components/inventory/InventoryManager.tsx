@@ -135,12 +135,13 @@ const InventoryManager = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      haptics.success();
       toast.success("Item removed");
       setDeleteId(null);
       setDeleteReason("");
       setDeleteNotes("");
     },
-    onError: () => toast.error("Failed to delete item"),
+    onError: () => { haptics.error(); toast.error("Failed to delete item"); },
   });
 
   const quickDeleteMutation = useMutation({
