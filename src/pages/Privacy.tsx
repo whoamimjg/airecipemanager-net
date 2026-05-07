@@ -116,7 +116,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">6. Data Retention</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">8. Data Retention</h2>
             <p className="text-muted-foreground leading-relaxed">
               We retain your information for as long as your account is active or as needed to provide
               the Service. When you delete your account, we permanently remove your personal data and
@@ -126,7 +126,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">7. Security</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">9. Security</h2>
             <p className="text-muted-foreground leading-relaxed">
               We use industry-standard safeguards including encryption in transit (TLS), encrypted
               storage at rest, row-level security on user data, and two-factor authentication for
@@ -136,7 +136,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">8. Your Rights</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">10. Your Rights</h2>
             <p className="text-muted-foreground leading-relaxed">
               Depending on where you live, you may have the right to access, correct, export, or
               delete your personal information, and to object to or restrict certain processing. You
@@ -146,7 +146,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">9. Children's Privacy</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">11. Children's Privacy</h2>
             <p className="text-muted-foreground leading-relaxed">
               The Service is not intended for children under 13 (or under 16 in the EEA/UK). We do not
               knowingly collect personal information from children. If you believe a child has
@@ -155,7 +155,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">10. International Users</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">12. International Users</h2>
             <p className="text-muted-foreground leading-relaxed">
               Our servers are located in the United States. By using the Service, you consent to the
               transfer and processing of your information in the United States, which may have data
@@ -164,7 +164,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">11. Cookies</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">13. Cookies</h2>
             <p className="text-muted-foreground leading-relaxed">
               We use essential cookies to keep you signed in and analytics cookies to understand how
               the Service is used. You can control cookies through your browser settings; disabling
@@ -173,7 +173,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">12. Changes to This Policy</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">14. Changes to This Policy</h2>
             <p className="text-muted-foreground leading-relaxed">
               We may update this Privacy Policy from time to time. Material changes will be announced
               within the Service or by email. Continued use after changes become effective constitutes
@@ -182,7 +182,7 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">13. Contact</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">15. Contact</h2>
             <p className="text-muted-foreground leading-relaxed">
               For privacy questions or requests, contact us at:{" "}
               <a href="mailto:support@airecipemanager.com" className="text-primary underline">
