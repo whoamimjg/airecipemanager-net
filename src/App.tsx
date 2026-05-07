@@ -17,6 +17,7 @@ import AdminFeedback from "./pages/admin/AdminFeedback";
 import SharedRecipe from "./pages/SharedRecipe";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import DeleteAccount from "./pages/DeleteAccount";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/recipe/:id" element={<SharedRecipe />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/delete-account" element={<DeleteAccount />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
