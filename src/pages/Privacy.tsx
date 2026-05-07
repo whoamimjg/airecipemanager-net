@@ -69,6 +69,45 @@ const Privacy = () => {
           </section>
 
           <section>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">5. Mobile App Permissions</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              When you use our iOS or Android app, we may request access to certain device features.
+              We only request permission when you actively use a feature that needs it, and you can
+              revoke access at any time in your device settings.
+            </p>
+            <ul className="list-disc pl-6 mt-3 space-y-2 text-muted-foreground">
+              <li><strong>Camera:</strong> Used to take photos of grocery receipts (Receipt Scanner) and recipes or cookbook pages (Add Recipe / Photo Recipe Scanner). Photos are processed to extract text and ingredients.</li>
+              <li><strong>Photo Library:</strong> Used when you choose to upload an existing photo of a receipt, recipe, or dish image instead of taking a new one. We only access the specific image you select.</li>
+              <li><strong>Network access:</strong> Required to sync your recipes, inventory, meal plans, and account data with our servers.</li>
+              <li><strong>Haptic feedback:</strong> Used purely for in-app touch feedback; no data is collected.</li>
+            </ul>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              We do not access your microphone, contacts, location, calendar, health data, or any
+              media on your device beyond the specific images you choose to share with the app.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">6. Third-Party Services</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              We rely on the following third-party providers to operate the Service. Each provider
+              processes data only as needed to deliver its function and is bound by its own privacy
+              policy.
+            </p>
+            <ul className="list-disc pl-6 mt-3 space-y-2 text-muted-foreground">
+              <li><strong>Lovable Cloud (powered by Supabase):</strong> Hosts our database, authentication, file storage, and serverless functions. Stores your account info, recipes, inventory, and uploaded images.</li>
+              <li><strong>Google Sign-In:</strong> If you choose to sign in with Google, Google shares your name, email, and profile identifier with us. Governed by the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google Privacy Policy</a>.</li>
+              <li><strong>Apple Sign-In:</strong> If you choose to sign in with Apple, Apple shares your name and an email (real or relay) with us. Governed by the <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Apple Privacy Policy</a>.</li>
+              <li><strong>AI model providers (Google Gemini, OpenAI):</strong> Process recipe prompts, receipt images, and cookbook photos via the Lovable AI Gateway to generate AI responses. They do not train models on your content.</li>
+              <li><strong>Firecrawl:</strong> Used when you import a recipe from a URL, to fetch and parse the public web page you provided.</li>
+              <li><strong>Accept.blue:</strong> Processes subscription payments. Card details are handled directly by Accept.blue and never stored on our servers.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mt-8 mb-3">7. How We Share Information</h2>
+
+          <section>
             <h2 className="text-2xl font-semibold mt-8 mb-3">5. How We Share Information</h2>
             <p className="text-muted-foreground leading-relaxed">We do not sell your personal information. We share data only with:</p>
             <ul className="list-disc pl-6 mt-3 space-y-2 text-muted-foreground">
