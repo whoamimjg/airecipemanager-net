@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const Privacy = () => {
-  const lastUpdated = "April 29, 2026";
+  const lastUpdated = "May 7, 2026";
 
   return (
     <div className="min-h-screen bg-background">
