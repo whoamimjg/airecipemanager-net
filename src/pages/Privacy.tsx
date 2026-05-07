@@ -107,8 +107,6 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-semibold mt-8 mb-3">7. How We Share Information</h2>
 
-          <section>
-            <h2 className="text-2xl font-semibold mt-8 mb-3">5. How We Share Information</h2>
             <p className="text-muted-foreground leading-relaxed">We do not sell your personal information. We share data only with:</p>
             <ul className="list-disc pl-6 mt-3 space-y-2 text-muted-foreground">
               <li><strong>Service providers</strong> that host our infrastructure, process payments, deliver email, and provide AI model APIs, under contractual confidentiality obligations.</li>
