@@ -87,7 +87,7 @@ const readSessionBackup = async (): Promise<SessionBackup | null> => {
       Preferences.get({ key: AUTH_SESSION_BACKUP_KEY }),
       NATIVE_STORAGE_TIMEOUT_MS
     );
-    value = result.value ?? null;
+    value = result?.value ?? null;
   } catch (e) {
     console.warn("Preferences.get failed, using web storage backup", e);
   }
@@ -98,7 +98,7 @@ const readSessionBackup = async (): Promise<SessionBackup | null> => {
         CapacitorCookies.getCookies({ url: window.location.origin }),
         NATIVE_STORAGE_TIMEOUT_MS
       );
-      value = cookies[AUTH_SESSION_BACKUP_COOKIE] ?? null;
+      value = cookies?.[AUTH_SESSION_BACKUP_COOKIE] ?? null;
     } catch { /* ignore */ }
   }
 
