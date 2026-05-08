@@ -1,55 +1,166 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { Preferences } from "@capacitor/preferences";
+import { CapacitorCookies } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
 const AUTH_SESSION_BACKUP_KEY = "airecipemanager.auth.session";
+const AUTH_SESSION_BACKUP_COOKIE = "airecipemanager_auth_session";
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
-// Safe wrappers — Preferences plugin may not be registered in older native builds.
-// Any failure must NOT block auth initialization.
-const safePrefsGet = async (key: string): Promise<string | null> => {
+const getSupabaseAuthStorageKey = () => {
   try {
-    const { value } = await Preferences.get({ key });
-    return value ?? null;
-  } catch (e) {
-    console.warn("Preferences.get failed, falling back to localStorage", e);
-    try { return localStorage.getItem(key); } catch { return null; }
-  }
-};
-
-const safePrefsSet = async (key: string, value: string): Promise<void> => {
-  try {
-    await Preferences.set({ key, value });
-  } catch (e) {
-    console.warn("Preferences.set failed, falling back to localStorage", e);
-    try { localStorage.setItem(key, value); } catch { /* ignore */ }
-  }
-};
-
-const safePrefsRemove = async (key: string): Promise<void> => {
-  try {
-    await Preferences.remove({ key });
+    const projectRef = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split(".")[0];
+    return `sb-${projectRef}-auth-token`;
   } catch {
-    try { localStorage.removeItem(key); } catch { /* ignore */ }
+    return null;
   }
 };
 
-const persistSessionBackup = (session: Session | null, initialized: boolean) => {
-  if (session?.access_token && session.refresh_token) {
-    void safePrefsSet(
-      AUTH_SESSION_BACKUP_KEY,
-      JSON.stringify({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-      }),
-    );
-    return;
+const SUPABASE_AUTH_STORAGE_KEY = getSupabaseAuthStorageKey();
+
+type SessionBackup = {
+  session?: Session;
+  access_token?: string;
+  refresh_token?: string;
+  updated_at?: number;
+};
+
+const readLocal = (key: string) => {
+  try { return localStorage.getItem(key); } catch { return null; }
+};
+
+const writeLocal = (key: string, value: string) => {
+  try { localStorage.setItem(key, value); } catch { /* ignore */ }
+};
+
+const removeLocal = (key: string) => {
+  try { localStorage.removeItem(key); } catch { /* ignore */ }
+};
+
+const readCookie = (key: string) => {
+  try {
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${key}=`))
+      ?.split("=")
+      .slice(1)
+      .join("=");
+    return cookieValue ? decodeURIComponent(cookieValue) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeCookie = (key: string, value: string) => {
+  try {
+    document.cookie = `${key}=${encodeURIComponent(value)}; Max-Age=${ONE_YEAR_SECONDS}; Path=/; SameSite=Lax; Secure`;
+  } catch { /* ignore */ }
+};
+
+const removeCookie = (key: string) => {
+  try {
+    document.cookie = `${key}=; Max-Age=0; Path=/; SameSite=Lax; Secure`;
+  } catch { /* ignore */ }
+};
+
+const readSessionBackup = async (): Promise<SessionBackup | null> => {
+  let value: string | null = null;
+  try {
+    const result = await Preferences.get({ key: AUTH_SESSION_BACKUP_KEY });
+    value = result.value ?? null;
+  } catch (e) {
+    console.warn("Preferences.get failed, using web storage backup", e);
   }
 
-  if (initialized) {
-    void safePrefsRemove(AUTH_SESSION_BACKUP_KEY);
+  if (!value) {
+    try {
+      const cookies = await CapacitorCookies.getCookies({ url: window.location.origin });
+      value = cookies[AUTH_SESSION_BACKUP_COOKIE] ?? null;
+    } catch { /* ignore */ }
   }
+
+  value = value ?? readLocal(AUTH_SESSION_BACKUP_KEY) ?? readCookie(AUTH_SESSION_BACKUP_COOKIE);
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value) as SessionBackup;
+  } catch {
+    return null;
+  }
+};
+
+const writeSessionBackup = async (session: Session): Promise<void> => {
+  const value = JSON.stringify({ session, updated_at: Date.now() } satisfies SessionBackup);
+  const cookieValue = JSON.stringify({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+    updated_at: Date.now(),
+  } satisfies SessionBackup);
+  writeLocal(AUTH_SESSION_BACKUP_KEY, value);
+  writeCookie(AUTH_SESSION_BACKUP_COOKIE, cookieValue);
+  if (SUPABASE_AUTH_STORAGE_KEY) writeLocal(SUPABASE_AUTH_STORAGE_KEY, JSON.stringify(session));
+
+  try {
+    await CapacitorCookies.setCookie({
+      url: window.location.origin,
+      key: AUTH_SESSION_BACKUP_COOKIE,
+      value: cookieValue,
+      path: "/",
+      expires: new Date(Date.now() + ONE_YEAR_SECONDS * 1000).toUTCString(),
+    });
+  } catch { /* ignore */ }
+
+  try {
+    await Preferences.set({ key: AUTH_SESSION_BACKUP_KEY, value });
+  } catch (e) {
+    console.warn("Preferences.set failed, relying on web storage backup", e);
+  }
+};
+
+const clearSessionBackup = async (): Promise<void> => {
+  removeLocal(AUTH_SESSION_BACKUP_KEY);
+  removeCookie(AUTH_SESSION_BACKUP_COOKIE);
+  if (SUPABASE_AUTH_STORAGE_KEY) removeLocal(SUPABASE_AUTH_STORAGE_KEY);
+
+  try {
+    await CapacitorCookies.deleteCookie({
+      url: window.location.origin,
+      key: AUTH_SESSION_BACKUP_COOKIE,
+    });
+  } catch { /* ignore */ }
+
+  try {
+    await Preferences.remove({ key: AUTH_SESSION_BACKUP_KEY });
+  } catch { /* ignore */ }
+};
+
+const seedSupabaseStorageFromBackup = (backup: SessionBackup | null) => {
+  if (!backup?.session || !SUPABASE_AUTH_STORAGE_KEY) return;
+  writeLocal(SUPABASE_AUTH_STORAGE_KEY, JSON.stringify(backup.session));
+};
+
+const restoreBackedUpSession = async (backup: SessionBackup | null): Promise<Session | null> => {
+  const access_token = backup?.session?.access_token ?? backup?.access_token;
+  const refresh_token = backup?.session?.refresh_token ?? backup?.refresh_token;
+
+  if (!access_token || !refresh_token) return null;
+
+  const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+  if (!error && data.session) return data.session;
+
+  const refreshed = await supabase.auth.refreshSession({ refresh_token });
+  if (!refreshed.error && refreshed.data.session) {
+    return refreshed.data.session;
+  }
+
+  await clearSessionBackup();
+  return null;
+};
+
+const persistSessionBackup = (session: Session | null) => {
+  if (session?.access_token && session.refresh_token) void writeSessionBackup(session);
 };
 
 interface AuthContextType {
@@ -77,8 +188,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Set up auth state listener FIRST (do not flip loading until initial session resolves)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        persistSessionBackup(session, initialized);
+      (event: AuthChangeEvent, session) => {
+        if (session) persistSessionBackup(session);
+        if (initialized && event === "SIGNED_OUT") void clearSessionBackup();
         if (cancelled) return;
         setSession(session);
         setUser(session?.user ?? null);
@@ -86,9 +198,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Then restore session from storage — localStorage first, native Preferences backup second.
+    // Then restore session from durable native storage before checking Supabase's localStorage cache.
     const restoreSession = async () => {
       let restoredSession: Session | null = null;
+      const backup = await readSessionBackup();
+      seedSupabaseStorageFromBackup(backup);
+
       try {
         const { data: { session: storedSession } } = await supabase.auth.getSession();
         restoredSession = storedSession;
@@ -97,27 +212,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (!restoredSession) {
-        const value = await safePrefsGet(AUTH_SESSION_BACKUP_KEY);
-        if (value) {
-          try {
-            const tokens = JSON.parse(value) as { access_token?: string; refresh_token?: string };
-            if (tokens.access_token && tokens.refresh_token) {
-              const { data, error } = await supabase.auth.setSession({
-                access_token: tokens.access_token,
-                refresh_token: tokens.refresh_token,
-              });
-              restoredSession = error ? null : data.session;
-              if (error) await safePrefsRemove(AUTH_SESSION_BACKUP_KEY);
-            }
-          } catch {
-            await safePrefsRemove(AUTH_SESSION_BACKUP_KEY);
-          }
-        }
+        restoredSession = await restoreBackedUpSession(backup);
       }
 
       if (cancelled) return;
       initialized = true;
-      persistSessionBackup(restoredSession, true);
+      persistSessionBackup(restoredSession);
       setSession(restoredSession);
       setUser(restoredSession?.user ?? null);
       setLoading(false);
@@ -143,7 +243,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (data.session) await writeSessionBackup(data.session);
     return { error: error ? new Error(error.message) : null };
   }, []);
 
@@ -163,16 +264,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin + "/dashboard",
     });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) await writeSessionBackup(session);
   }, []);
 
   const signInWithApple = useCallback(async () => {
     await lovable.auth.signInWithOAuth("apple", {
       redirect_uri: window.location.origin + "/dashboard",
     });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) await writeSessionBackup(session);
   }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    await clearSessionBackup();
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
