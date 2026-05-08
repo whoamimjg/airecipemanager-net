@@ -166,8 +166,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Set up auth state listener FIRST (do not flip loading until initial session resolves)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        persistSessionBackup(session, initialized);
+      (event: AuthChangeEvent, session) => {
+        if (session) persistSessionBackup(session);
+        if (initialized && event === "SIGNED_OUT") void clearSessionBackup();
         if (cancelled) return;
         setSession(session);
         setUser(session?.user ?? null);
@@ -175,9 +176,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Then restore session from storage — localStorage first, native Preferences backup second.
+    // Then restore session from durable native storage before checking Supabase's localStorage cache.
     const restoreSession = async () => {
       let restoredSession: Session | null = null;
+      const backup = await readSessionBackup();
+      seedSupabaseStorageFromBackup(backup);
+
       try {
         const { data: { session: storedSession } } = await supabase.auth.getSession();
         restoredSession = storedSession;
@@ -186,27 +190,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (!restoredSession) {
-        const value = await safePrefsGet(AUTH_SESSION_BACKUP_KEY);
-        if (value) {
-          try {
-            const tokens = JSON.parse(value) as { access_token?: string; refresh_token?: string };
-            if (tokens.access_token && tokens.refresh_token) {
-              const { data, error } = await supabase.auth.setSession({
-                access_token: tokens.access_token,
-                refresh_token: tokens.refresh_token,
-              });
-              restoredSession = error ? null : data.session;
-              if (error) await safePrefsRemove(AUTH_SESSION_BACKUP_KEY);
-            }
-          } catch {
-            await safePrefsRemove(AUTH_SESSION_BACKUP_KEY);
-          }
-        }
+        restoredSession = await restoreBackedUpSession(backup);
       }
 
       if (cancelled) return;
       initialized = true;
-      persistSessionBackup(restoredSession, true);
+      persistSessionBackup(restoredSession);
       setSession(restoredSession);
       setUser(restoredSession?.user ?? null);
       setLoading(false);
