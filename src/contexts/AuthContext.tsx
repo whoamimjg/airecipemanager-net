@@ -6,20 +6,49 @@ import { lovable } from "@/integrations/lovable";
 
 const AUTH_SESSION_BACKUP_KEY = "airecipemanager.auth.session";
 
+// Safe wrappers — Preferences plugin may not be registered in older native builds.
+// Any failure must NOT block auth initialization.
+const safePrefsGet = async (key: string): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key });
+    return value ?? null;
+  } catch (e) {
+    console.warn("Preferences.get failed, falling back to localStorage", e);
+    try { return localStorage.getItem(key); } catch { return null; }
+  }
+};
+
+const safePrefsSet = async (key: string, value: string): Promise<void> => {
+  try {
+    await Preferences.set({ key, value });
+  } catch (e) {
+    console.warn("Preferences.set failed, falling back to localStorage", e);
+    try { localStorage.setItem(key, value); } catch { /* ignore */ }
+  }
+};
+
+const safePrefsRemove = async (key: string): Promise<void> => {
+  try {
+    await Preferences.remove({ key });
+  } catch {
+    try { localStorage.removeItem(key); } catch { /* ignore */ }
+  }
+};
+
 const persistSessionBackup = (session: Session | null, initialized: boolean) => {
   if (session?.access_token && session.refresh_token) {
-    void Preferences.set({
-      key: AUTH_SESSION_BACKUP_KEY,
-      value: JSON.stringify({
+    void safePrefsSet(
+      AUTH_SESSION_BACKUP_KEY,
+      JSON.stringify({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
       }),
-    });
+    );
     return;
   }
 
   if (initialized) {
-    void Preferences.remove({ key: AUTH_SESSION_BACKUP_KEY });
+    void safePrefsRemove(AUTH_SESSION_BACKUP_KEY);
   }
 };
 
