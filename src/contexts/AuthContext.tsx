@@ -8,6 +8,21 @@ import { lovable } from "@/integrations/lovable";
 const AUTH_SESSION_BACKUP_KEY = "airecipemanager.auth.session";
 const AUTH_SESSION_BACKUP_COOKIE = "airecipemanager_auth_session";
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
+const NATIVE_STORAGE_TIMEOUT_MS = 750;
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number): Promise<T | null> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timeoutId = setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
 
 const getSupabaseAuthStorageKey = () => {
   try {
@@ -68,16 +83,22 @@ const removeCookie = (key: string) => {
 const readSessionBackup = async (): Promise<SessionBackup | null> => {
   let value: string | null = null;
   try {
-    const result = await Preferences.get({ key: AUTH_SESSION_BACKUP_KEY });
-    value = result.value ?? null;
+    const result = await withTimeout(
+      Preferences.get({ key: AUTH_SESSION_BACKUP_KEY }),
+      NATIVE_STORAGE_TIMEOUT_MS
+    );
+    value = result?.value ?? null;
   } catch (e) {
     console.warn("Preferences.get failed, using web storage backup", e);
   }
 
   if (!value) {
     try {
-      const cookies = await CapacitorCookies.getCookies({ url: window.location.origin });
-      value = cookies[AUTH_SESSION_BACKUP_COOKIE] ?? null;
+      const cookies = await withTimeout(
+        CapacitorCookies.getCookies({ url: window.location.origin }),
+        NATIVE_STORAGE_TIMEOUT_MS
+      );
+      value = cookies?.[AUTH_SESSION_BACKUP_COOKIE] ?? null;
     } catch { /* ignore */ }
   }
 
