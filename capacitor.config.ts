@@ -4,10 +4,6 @@ const config: CapacitorConfig = {
   appId: "app.lovable.eb0ea9cd50dd4c48b6176f06524e2575",
   appName: "airecipemanager-net",
   webDir: "dist",
-  server: {
-    url: "https://airecipemanager.com",
-    cleartext: false,
-  },
 };
 
 export default config;
