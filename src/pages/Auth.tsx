@@ -51,6 +51,7 @@ const Auth = () => {
         const { error } = await signInWithEmail(email, password);
         if (error) throw error;
         toast.success("Welcome back!");
+        navigate("/dashboard", { replace: true });
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
