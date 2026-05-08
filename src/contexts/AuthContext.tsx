@@ -40,21 +40,13 @@ const removeLocal = (key: string) => {
 
 const readCookie = (key: string) => {
   try {
-    return document.cookie
+    const cookieValue = document.cookie
       .split("; ")
       .find((row) => row.startsWith(`${key}=`))
       ?.split("=")
       .slice(1)
-      .join("=")
-      ? decodeURIComponent(
-          document.cookie
-            .split("; ")
-            .find((row) => row.startsWith(`${key}=`))!
-            .split("=")
-            .slice(1)
-            .join("="),
-        )
-      : null;
+      .join("=");
+    return cookieValue ? decodeURIComponent(cookieValue) : null;
   } catch {
     return null;
   }
@@ -93,8 +85,13 @@ const readSessionBackup = async (): Promise<SessionBackup | null> => {
 
 const writeSessionBackup = async (session: Session): Promise<void> => {
   const value = JSON.stringify({ session, updated_at: Date.now() } satisfies SessionBackup);
+  const cookieValue = JSON.stringify({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+    updated_at: Date.now(),
+  } satisfies SessionBackup);
   writeLocal(AUTH_SESSION_BACKUP_KEY, value);
-  writeCookie(AUTH_SESSION_BACKUP_COOKIE, value);
+  writeCookie(AUTH_SESSION_BACKUP_COOKIE, cookieValue);
   if (SUPABASE_AUTH_STORAGE_KEY) writeLocal(SUPABASE_AUTH_STORAGE_KEY, JSON.stringify(session));
 
   try {
