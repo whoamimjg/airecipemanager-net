@@ -61,13 +61,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = useCallback(async () => {
     await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: window.location.origin + "/dashboard",
     });
   }, []);
 
   const signInWithApple = useCallback(async () => {
     await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+      redirect_uri: window.location.origin + "/dashboard",
     });
   }, []);
 
