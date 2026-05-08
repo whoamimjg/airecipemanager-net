@@ -128,7 +128,6 @@ const clearSessionBackup = async (): Promise<void> => {
     await CapacitorCookies.deleteCookie({
       url: window.location.origin,
       key: AUTH_SESSION_BACKUP_COOKIE,
-      path: "/",
     });
   } catch { /* ignore */ }
 
