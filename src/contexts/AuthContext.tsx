@@ -88,11 +88,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Then restore session from storage — localStorage first, native Preferences backup second.
     const restoreSession = async () => {
-      const { data: { session: storedSession } } = await supabase.auth.getSession();
-      let restoredSession = storedSession;
+      let restoredSession: Session | null = null;
+      try {
+        const { data: { session: storedSession } } = await supabase.auth.getSession();
+        restoredSession = storedSession;
+      } catch (e) {
+        console.warn("getSession failed", e);
+      }
 
       if (!restoredSession) {
-        const { value } = await Preferences.get({ key: AUTH_SESSION_BACKUP_KEY });
+        const value = await safePrefsGet(AUTH_SESSION_BACKUP_KEY);
         if (value) {
           try {
             const tokens = JSON.parse(value) as { access_token?: string; refresh_token?: string };
@@ -102,10 +107,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 refresh_token: tokens.refresh_token,
               });
               restoredSession = error ? null : data.session;
-              if (error) await Preferences.remove({ key: AUTH_SESSION_BACKUP_KEY });
+              if (error) await safePrefsRemove(AUTH_SESSION_BACKUP_KEY);
             }
           } catch {
-            await Preferences.remove({ key: AUTH_SESSION_BACKUP_KEY });
+            await safePrefsRemove(AUTH_SESSION_BACKUP_KEY);
           }
         }
       }
@@ -120,8 +125,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     void restoreSession();
 
+    // Safety net: never let the app hang on the splash screen.
+    // If init hasn't completed in 5s, force-resolve loading state.
+    const failsafeTimer = setTimeout(() => {
+      if (!initialized && !cancelled) {
+        console.warn("Auth init timed out — proceeding without session");
+        initialized = true;
+        setLoading(false);
+      }
+    }, 5000);
+
     return () => {
       cancelled = true;
+      clearTimeout(failsafeTimer);
       subscription.unsubscribe();
     };
   }, []);
