@@ -23,19 +23,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let initialized = false;
+
+    // Set up auth state listener FIRST (do not flip loading until initial session resolves)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        if (initialized) setLoading(false);
       }
     );
 
-    // Then restore session from storage
+    // Then restore session from storage — this is the source of truth for initial load
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      initialized = true;
       setLoading(false);
     });
 
