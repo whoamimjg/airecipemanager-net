@@ -218,7 +218,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (data.session) await writeSessionBackup(data.session);
     return { error: error ? new Error(error.message) : null };
   }, []);
 
@@ -238,16 +239,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin + "/dashboard",
     });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) await writeSessionBackup(session);
   }, []);
 
   const signInWithApple = useCallback(async () => {
     await lovable.auth.signInWithOAuth("apple", {
       redirect_uri: window.location.origin + "/dashboard",
     });
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) await writeSessionBackup(session);
   }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    await clearSessionBackup();
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
