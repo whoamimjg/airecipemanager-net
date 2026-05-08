@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { Preferences } from "@capacitor/preferences";
+import { CapacitorCookies } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
@@ -73,6 +74,13 @@ const readSessionBackup = async (): Promise<SessionBackup | null> => {
     console.warn("Preferences.get failed, using web storage backup", e);
   }
 
+  if (!value) {
+    try {
+      const cookies = await CapacitorCookies.getCookies({ url: window.location.origin });
+      value = cookies[AUTH_SESSION_BACKUP_COOKIE] ?? null;
+    } catch { /* ignore */ }
+  }
+
   value = value ?? readLocal(AUTH_SESSION_BACKUP_KEY) ?? readCookie(AUTH_SESSION_BACKUP_COOKIE);
   if (!value) return null;
 
@@ -95,6 +103,16 @@ const writeSessionBackup = async (session: Session): Promise<void> => {
   if (SUPABASE_AUTH_STORAGE_KEY) writeLocal(SUPABASE_AUTH_STORAGE_KEY, JSON.stringify(session));
 
   try {
+    await CapacitorCookies.setCookie({
+      url: window.location.origin,
+      key: AUTH_SESSION_BACKUP_COOKIE,
+      value: cookieValue,
+      path: "/",
+      expires: new Date(Date.now() + ONE_YEAR_SECONDS * 1000).toUTCString(),
+    });
+  } catch { /* ignore */ }
+
+  try {
     await Preferences.set({ key: AUTH_SESSION_BACKUP_KEY, value });
   } catch (e) {
     console.warn("Preferences.set failed, relying on web storage backup", e);
@@ -105,6 +123,14 @@ const clearSessionBackup = async (): Promise<void> => {
   removeLocal(AUTH_SESSION_BACKUP_KEY);
   removeCookie(AUTH_SESSION_BACKUP_COOKIE);
   if (SUPABASE_AUTH_STORAGE_KEY) removeLocal(SUPABASE_AUTH_STORAGE_KEY);
+
+  try {
+    await CapacitorCookies.deleteCookie({
+      url: window.location.origin,
+      key: AUTH_SESSION_BACKUP_COOKIE,
+      path: "/",
+    });
+  } catch { /* ignore */ }
 
   try {
     await Preferences.remove({ key: AUTH_SESSION_BACKUP_KEY });
