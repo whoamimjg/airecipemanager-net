@@ -78,10 +78,13 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
       if (imageInputRef.current) imageInputRef.current.value = "";
     }
   };
-  type IngredientRow = { quantity: string; unit: string; name: string; notes: string };
+  type IngredientRow = { quantity: string; unit: string; name: string; notes: string; heading?: string };
 
   const parseIngredient = (ing: any): IngredientRow => {
     if (ing && typeof ing === "object") {
+      if (typeof ing.heading === "string") {
+        return { quantity: "", unit: "", name: "", notes: "", heading: ing.heading };
+      }
       return {
         quantity: ing.quantity?.toString() || ing.amount?.toString() || "",
         unit: ing.unit || "",
