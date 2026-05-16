@@ -97,7 +97,12 @@ const SharedRecipe = () => {
             <h2 className="text-lg font-semibold text-foreground mb-3">Ingredients</h2>
             <ul className="space-y-1.5">
               {ingredients.map((ing: any, i: number) => {
-                const text = typeof ing === "string" ? ing : [ing.amount, ing.unit, ing.name].filter(Boolean).join(" ");
+                if (ing && typeof ing === "object" && typeof ing.heading === "string") {
+                  return (
+                    <li key={i} className="pt-3 first:pt-0 font-semibold text-foreground text-sm">{ing.heading}</li>
+                  );
+                }
+                const text = typeof ing === "string" ? ing : [ing.quantity || ing.amount, ing.unit, ing.name].filter(Boolean).join(" ");
                 return (
                   <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                     <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
