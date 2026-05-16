@@ -78,10 +78,13 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
       if (imageInputRef.current) imageInputRef.current.value = "";
     }
   };
-  type IngredientRow = { quantity: string; unit: string; name: string; notes: string };
+  type IngredientRow = { quantity: string; unit: string; name: string; notes: string; heading?: string };
 
   const parseIngredient = (ing: any): IngredientRow => {
     if (ing && typeof ing === "object") {
+      if (typeof ing.heading === "string") {
+        return { quantity: "", unit: "", name: "", notes: "", heading: ing.heading };
+      }
       return {
         quantity: ing.quantity?.toString() || ing.amount?.toString() || "",
         unit: ing.unit || "",
@@ -138,9 +141,12 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
     const matches = UNIT_OPTIONS.filter((u) => u.toLowerCase().startsWith(v));
     return matches.length === 1 ? matches[0] : value;
   };
-  type InstructionRow = { text: string; image_url: string };
+  type InstructionRow = { text: string; image_url: string; heading?: string };
   const parseInstruction = (s: any): InstructionRow => {
-    if (s && typeof s === "object") return { text: s.text || "", image_url: s.image_url || "" };
+    if (s && typeof s === "object") {
+      if (typeof s.heading === "string") return { text: "", image_url: "", heading: s.heading };
+      return { text: s.text || "", image_url: s.image_url || "" };
+    }
     return { text: (s || "").toString(), image_url: "" };
   };
   const [instructions, setInstructions] = useState<InstructionRow[]>(
@@ -188,16 +194,24 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
         source_url: sourceUrl || null,
         image_url: imageUrl || null,
         ingredients: ingredients
-          .filter((ing) => ing.name.trim() || ing.quantity.trim())
-          .map((ing) => ({
-            quantity: ing.quantity.trim(),
-            unit: ing.unit.trim(),
-            name: ing.name.trim(),
-            notes: ing.notes.trim(),
-          })),
+          .filter((ing) => ing.heading !== undefined ? ing.heading.trim() : (ing.name.trim() || ing.quantity.trim()))
+          .map((ing) =>
+            ing.heading !== undefined
+              ? { heading: ing.heading.trim() }
+              : {
+                  quantity: ing.quantity.trim(),
+                  unit: ing.unit.trim(),
+                  name: ing.name.trim(),
+                  notes: ing.notes.trim(),
+                }
+          ),
         instructions: instructions
-          .filter((s) => s.text.trim() || s.image_url)
-          .map((s) => ({ text: s.text.trim(), image_url: s.image_url || "" })),
+          .filter((s) => s.heading !== undefined ? s.heading.trim() : (s.text.trim() || s.image_url))
+          .map((s) =>
+            s.heading !== undefined
+              ? { heading: s.heading.trim() }
+              : { text: s.text.trim(), image_url: s.image_url || "" }
+          ),
         user_id: user!.id,
       };
 
@@ -359,6 +373,30 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
             </datalist>
             {ingredients.map((ing, i) => {
               const isLast = i === ingredients.length - 1;
+              if (ing.heading !== undefined) {
+                return (
+                  <div key={i} className="flex gap-2 items-center pt-2">
+                    <Input
+                      className="flex-1 font-semibold bg-muted/40"
+                      value={ing.heading}
+                      onChange={(e) => {
+                        const next = [...ingredients];
+                        next[i] = { ...next[i], heading: e.target.value };
+                        setIngredients(next);
+                      }}
+                      placeholder="Section heading (e.g. For the sauce)"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIngredients(ingredients.filter((_, idx) => idx !== i))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              }
               return (
                 <div key={i} className="grid gap-2 items-center" style={{ gridTemplateColumns: "repeat(13, minmax(0, 1fr))" }}>
                   <Input
@@ -433,83 +471,125 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                 </div>
               );
             })}
-            <Button
-              ref={addIngredientBtnRef}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                focusIndexRef.current = ingredients.length;
-                setIngredients([...ingredients, { quantity: "", unit: "", name: "", notes: "" }]);
-              }}
-            >
-              <Plus className="mr-1 h-3 w-3" /> Add Ingredient
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                ref={addIngredientBtnRef}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  focusIndexRef.current = ingredients.length;
+                  setIngredients([...ingredients, { quantity: "", unit: "", name: "", notes: "" }]);
+                }}
+              >
+                <Plus className="mr-1 h-3 w-3" /> Add Ingredient
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setIngredients([...ingredients, { quantity: "", unit: "", name: "", notes: "", heading: "" }])
+                }
+              >
+                <Plus className="mr-1 h-3 w-3" /> Add Heading
+              </Button>
+            </div>
           </div>
 
 
           {/* Instructions */}
           <div className="space-y-3">
             <Label className="text-card-foreground">Instructions</Label>
-            {instructions.map((step, i) => (
-              <div key={i} className="flex gap-2 items-start">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">
-                  {i + 1}
-                </span>
-                <div className="flex-1 space-y-2">
-                  <Input
-                    value={step.text}
-                    onChange={(e) => {
-                      const next = [...instructions];
-                      next[i] = { ...next[i], text: e.target.value };
-                      setInstructions(next);
-                    }}
-                    placeholder={`Step ${i + 1}`}
-                  />
-                  {step.image_url && (
-                    <div className="relative inline-block">
-                      <img src={step.image_url} alt={`Step ${i + 1}`} className="h-16 w-16 object-cover rounded border border-border" />
-                      <button
-                        type="button"
-                        onClick={() => {
+            {(() => {
+              let stepNum = 0;
+              return instructions.map((step, i) => {
+                if (step.heading !== undefined) {
+                  return (
+                    <div key={i} className="flex gap-2 items-center pt-2">
+                      <Input
+                        className="flex-1 font-semibold bg-muted/40"
+                        value={step.heading}
+                        onChange={(e) => {
                           const next = [...instructions];
-                          next[i] = { ...next[i], image_url: "" };
+                          next[i] = { ...next[i], heading: e.target.value };
                           setInstructions(next);
                         }}
-                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                        placeholder="Section heading (e.g. For the filling)"
+                      />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setInstructions(instructions.filter((_, idx) => idx !== i))}>
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => stepImageRefs.current[i]?.click()}
-                  disabled={uploadingStepIdx === i}
-                  title="Add step photo"
-                >
-                  {uploadingStepIdx === i ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                </Button>
-                <input
-                  ref={(el) => (stepImageRefs.current[i] = el)}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleStepImageUpload(e, i)}
-                />
-                {instructions.length > 1 && (
-                  <Button type="button" variant="ghost" size="icon" onClick={() => setInstructions(instructions.filter((_, idx) => idx !== i))}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => setInstructions([...instructions, { text: "", image_url: "" }])}>
-              <Plus className="mr-1 h-3 w-3" /> Add Step
-            </Button>
+                  );
+                }
+                stepNum += 1;
+                return (
+                  <div key={i} className="flex gap-2 items-start">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">
+                      {stepNum}
+                    </span>
+                    <div className="flex-1 space-y-2">
+                      <Input
+                        value={step.text}
+                        onChange={(e) => {
+                          const next = [...instructions];
+                          next[i] = { ...next[i], text: e.target.value };
+                          setInstructions(next);
+                        }}
+                        placeholder={`Step ${stepNum}`}
+                      />
+                      {step.image_url && (
+                        <div className="relative inline-block">
+                          <img src={step.image_url} alt={`Step ${stepNum}`} className="h-16 w-16 object-cover rounded border border-border" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = [...instructions];
+                              next[i] = { ...next[i], image_url: "" };
+                              setInstructions(next);
+                            }}
+                            className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => stepImageRefs.current[i]?.click()}
+                      disabled={uploadingStepIdx === i}
+                      title="Add step photo"
+                    >
+                      {uploadingStepIdx === i ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                    </Button>
+                    <input
+                      ref={(el) => (stepImageRefs.current[i] = el)}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleStepImageUpload(e, i)}
+                    />
+                    {instructions.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setInstructions(instructions.filter((_, idx) => idx !== i))}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              });
+            })()}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setInstructions([...instructions, { text: "", image_url: "" }])}>
+                <Plus className="mr-1 h-3 w-3" /> Add Step
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setInstructions([...instructions, { text: "", image_url: "", heading: "" }])}>
+                <Plus className="mr-1 h-3 w-3" /> Add Heading
+              </Button>
+            </div>
           </div>
 
           <div className="flex gap-3 justify-end">

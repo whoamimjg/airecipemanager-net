@@ -19,7 +19,10 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
   const [currentStep, setCurrentStep] = useState(-1); // -1 = ingredients overview
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  const totalSteps = instructions.length;
+  const stepInstructions = instructions.filter(
+    (s) => !(s && typeof s === "object" && typeof (s as any).heading === "string")
+  );
+  const totalSteps = stepInstructions.length;
   const progress = currentStep === -1 ? 0 : ((currentStep + 1) / totalSteps) * 100;
 
   const goNext = () => {
@@ -80,6 +83,13 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
               <p className="text-sm text-muted-foreground">Gather these ingredients:</p>
               <ul className="space-y-2">
                 {ingredients.map((ing, i) => {
+                  if (ing && typeof ing === "object" && typeof (ing as any).heading === "string") {
+                    return (
+                      <li key={i} className="pt-2 first:pt-0 font-semibold text-foreground text-sm list-none">
+                        {(ing as any).heading}
+                      </li>
+                    );
+                  }
                   const text = typeof ing === "string"
                     ? ing
                     : [ing?.quantity || ing?.amount, ing?.unit, ing?.name, ing?.notes ? `(${ing.notes})` : ""]
@@ -103,7 +113,7 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
                 {currentStep + 1}
               </div>
               <p className="text-lg leading-relaxed text-foreground max-w-md">
-                {typeof instructions[currentStep] === "string" ? instructions[currentStep] : (instructions[currentStep] as any)?.text || ""}
+                {typeof stepInstructions[currentStep] === "string" ? stepInstructions[currentStep] : (stepInstructions[currentStep] as any)?.text || ""}
               </p>
               {completedSteps.has(currentStep) && (
                 <span className="flex items-center gap-1 text-sm text-green-600">
@@ -131,7 +141,7 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
               onClick={() => setCurrentStep(-1)}
               className={`h-2.5 w-2.5 rounded-full shrink-0 transition-colors ${currentStep === -1 ? "bg-primary" : "bg-muted-foreground/30"}`}
             />
-            {instructions.map((_, i) => (
+            {stepInstructions.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentStep(i)}
