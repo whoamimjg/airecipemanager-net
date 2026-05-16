@@ -780,7 +780,7 @@ const GroceryList = () => {
                     No matching inventory items found.
                   </p>
                 ) : (
-                  <ScrollArea className="max-h-[400px]">
+                  <ScrollArea className="h-[400px] pr-2">
                     <div className="space-y-1">
                       {alreadyHave.map(item => (
                         <div
