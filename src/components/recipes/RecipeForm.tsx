@@ -194,16 +194,24 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
         source_url: sourceUrl || null,
         image_url: imageUrl || null,
         ingredients: ingredients
-          .filter((ing) => ing.name.trim() || ing.quantity.trim())
-          .map((ing) => ({
-            quantity: ing.quantity.trim(),
-            unit: ing.unit.trim(),
-            name: ing.name.trim(),
-            notes: ing.notes.trim(),
-          })),
+          .filter((ing) => ing.heading !== undefined ? ing.heading.trim() : (ing.name.trim() || ing.quantity.trim()))
+          .map((ing) =>
+            ing.heading !== undefined
+              ? { heading: ing.heading.trim() }
+              : {
+                  quantity: ing.quantity.trim(),
+                  unit: ing.unit.trim(),
+                  name: ing.name.trim(),
+                  notes: ing.notes.trim(),
+                }
+          ),
         instructions: instructions
-          .filter((s) => s.text.trim() || s.image_url)
-          .map((s) => ({ text: s.text.trim(), image_url: s.image_url || "" })),
+          .filter((s) => s.heading !== undefined ? s.heading.trim() : (s.text.trim() || s.image_url))
+          .map((s) =>
+            s.heading !== undefined
+              ? { heading: s.heading.trim() }
+              : { text: s.text.trim(), image_url: s.image_url || "" }
+          ),
         user_id: user!.id,
       };
 
