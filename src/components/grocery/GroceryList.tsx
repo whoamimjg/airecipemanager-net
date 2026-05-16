@@ -852,7 +852,7 @@ const GroceryList = () => {
                           );
                         })}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </CardContent>
               </Card>
             )}
