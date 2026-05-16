@@ -267,6 +267,44 @@ const GroceryList = () => {
     },
   });
 
+  // Persisted checked keys for recipe-derived items (so checks survive logout / refresh)
+  const { data: dbCheckedKeys = [] } = useQuery({
+    queryKey: ["grocery-checked-keys"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("grocery_checked_keys")
+        .select("item_key");
+      if (error) throw error;
+      return (data || []).map((r: any) => r.item_key as string);
+    },
+    enabled: !!user,
+  });
+
+  // Seed local Set from DB whenever it changes (merge, don't overwrite optimistic toggles)
+  useEffect(() => {
+    if (!dbCheckedKeys.length) return;
+    setCheckedItems(prev => {
+      const next = new Set(prev);
+      dbCheckedKeys.forEach(k => next.add(k));
+      return next;
+    });
+  }, [dbCheckedKeys]);
+
+  const persistCheckKey = async (key: string, checked: boolean) => {
+    if (!user) return;
+    if (checked) {
+      await supabase
+        .from("grocery_checked_keys")
+        .upsert({ user_id: user.id, item_key: key }, { onConflict: "user_id,item_key" });
+    } else {
+      await supabase
+        .from("grocery_checked_keys")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("item_key", key);
+    }
+  };
+
   const checkManualItemMutation = useMutation({
     mutationFn: async ({ name, checked }: { name: string; checked: boolean }) => {
       const { error } = await supabase
