@@ -101,6 +101,27 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_checked_keys: {
+        Row: {
+          created_at: string
+          id: string
+          item_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       grocery_items: {
         Row: {
           category: string
