@@ -141,9 +141,12 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
     const matches = UNIT_OPTIONS.filter((u) => u.toLowerCase().startsWith(v));
     return matches.length === 1 ? matches[0] : value;
   };
-  type InstructionRow = { text: string; image_url: string };
+  type InstructionRow = { text: string; image_url: string; heading?: string };
   const parseInstruction = (s: any): InstructionRow => {
-    if (s && typeof s === "object") return { text: s.text || "", image_url: s.image_url || "" };
+    if (s && typeof s === "object") {
+      if (typeof s.heading === "string") return { text: "", image_url: "", heading: s.heading };
+      return { text: s.text || "", image_url: s.image_url || "" };
+    }
     return { text: (s || "").toString(), image_url: "" };
   };
   const [instructions, setInstructions] = useState<InstructionRow[]>(
