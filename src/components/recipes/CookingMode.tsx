@@ -83,6 +83,13 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
               <p className="text-sm text-muted-foreground">Gather these ingredients:</p>
               <ul className="space-y-2">
                 {ingredients.map((ing, i) => {
+                  if (ing && typeof ing === "object" && typeof (ing as any).heading === "string") {
+                    return (
+                      <li key={i} className="pt-2 first:pt-0 font-semibold text-foreground text-sm list-none">
+                        {(ing as any).heading}
+                      </li>
+                    );
+                  }
                   const text = typeof ing === "string"
                     ? ing
                     : [ing?.quantity || ing?.amount, ing?.unit, ing?.name, ing?.notes ? `(${ing.notes})` : ""]
