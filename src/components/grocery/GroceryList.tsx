@@ -441,12 +441,24 @@ const GroceryList = () => {
     if (isCheckedManual) {
       checkManualItemMutation.mutate({ name, checked: false });
     }
+    let willBeChecked = false;
     setCheckedItems(prev => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+      if (next.has(name)) {
+        next.delete(name);
+        willBeChecked = false;
+      } else {
+        next.add(name);
+        willBeChecked = true;
+      }
       return next;
     });
+    // Persist for recipe-derived items so checks survive logout / refresh
+    if (!isManualOnly && !isCheckedManual) {
+      void persistCheckKey(name, willBeChecked).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["grocery-checked-keys"] });
+      });
+    }
   };
 
   const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
