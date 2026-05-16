@@ -113,7 +113,7 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
                 {currentStep + 1}
               </div>
               <p className="text-lg leading-relaxed text-foreground max-w-md">
-                {typeof instructions[currentStep] === "string" ? instructions[currentStep] : (instructions[currentStep] as any)?.text || ""}
+                {typeof stepInstructions[currentStep] === "string" ? stepInstructions[currentStep] : (stepInstructions[currentStep] as any)?.text || ""}
               </p>
               {completedSteps.has(currentStep) && (
                 <span className="flex items-center gap-1 text-sm text-green-600">
