@@ -183,27 +183,83 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
     return map[category] || "pantry";
   };
 
+  const fileToBase64 = (file: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        resolve(result.split(",")[1] ?? "");
+      };
+      reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+
+  // Downscale large receipt photos so the request stays small/fast.
+  // Long Walmart receipts from modern phones can be 4-8MB which hangs upload + AI processing.
+  const downscaleImage = (file: File, maxDim = 1800, quality = 0.85): Promise<Blob> =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas unsupported");
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob(
+            (blob) => {
+              URL.revokeObjectURL(url);
+              if (!blob) return reject(new Error("Failed to encode image"));
+              resolve(blob);
+            },
+            "image/jpeg",
+            quality
+          );
+        } catch (err) {
+          URL.revokeObjectURL(url);
+          reject(err);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Failed to load image"));
+      };
+      img.src = url;
+    });
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
     const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-    if (!isPdf) {
-      setPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setPreviewUrl(null);
-    }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(",")[1];
-      scanMutation.mutate({
-        file_base64: base64,
-        mime_type: file.type || (isPdf ? "application/pdf" : "image/jpeg"),
-      });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+    try {
+      if (isPdf) {
+        setPreviewUrl(null);
+        const base64 = await fileToBase64(file);
+        scanMutation.mutate({ file_base64: base64, mime_type: "application/pdf" });
+        return;
+      }
+
+      // Image path: downscale before upload to avoid hangs on large photos.
+      let blob: Blob = file;
+      try {
+        blob = await downscaleImage(file);
+      } catch (err) {
+        console.warn("Image downscale failed, using original", err);
+      }
+      setPreviewUrl(URL.createObjectURL(blob));
+      const base64 = await fileToBase64(blob);
+      scanMutation.mutate({ file_base64: base64, mime_type: "image/jpeg" });
+    } catch (err) {
+      toast.error("Could not read file: " + (err instanceof Error ? err.message : "Unknown error"));
+    }
   };
 
   const handleTakePhoto = async () => {
