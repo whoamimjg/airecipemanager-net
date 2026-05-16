@@ -348,9 +348,18 @@ const GroceryList = () => {
     },
   });
 
-  const clearAllChecked = () => {
+  const clearAllChecked = async () => {
+    const keysToClear = Array.from(checkedItems);
     setCheckedItems(new Set());
     clearAllCheckedMutation.mutate();
+    if (user && keysToClear.length) {
+      await supabase
+        .from("grocery_checked_keys")
+        .delete()
+        .eq("user_id", user.id)
+        .in("item_key", keysToClear);
+      queryClient.invalidateQueries({ queryKey: ["grocery-checked-keys"] });
+    }
   };
 
   // Combine recipe-derived items with manually added items
