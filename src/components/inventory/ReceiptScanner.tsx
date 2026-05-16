@@ -1,8 +1,4 @@
 import { useState, useRef } from "react";
-// Use the legacy build so Vite can resolve it without a custom worker setup.
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,6 +56,15 @@ interface ReceiptScannerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type ScanPayload = {
+  file_base64?: string;
+  mime_type?: string;
+  receipt_text?: string;
+};
+
+const SCAN_TIMEOUT_MS = 45_000;
+const PDF_TEXT_MIN_LENGTH = 80;
+
 const STORAGE_LOCATIONS = [
   { value: "fridge", label: "🧊 Fridge" },
   { value: "freezer", label: "❄️ Freezer" },
@@ -81,11 +86,13 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
   const [storeName, setStoreName] = useState("");
   const [receiptDate, setReceiptDate] = useState(new Date().toISOString().split("T")[0]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreparingFile, setIsPreparingFile] = useState(false);
 
   const scanMutation = useMutation({
-    mutationFn: async (payload: { file_base64: string; mime_type: string }) => {
+    mutationFn: async (payload: ScanPayload) => {
       const { data, error } = await supabase.functions.invoke("scan-receipt", {
         body: payload,
+        timeout: SCAN_TIMEOUT_MS,
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
