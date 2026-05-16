@@ -19,7 +19,10 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
   const [currentStep, setCurrentStep] = useState(-1); // -1 = ingredients overview
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  const totalSteps = instructions.length;
+  const stepInstructions = instructions.filter(
+    (s) => !(s && typeof s === "object" && typeof (s as any).heading === "string")
+  );
+  const totalSteps = stepInstructions.length;
   const progress = currentStep === -1 ? 0 : ((currentStep + 1) / totalSteps) * 100;
 
   const goNext = () => {
