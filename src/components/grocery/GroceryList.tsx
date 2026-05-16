@@ -820,7 +820,7 @@ const GroceryList = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
-                  <ScrollArea className="max-h-[400px]">
+                  <div className="max-h-[400px] overflow-y-auto pr-1">
                     <div className="space-y-1">
                       {allCheckedItems.map(item => {
                           const key = item.name.toLowerCase();
