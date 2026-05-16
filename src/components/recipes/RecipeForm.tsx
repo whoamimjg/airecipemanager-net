@@ -373,6 +373,30 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
             </datalist>
             {ingredients.map((ing, i) => {
               const isLast = i === ingredients.length - 1;
+              if (ing.heading !== undefined) {
+                return (
+                  <div key={i} className="flex gap-2 items-center pt-2">
+                    <Input
+                      className="flex-1 font-semibold bg-muted/40"
+                      value={ing.heading}
+                      onChange={(e) => {
+                        const next = [...ingredients];
+                        next[i] = { ...next[i], heading: e.target.value };
+                        setIngredients(next);
+                      }}
+                      placeholder="Section heading (e.g. For the sauce)"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIngredients(ingredients.filter((_, idx) => idx !== i))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              }
               return (
                 <div key={i} className="grid gap-2 items-center" style={{ gridTemplateColumns: "repeat(13, minmax(0, 1fr))" }}>
                   <Input
@@ -447,18 +471,30 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                 </div>
               );
             })}
-            <Button
-              ref={addIngredientBtnRef}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                focusIndexRef.current = ingredients.length;
-                setIngredients([...ingredients, { quantity: "", unit: "", name: "", notes: "" }]);
-              }}
-            >
-              <Plus className="mr-1 h-3 w-3" /> Add Ingredient
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                ref={addIngredientBtnRef}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  focusIndexRef.current = ingredients.length;
+                  setIngredients([...ingredients, { quantity: "", unit: "", name: "", notes: "" }]);
+                }}
+              >
+                <Plus className="mr-1 h-3 w-3" /> Add Ingredient
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setIngredients([...ingredients, { quantity: "", unit: "", name: "", notes: "", heading: "" }])
+                }
+              >
+                <Plus className="mr-1 h-3 w-3" /> Add Heading
+              </Button>
+            </div>
           </div>
 
 
