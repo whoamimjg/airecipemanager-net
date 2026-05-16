@@ -371,10 +371,10 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                 </div>
               )}
 
-              {scanMutation.isPending ? (
+              {isPreparingFile || scanMutation.isPending ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Analyzing receipt...
+                  {isPreparingFile ? "Preparing receipt..." : "Analyzing receipt..."}
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
