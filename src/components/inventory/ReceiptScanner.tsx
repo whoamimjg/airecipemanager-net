@@ -1,4 +1,8 @@
 import { useState, useRef } from "react";
+// Use the legacy build so Vite can resolve it without a custom worker setup.
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -232,6 +236,53 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
       img.src = url;
     });
 
+  // Render a PDF receipt into a single tall JPEG (pages stacked vertically) so the
+  // vision model receives an image, not a raw PDF (which hangs the request).
+  const pdfToJpegBlob = async (file: File, targetWidth = 1400, quality = 0.85): Promise<Blob> => {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const renderedPages: HTMLCanvasElement[] = [];
+    const maxPages = Math.min(pdf.numPages, 8);
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await pdf.getPage(i);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = targetWidth / baseViewport.width;
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas unsupported");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+      renderedPages.push(canvas);
+    }
+    if (renderedPages.length === 0) throw new Error("Empty PDF");
+
+    const width = renderedPages[0].width;
+    const totalHeight = renderedPages.reduce((sum, c) => sum + c.height, 0);
+    const out = document.createElement("canvas");
+    out.width = width;
+    out.height = totalHeight;
+    const outCtx = out.getContext("2d");
+    if (!outCtx) throw new Error("Canvas unsupported");
+    outCtx.fillStyle = "#ffffff";
+    outCtx.fillRect(0, 0, width, totalHeight);
+    let y = 0;
+    for (const c of renderedPages) {
+      outCtx.drawImage(c, 0, y);
+      y += c.height;
+    }
+    return await new Promise<Blob>((resolve, reject) => {
+      out.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Failed to encode PDF page"))),
+        "image/jpeg",
+        quality
+      );
+    });
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -241,9 +292,12 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
 
     try {
       if (isPdf) {
-        setPreviewUrl(null);
-        const base64 = await fileToBase64(file);
-        scanMutation.mutate({ file_base64: base64, mime_type: "application/pdf" });
+        // Render the PDF to a JPEG so the AI receives an image it can reliably read.
+        // Sending raw PDFs to the vision endpoint hangs on some receipts.
+        const blob = await pdfToJpegBlob(file);
+        setPreviewUrl(URL.createObjectURL(blob));
+        const base64 = await fileToBase64(blob);
+        scanMutation.mutate({ file_base64: base64, mime_type: "image/jpeg" });
         return;
       }
 
