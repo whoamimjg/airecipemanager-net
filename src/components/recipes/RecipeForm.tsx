@@ -501,65 +501,95 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
           {/* Instructions */}
           <div className="space-y-3">
             <Label className="text-card-foreground">Instructions</Label>
-            {instructions.map((step, i) => (
-              <div key={i} className="flex gap-2 items-start">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">
-                  {i + 1}
-                </span>
-                <div className="flex-1 space-y-2">
-                  <Input
-                    value={step.text}
-                    onChange={(e) => {
-                      const next = [...instructions];
-                      next[i] = { ...next[i], text: e.target.value };
-                      setInstructions(next);
-                    }}
-                    placeholder={`Step ${i + 1}`}
-                  />
-                  {step.image_url && (
-                    <div className="relative inline-block">
-                      <img src={step.image_url} alt={`Step ${i + 1}`} className="h-16 w-16 object-cover rounded border border-border" />
-                      <button
-                        type="button"
-                        onClick={() => {
+            {(() => {
+              let stepNum = 0;
+              return instructions.map((step, i) => {
+                if (step.heading !== undefined) {
+                  return (
+                    <div key={i} className="flex gap-2 items-center pt-2">
+                      <Input
+                        className="flex-1 font-semibold bg-muted/40"
+                        value={step.heading}
+                        onChange={(e) => {
                           const next = [...instructions];
-                          next[i] = { ...next[i], image_url: "" };
+                          next[i] = { ...next[i], heading: e.target.value };
                           setInstructions(next);
                         }}
-                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                        placeholder="Section heading (e.g. For the filling)"
+                      />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setInstructions(instructions.filter((_, idx) => idx !== i))}>
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => stepImageRefs.current[i]?.click()}
-                  disabled={uploadingStepIdx === i}
-                  title="Add step photo"
-                >
-                  {uploadingStepIdx === i ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                </Button>
-                <input
-                  ref={(el) => (stepImageRefs.current[i] = el)}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => handleStepImageUpload(e, i)}
-                />
-                {instructions.length > 1 && (
-                  <Button type="button" variant="ghost" size="icon" onClick={() => setInstructions(instructions.filter((_, idx) => idx !== i))}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => setInstructions([...instructions, { text: "", image_url: "" }])}>
-              <Plus className="mr-1 h-3 w-3" /> Add Step
-            </Button>
+                  );
+                }
+                stepNum += 1;
+                return (
+                  <div key={i} className="flex gap-2 items-start">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-sm text-muted-foreground">
+                      {stepNum}
+                    </span>
+                    <div className="flex-1 space-y-2">
+                      <Input
+                        value={step.text}
+                        onChange={(e) => {
+                          const next = [...instructions];
+                          next[i] = { ...next[i], text: e.target.value };
+                          setInstructions(next);
+                        }}
+                        placeholder={`Step ${stepNum}`}
+                      />
+                      {step.image_url && (
+                        <div className="relative inline-block">
+                          <img src={step.image_url} alt={`Step ${stepNum}`} className="h-16 w-16 object-cover rounded border border-border" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = [...instructions];
+                              next[i] = { ...next[i], image_url: "" };
+                              setInstructions(next);
+                            }}
+                            className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => stepImageRefs.current[i]?.click()}
+                      disabled={uploadingStepIdx === i}
+                      title="Add step photo"
+                    >
+                      {uploadingStepIdx === i ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                    </Button>
+                    <input
+                      ref={(el) => (stepImageRefs.current[i] = el)}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleStepImageUpload(e, i)}
+                    />
+                    {instructions.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setInstructions(instructions.filter((_, idx) => idx !== i))}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              });
+            })()}
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setInstructions([...instructions, { text: "", image_url: "" }])}>
+                <Plus className="mr-1 h-3 w-3" /> Add Step
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setInstructions([...instructions, { text: "", image_url: "", heading: "" }])}>
+                <Plus className="mr-1 h-3 w-3" /> Add Heading
+              </Button>
+            </div>
           </div>
 
           <div className="flex gap-3 justify-end">
