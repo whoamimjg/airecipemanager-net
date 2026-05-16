@@ -1,4 +1,8 @@
 import { useState, useRef } from "react";
+// Use the legacy build so Vite can resolve it without a custom worker setup.
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
