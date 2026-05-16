@@ -6,6 +6,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AI_TIMEOUT_MS = 40_000;
+
+const withTimeout = async (url: string, init: RequestInit, timeoutMs: number) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -15,10 +27,11 @@ serve(async (req) => {
     const body = await req.json();
     const file_base64: string | undefined = body.file_base64 ?? body.image_base64;
     const mime_type: string = body.mime_type ?? "image/jpeg";
+    const receipt_text: string | undefined = body.receipt_text;
 
-    if (!file_base64 || typeof file_base64 !== "string") {
+    if ((!file_base64 || typeof file_base64 !== "string") && (!receipt_text || typeof receipt_text !== "string")) {
       return new Response(
-        JSON.stringify({ error: "file_base64 is required" }),
+        JSON.stringify({ error: "file_base64 or receipt_text is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -62,7 +75,19 @@ Important:
 - Only include actual food/grocery products that were purchased
 - Return ONLY valid JSON, no markdown or explanation`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const userContent = receipt_text
+      ? [
+          { type: "text", text: `${prompt}\n\nReceipt text:\n${receipt_text.slice(0, 60_000)}` },
+        ]
+      : [
+          { type: "text", text: prompt },
+          {
+            type: "image_url",
+            image_url: { url: `data:${mime_type};base64,${file_base64}` },
+          },
+        ];
+
+    const response = await withTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -73,18 +98,12 @@ Important:
         messages: [
           {
             role: "user",
-            content: [
-              { type: "text", text: prompt },
-              {
-                type: "image_url",
-                image_url: { url: `data:${mime_type};base64,${file_base64}` },
-              },
-            ],
+            content: userContent,
           },
         ],
         response_format: { type: "json_object" },
       }),
-    });
+    }, AI_TIMEOUT_MS);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -122,6 +141,12 @@ Important:
     });
   } catch (error) {
     console.error("Receipt scan error:", error);
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return new Response(
+        JSON.stringify({ error: "Receipt scan timed out. Please try a shorter receipt image or a clearer PDF." }),
+        { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

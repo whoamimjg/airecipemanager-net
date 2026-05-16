@@ -1,8 +1,4 @@
 import { useState, useRef } from "react";
-// Use the legacy build so Vite can resolve it without a custom worker setup.
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,6 +56,15 @@ interface ReceiptScannerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type ScanPayload = {
+  file_base64?: string;
+  mime_type?: string;
+  receipt_text?: string;
+};
+
+const SCAN_TIMEOUT_MS = 45_000;
+const PDF_TEXT_MIN_LENGTH = 80;
+
 const STORAGE_LOCATIONS = [
   { value: "fridge", label: "🧊 Fridge" },
   { value: "freezer", label: "❄️ Freezer" },
@@ -81,11 +86,13 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
   const [storeName, setStoreName] = useState("");
   const [receiptDate, setReceiptDate] = useState(new Date().toISOString().split("T")[0]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreparingFile, setIsPreparingFile] = useState(false);
 
   const scanMutation = useMutation({
-    mutationFn: async (payload: { file_base64: string; mime_type: string }) => {
+    mutationFn: async (payload: ScanPayload) => {
       const { data, error } = await supabase.functions.invoke("scan-receipt", {
         body: payload,
+        timeout: SCAN_TIMEOUT_MS,
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
@@ -236,51 +243,31 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
       img.src = url;
     });
 
-  // Render a PDF receipt into a single tall JPEG (pages stacked vertically) so the
-  // vision model receives an image, not a raw PDF (which hangs the request).
-  const pdfToJpegBlob = async (file: File, targetWidth = 1400, quality = 0.85): Promise<Blob> => {
+  const extractPdfText = async (file: File): Promise<string> => {
+    const [pdfjsLib, workerModule] = await Promise.all([
+      import("pdfjs-dist/legacy/build/pdf.mjs"),
+      import("pdfjs-dist/legacy/build/pdf.worker.mjs?url"),
+    ]);
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default;
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const renderedPages: HTMLCanvasElement[] = [];
-    const maxPages = Math.min(pdf.numPages, 8);
+    const pages: string[] = [];
+    const maxPages = Math.min(pdf.numPages, 20);
     for (let i = 1; i <= maxPages; i++) {
       const page = await pdf.getPage(i);
-      const baseViewport = page.getViewport({ scale: 1 });
-      const scale = targetWidth / baseViewport.width;
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(viewport.width);
-      canvas.height = Math.round(viewport.height);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas unsupported");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-      renderedPages.push(canvas);
+      const content = await page.getTextContent();
+      const text = content.items
+        .map((item) => ("str" in item ? item.str : ""))
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (text) pages.push(text);
     }
-    if (renderedPages.length === 0) throw new Error("Empty PDF");
-
-    const width = renderedPages[0].width;
-    const totalHeight = renderedPages.reduce((sum, c) => sum + c.height, 0);
-    const out = document.createElement("canvas");
-    out.width = width;
-    out.height = totalHeight;
-    const outCtx = out.getContext("2d");
-    if (!outCtx) throw new Error("Canvas unsupported");
-    outCtx.fillStyle = "#ffffff";
-    outCtx.fillRect(0, 0, width, totalHeight);
-    let y = 0;
-    for (const c of renderedPages) {
-      outCtx.drawImage(c, 0, y);
-      y += c.height;
+    const receiptText = pages.join("\n\n");
+    if (receiptText.length < PDF_TEXT_MIN_LENGTH) {
+      throw new Error("This PDF does not contain readable receipt text. Please upload a screenshot or photo instead.");
     }
-    return await new Promise<Blob>((resolve, reject) => {
-      out.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error("Failed to encode PDF page"))),
-        "image/jpeg",
-        quality
-      );
-    });
+    return receiptText;
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -291,13 +278,12 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
     const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
 
     try {
+      setIsPreparingFile(true);
       if (isPdf) {
-        // Render the PDF to a JPEG so the AI receives an image it can reliably read.
-        // Sending raw PDFs to the vision endpoint hangs on some receipts.
-        const blob = await pdfToJpegBlob(file);
-        setPreviewUrl(URL.createObjectURL(blob));
-        const base64 = await fileToBase64(blob);
-        scanMutation.mutate({ file_base64: base64, mime_type: "image/jpeg" });
+        const receiptText = await extractPdfText(file);
+        setPreviewUrl(null);
+        setIsPreparingFile(false);
+        scanMutation.mutate({ receipt_text: receiptText, mime_type: "text/plain" });
         return;
       }
 
@@ -310,8 +296,10 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
       }
       setPreviewUrl(URL.createObjectURL(blob));
       const base64 = await fileToBase64(blob);
+      setIsPreparingFile(false);
       scanMutation.mutate({ file_base64: base64, mime_type: "image/jpeg" });
     } catch (err) {
+      setIsPreparingFile(false);
       toast.error("Could not read file: " + (err instanceof Error ? err.message : "Unknown error"));
     }
   };
@@ -383,10 +371,10 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                 </div>
               )}
 
-              {scanMutation.isPending ? (
+              {isPreparingFile || scanMutation.isPending ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Analyzing receipt...
+                  {isPreparingFile ? "Preparing receipt..." : "Analyzing receipt..."}
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
