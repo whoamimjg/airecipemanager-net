@@ -141,6 +141,12 @@ Important:
     });
   } catch (error) {
     console.error("Receipt scan error:", error);
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return new Response(
+        JSON.stringify({ error: "Receipt scan timed out. Please try a shorter receipt image or a clearer PDF." }),
+        { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
