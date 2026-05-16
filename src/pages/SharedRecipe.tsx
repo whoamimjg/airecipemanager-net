@@ -118,25 +118,36 @@ const SharedRecipe = () => {
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-3">Instructions</h2>
             <ol className="space-y-3">
-              {instructions.map((step: any, i: number) => {
-                const text = typeof step === "string" ? step : step?.text || "";
-                const img = typeof step === "object" ? step?.image_url : "";
-                return (
-                  <li key={i} className="flex gap-3 text-sm">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 flex items-start gap-3">
-                      <span className="text-muted-foreground pt-0.5 flex-1">{text}</span>
-                      {img && (
-                        <button type="button" onClick={() => setExpandedImage(img)} className="shrink-0 hover:opacity-80 transition-opacity">
-                          <img src={img} alt={`Step ${i + 1}`} className="h-14 w-14 object-cover rounded border border-border cursor-pointer" />
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
+              {(() => {
+                let stepNum = 0;
+                return instructions.map((step: any, i: number) => {
+                  if (step && typeof step === "object" && typeof step.heading === "string") {
+                    return (
+                      <li key={i} className="pt-3 first:pt-0 list-none">
+                        <h3 className="font-semibold text-foreground text-sm">{step.heading}</h3>
+                      </li>
+                    );
+                  }
+                  stepNum += 1;
+                  const text = typeof step === "string" ? step : step?.text || "";
+                  const img = typeof step === "object" ? step?.image_url : "";
+                  return (
+                    <li key={i} className="flex gap-3 text-sm">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                        {stepNum}
+                      </span>
+                      <div className="flex-1 flex items-start gap-3">
+                        <span className="text-muted-foreground pt-0.5 flex-1">{text}</span>
+                        {img && (
+                          <button type="button" onClick={() => setExpandedImage(img)} className="shrink-0 hover:opacity-80 transition-opacity">
+                            <img src={img} alt={`Step ${stepNum}`} className="h-14 w-14 object-cover rounded border border-border cursor-pointer" />
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                });
+              })()}
             </ol>
           </div>
         )}
