@@ -141,7 +141,7 @@ const CookingMode = ({ open, onOpenChange, title, ingredients, instructions, pre
               onClick={() => setCurrentStep(-1)}
               className={`h-2.5 w-2.5 rounded-full shrink-0 transition-colors ${currentStep === -1 ? "bg-primary" : "bg-muted-foreground/30"}`}
             />
-            {instructions.map((_, i) => (
+            {stepInstructions.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentStep(i)}
