@@ -241,9 +241,12 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
 
     try {
       if (isPdf) {
-        setPreviewUrl(null);
-        const base64 = await fileToBase64(file);
-        scanMutation.mutate({ file_base64: base64, mime_type: "application/pdf" });
+        // Render the PDF to a JPEG so the AI receives an image it can reliably read.
+        // Sending raw PDFs to the vision endpoint hangs on some receipts.
+        const blob = await pdfToJpegBlob(file);
+        setPreviewUrl(URL.createObjectURL(blob));
+        const base64 = await fileToBase64(blob);
+        scanMutation.mutate({ file_base64: base64, mime_type: "image/jpeg" });
         return;
       }
 
