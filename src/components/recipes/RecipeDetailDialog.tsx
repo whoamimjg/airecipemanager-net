@@ -117,6 +117,13 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
             <h3 className="font-semibold text-foreground mb-2">Ingredients</h3>
             <ul className="space-y-1">
               {ingredients.map((ing: any, i: number) => {
+                if (ing && typeof ing === "object" && typeof ing.heading === "string") {
+                  return (
+                    <li key={i} className="pt-3 first:pt-0 font-semibold text-foreground text-sm">
+                      {ing.heading}
+                    </li>
+                  );
+                }
                 const text = typeof ing === "string"
                   ? ing
                   : [ing?.quantity || ing?.amount, ing?.unit, ing?.name, ing?.notes ? `(${ing.notes})` : ""]
