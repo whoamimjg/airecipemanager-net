@@ -386,28 +386,30 @@ const GroceryList = () => {
     }
   };
 
-  // Combine recipe-derived items with manually added items
+  // Combine recipe-derived items with manually added items, excluding anything the user deleted
   const allGroceryItems = useMemo(() => {
-    const combined = [...groceryItems];
-    dbManualItems.forEach(manual => {
-      const key = manual.name.toLowerCase();
-      const existing = combined.find(i => i.name.toLowerCase() === key);
-      if (existing) {
-        const mNum = parseFloat(manual.quantity);
-        const eNum = parseFloat(existing.quantity);
-        if (!isNaN(mNum) && mNum > 0) {
-          existing.quantity = !isNaN(eNum) ? String(eNum + mNum) : String(mNum);
+    const combined = [...groceryItems].filter(i => !deletedKeySet.has(i.name.toLowerCase()));
+    dbManualItems
+      .filter(m => !deletedKeySet.has(m.name.toLowerCase()))
+      .forEach(manual => {
+        const key = manual.name.toLowerCase();
+        const existing = combined.find(i => i.name.toLowerCase() === key);
+        if (existing) {
+          const mNum = parseFloat(manual.quantity);
+          const eNum = parseFloat(existing.quantity);
+          if (!isNaN(mNum) && mNum > 0) {
+            existing.quantity = !isNaN(eNum) ? String(eNum + mNum) : String(mNum);
+          }
+          if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
+        } else {
+          combined.push(manual);
         }
-        if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
-      } else {
-        combined.push(manual);
-      }
-    });
+      });
     return combined.sort((a, b) => {
       if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
-  }, [groceryItems, dbManualItems]);
+  }, [groceryItems, dbManualItems, deletedKeySet]);
 
   const addManualItem = () => {
     const name = newItemName.trim();
@@ -426,9 +428,74 @@ const GroceryList = () => {
     setShowAddForm(false);
   };
 
-  const removeManualItem = (itemName: string) => {
-    deleteManualItemMutation.mutate(itemName);
+  // Soft-delete: record in grocery_deleted_keys so it never auto-reappears.
+  // Manual rows are also removed from grocery_items so they aren't re-aggregated.
+  const softDeleteItem = useMutation({
+    mutationFn: async (item: GroceryItem) => {
+      if (!user) return;
+      const key = item.name.toLowerCase();
+      const isManual = item.recipes.length === 1 && item.recipes[0] === "Manual";
+      await supabase.from("grocery_deleted_keys").upsert(
+        {
+          user_id: user.id,
+          item_key: key,
+          display_name: item.name,
+          quantity: item.quantity || null,
+          unit: item.unit || null,
+          category: item.category || null,
+          source: isManual ? "manual" : "recipe",
+        },
+        { onConflict: "user_id,item_key" }
+      );
+      // Remove from active checked keys + manual table so it's fully gone from active list
+      await supabase
+        .from("grocery_checked_keys")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("item_key", key);
+      if (isManual) {
+        await supabase.from("grocery_items").delete().ilike("name", item.name);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["grocery-checked-keys"] });
+    },
+  });
+
+  const restoreDeletedItem = useMutation({
+    mutationFn: async (d: { id: string; item_key: string; source: string; display_name: string; quantity: string | null; unit: string | null; category: string | null }) => {
+      if (!user) return;
+      // If it was a manual item, re-create it so it shows again (recipe items come back from meal plans automatically)
+      if (d.source === "manual") {
+        await supabase.from("grocery_items").insert({
+          user_id: user.id,
+          name: d.display_name,
+          quantity: d.quantity || "1",
+          unit: d.unit || "",
+          category: d.category || "Other",
+        });
+      }
+      await supabase.from("grocery_deleted_keys").delete().eq("id", d.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+    },
+  });
+
+  const removeItem = (item: GroceryItem) => {
+    haptics.light();
+    softDeleteItem.mutate(item);
+    setCheckedItems(prev => {
+      const next = new Set(prev);
+      next.delete(item.name.toLowerCase());
+      return next;
+    });
   };
+
 
   const applyOverrides = (items: GroceryItem[]) =>
     items.map(item => {
