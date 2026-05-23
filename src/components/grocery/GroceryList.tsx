@@ -946,6 +946,53 @@ const GroceryList = () => {
                 </CardContent>
               </Card>
             )}
+
+            {deletedItems.length > 0 && (
+              <Card className="border-border">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                    Deleted Items
+                    <Badge variant="secondary" className="text-xs ml-auto">{deletedItems.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="max-h-[400px] overflow-y-auto pr-1">
+                    <div className="space-y-1">
+                      {deletedItems.map(d => (
+                        <div
+                          key={d.id}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">
+                              {d.display_name}
+                              {d.quantity && (
+                                <span className="text-muted-foreground font-normal ml-1">
+                                  — {d.quantity}{d.unit ? ` ${d.unit}` : ""}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70 truncate">
+                              {d.source === "manual" ? "Manual" : "From meal plan"} · {new Date(d.deleted_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-primary"
+                            onClick={() => restoreDeletedItem.mutate(d)}
+                            title="Restore"
+                          >
+                            <Undo2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       )}
