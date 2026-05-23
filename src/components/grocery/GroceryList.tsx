@@ -280,6 +280,30 @@ const GroceryList = () => {
     enabled: !!user,
   });
 
+  // Persisted deleted items (recipe-derived + manual). These never reappear unless restored.
+  const { data: deletedItems = [] } = useQuery({
+    queryKey: ["grocery-deleted-keys"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("grocery_deleted_keys")
+        .select("*")
+        .order("deleted_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Array<{
+        id: string;
+        item_key: string;
+        display_name: string;
+        quantity: string | null;
+        unit: string | null;
+        category: string | null;
+        source: string;
+        deleted_at: string;
+      }>;
+    },
+    enabled: !!user,
+  });
+  const deletedKeySet = useMemo(() => new Set(deletedItems.map(d => d.item_key)), [deletedItems]);
+
   // Seed local Set from DB whenever it changes (merge, don't overwrite optimistic toggles)
   useEffect(() => {
     if (!dbCheckedKeys.length) return;
