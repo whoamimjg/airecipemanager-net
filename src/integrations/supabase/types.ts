@@ -122,6 +122,42 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_deleted_keys: {
+        Row: {
+          category: string | null
+          deleted_at: string
+          display_name: string
+          id: string
+          item_key: string
+          quantity: string | null
+          source: string
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          deleted_at?: string
+          display_name: string
+          id?: string
+          item_key: string
+          quantity?: string | null
+          source?: string
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          deleted_at?: string
+          display_name?: string
+          id?: string
+          item_key?: string
+          quantity?: string | null
+          source?: string
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       grocery_items: {
         Row: {
           category: string

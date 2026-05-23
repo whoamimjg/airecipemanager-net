@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X
+  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Undo2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -280,6 +280,30 @@ const GroceryList = () => {
     enabled: !!user,
   });
 
+  // Persisted deleted items (recipe-derived + manual). These never reappear unless restored.
+  const { data: deletedItems = [] } = useQuery({
+    queryKey: ["grocery-deleted-keys"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("grocery_deleted_keys")
+        .select("*")
+        .order("deleted_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as Array<{
+        id: string;
+        item_key: string;
+        display_name: string;
+        quantity: string | null;
+        unit: string | null;
+        category: string | null;
+        source: string;
+        deleted_at: string;
+      }>;
+    },
+    enabled: !!user,
+  });
+  const deletedKeySet = useMemo(() => new Set(deletedItems.map(d => d.item_key)), [deletedItems]);
+
   // Seed local Set from DB whenever it changes (merge, don't overwrite optimistic toggles)
   useEffect(() => {
     if (!dbCheckedKeys.length) return;
@@ -362,28 +386,30 @@ const GroceryList = () => {
     }
   };
 
-  // Combine recipe-derived items with manually added items
+  // Combine recipe-derived items with manually added items, excluding anything the user deleted
   const allGroceryItems = useMemo(() => {
-    const combined = [...groceryItems];
-    dbManualItems.forEach(manual => {
-      const key = manual.name.toLowerCase();
-      const existing = combined.find(i => i.name.toLowerCase() === key);
-      if (existing) {
-        const mNum = parseFloat(manual.quantity);
-        const eNum = parseFloat(existing.quantity);
-        if (!isNaN(mNum) && mNum > 0) {
-          existing.quantity = !isNaN(eNum) ? String(eNum + mNum) : String(mNum);
+    const combined = [...groceryItems].filter(i => !deletedKeySet.has(i.name.toLowerCase()));
+    dbManualItems
+      .filter(m => !deletedKeySet.has(m.name.toLowerCase()))
+      .forEach(manual => {
+        const key = manual.name.toLowerCase();
+        const existing = combined.find(i => i.name.toLowerCase() === key);
+        if (existing) {
+          const mNum = parseFloat(manual.quantity);
+          const eNum = parseFloat(existing.quantity);
+          if (!isNaN(mNum) && mNum > 0) {
+            existing.quantity = !isNaN(eNum) ? String(eNum + mNum) : String(mNum);
+          }
+          if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
+        } else {
+          combined.push(manual);
         }
-        if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
-      } else {
-        combined.push(manual);
-      }
-    });
+      });
     return combined.sort((a, b) => {
       if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
-  }, [groceryItems, dbManualItems]);
+  }, [groceryItems, dbManualItems, deletedKeySet]);
 
   const addManualItem = () => {
     const name = newItemName.trim();
@@ -402,9 +428,74 @@ const GroceryList = () => {
     setShowAddForm(false);
   };
 
-  const removeManualItem = (itemName: string) => {
-    deleteManualItemMutation.mutate(itemName);
+  // Soft-delete: record in grocery_deleted_keys so it never auto-reappears.
+  // Manual rows are also removed from grocery_items so they aren't re-aggregated.
+  const softDeleteItem = useMutation({
+    mutationFn: async (item: GroceryItem) => {
+      if (!user) return;
+      const key = item.name.toLowerCase();
+      const isManual = item.recipes.length === 1 && item.recipes[0] === "Manual";
+      await supabase.from("grocery_deleted_keys").upsert(
+        {
+          user_id: user.id,
+          item_key: key,
+          display_name: item.name,
+          quantity: item.quantity || null,
+          unit: item.unit || null,
+          category: item.category || null,
+          source: isManual ? "manual" : "recipe",
+        },
+        { onConflict: "user_id,item_key" }
+      );
+      // Remove from active checked keys + manual table so it's fully gone from active list
+      await supabase
+        .from("grocery_checked_keys")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("item_key", key);
+      if (isManual) {
+        await supabase.from("grocery_items").delete().ilike("name", item.name);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["grocery-checked-keys"] });
+    },
+  });
+
+  const restoreDeletedItem = useMutation({
+    mutationFn: async (d: { id: string; item_key: string; source: string; display_name: string; quantity: string | null; unit: string | null; category: string | null }) => {
+      if (!user) return;
+      // If it was a manual item, re-create it so it shows again (recipe items come back from meal plans automatically)
+      if (d.source === "manual") {
+        await supabase.from("grocery_items").insert({
+          user_id: user.id,
+          name: d.display_name,
+          quantity: d.quantity || "1",
+          unit: d.unit || "",
+          category: d.category || "Other",
+        });
+      }
+      await supabase.from("grocery_deleted_keys").delete().eq("id", d.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
+      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+    },
+  });
+
+  const removeItem = (item: GroceryItem) => {
+    haptics.light();
+    softDeleteItem.mutate(item);
+    setCheckedItems(prev => {
+      const next = new Set(prev);
+      next.delete(item.name.toLowerCase());
+      return next;
+    });
   };
+
 
   const applyOverrides = (items: GroceryItem[]) =>
     items.map(item => {
@@ -742,16 +833,15 @@ const GroceryList = () => {
                               >
                                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                               </Button>
-                              {item.recipes.length === 1 && item.recipes[0] === "Manual" && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 text-destructive"
-                                  onClick={e => { e.stopPropagation(); removeManualItem(item.name); }}
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 text-destructive"
+                                onClick={e => { e.stopPropagation(); removeItem(item); }}
+                                title="Delete item"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -851,6 +941,53 @@ const GroceryList = () => {
                             </div>
                           );
                         })}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {deletedItems.length > 0 && (
+              <Card className="border-border">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                    Deleted Items
+                    <Badge variant="secondary" className="text-xs ml-auto">{deletedItems.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="max-h-[400px] overflow-y-auto pr-1">
+                    <div className="space-y-1">
+                      {deletedItems.map(d => (
+                        <div
+                          key={d.id}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">
+                              {d.display_name}
+                              {d.quantity && (
+                                <span className="text-muted-foreground font-normal ml-1">
+                                  — {d.quantity}{d.unit ? ` ${d.unit}` : ""}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70 truncate">
+                              {d.source === "manual" ? "Manual" : "From meal plan"} · {new Date(d.deleted_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-primary"
+                            onClick={() => restoreDeletedItem.mutate(d)}
+                            title="Restore"
+                          >
+                            <Undo2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
