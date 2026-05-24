@@ -783,7 +783,7 @@ const MealPlanner = () => {
               autoFocus
             />
           </div>
-          <ScrollArea className="flex-1 -mx-2 px-2">
+          <ScrollArea className="flex-1 min-h-0 -mx-2 px-2">
             <div className="space-y-4 pb-2">
               {pickerFilteredRecipes.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
