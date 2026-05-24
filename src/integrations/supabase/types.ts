@@ -191,6 +191,39 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_overrides: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          item_key: string
+          quantity: string | null
+          unit: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          item_key: string
+          quantity?: string | null
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          item_key?: string
+          quantity?: string | null
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_deletions: {
         Row: {
           category: string | null
