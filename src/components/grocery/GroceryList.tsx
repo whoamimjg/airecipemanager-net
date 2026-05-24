@@ -679,7 +679,65 @@ const GroceryList = () => {
     return `${header}${body}`;
   };
 
+  // Fetch user's ZIP code (used for store-specific pricing)
+  const { data: userZip } = useQuery({
+    queryKey: ["user-zip", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("zip_code")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data as any)?.zip_code as string | null;
+    },
+  });
+
+  const normalizeKeyLocal = (n: string) => n.trim().toLowerCase().replace(/\s+/g, " ");
+
+  const fetchPricesForStore = async (storeId: StoreId) => {
+    if (!userZip || !/^\d{5}$/.test(userZip)) {
+      toast({
+        title: "Add your ZIP code",
+        description: "Set a 5-digit ZIP in Account settings to fetch store prices.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (needToBuy.length === 0) {
+      setActiveStore(storeId);
+      return;
+    }
+    setLoadingStore(storeId);
+    setActiveStore(storeId);
+    try {
+      const items = needToBuy.map(i => ({ key: normalizeKeyLocal(i.name), name: i.name }));
+      const { data, error } = await supabase.functions.invoke("fetch-grocery-prices", {
+        body: { items, store: storeId, zip: userZip },
+      });
+      if (error) throw error;
+      const prices = (data as any)?.prices ?? {};
+      setPricesByStore(prev => ({ ...prev, [storeId]: prices }));
+    } catch (e: any) {
+      toast({
+        title: "Couldn't fetch prices",
+        description: e?.message ?? "Try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingStore(null);
+    }
+  };
+
+  const getItemPrice = (itemName: string) => {
+    if (!activeStore) return null;
+    const map = pricesByStore[activeStore];
+    if (!map) return null;
+    return map[normalizeKeyLocal(itemName)] ?? null;
+  };
+
   const handlePrint = () => {
+
     const groups = buildShareGroups();
     const win = window.open("", "_blank", "width=800,height=900");
     if (!win) return;
