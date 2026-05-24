@@ -70,6 +70,8 @@ const AccountSettings = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [displayName, setDisplayName] = useState("");
+  const [zipCode, setZipCode] = useState("");
+
   const [dietRestrictions, setDietRestrictions] = useState<string[]>([]);
   const [breakfastTime, setBreakfastTime] = useState("08:00");
   const [lunchTime, setLunchTime] = useState("12:00");
@@ -170,6 +172,8 @@ const AccountSettings = () => {
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name ?? "");
+      setZipCode((profile as any).zip_code ?? "");
+
       setDietRestrictions(profile.diet_restrictions ?? []);
       setBreakfastTime(profile.breakfast_time?.slice(0, 5) ?? "08:00");
       setLunchTime(profile.lunch_time?.slice(0, 5) ?? "12:00");
@@ -228,7 +232,9 @@ const AccountSettings = () => {
     try {
       const updates = {
         display_name: displayName || null,
+        zip_code: zipCode.trim() || null,
         diet_restrictions: dietRestrictions,
+
         breakfast_time: breakfastTime + ":00",
         lunch_time: lunchTime + ":00",
         dinner_time: dinnerTime + ":00",
@@ -400,6 +406,22 @@ const AccountSettings = () => {
             <Label>Email</Label>
             <Input value={user?.email ?? ""} disabled className="opacity-60" />
           </div>
+
+          {/* ZIP code for store pricing */}
+          <div className="space-y-1">
+            <Label htmlFor="zipCode">ZIP Code</Label>
+            <Input
+              id="zipCode"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+              placeholder="e.g. 43215"
+              inputMode="numeric"
+              maxLength={5}
+              className="max-w-[140px]"
+            />
+            <p className="text-xs text-muted-foreground">Used to fetch prices from your local Kroger, Aldi, Meijer, and Giant Eagle.</p>
+          </div>
+
         </CardContent>
       </Card>
 

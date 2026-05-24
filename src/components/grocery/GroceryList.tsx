@@ -11,8 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Undo2, Printer, Share2
+  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Undo2, Printer, Share2, DollarSign, Loader2
 } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -46,6 +47,19 @@ const GroceryList = () => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
+
+  // Store pricing
+  type StoreId = "kroger" | "aldi" | "meijer" | "giant_eagle";
+  const STORES: { id: StoreId; label: string }[] = [
+    { id: "kroger", label: "Kroger" },
+    { id: "aldi", label: "Aldi" },
+    { id: "meijer", label: "Meijer" },
+    { id: "giant_eagle", label: "Giant Eagle" },
+  ];
+  const [activeStore, setActiveStore] = useState<StoreId | null>(null);
+  const [pricesByStore, setPricesByStore] = useState<Partial<Record<StoreId, Record<string, { price: number | null; productName: string | null; currency: string }>>>>({});
+  const [loadingStore, setLoadingStore] = useState<StoreId | null>(null);
+
 
   // Load persisted overrides so edits survive refresh / re-login
   useQuery({
@@ -665,7 +679,65 @@ const GroceryList = () => {
     return `${header}${body}`;
   };
 
+  // Fetch user's ZIP code (used for store-specific pricing)
+  const { data: userZip } = useQuery({
+    queryKey: ["user-zip", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("zip_code")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return (data as any)?.zip_code as string | null;
+    },
+  });
+
+  const normalizeKeyLocal = (n: string) => n.trim().toLowerCase().replace(/\s+/g, " ");
+
+  const fetchPricesForStore = async (storeId: StoreId) => {
+    if (!userZip || !/^\d{5}$/.test(userZip)) {
+      toast({
+        title: "Add your ZIP code",
+        description: "Set a 5-digit ZIP in Account settings to fetch store prices.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (needToBuy.length === 0) {
+      setActiveStore(storeId);
+      return;
+    }
+    setLoadingStore(storeId);
+    setActiveStore(storeId);
+    try {
+      const items = needToBuy.map(i => ({ key: normalizeKeyLocal(i.name), name: i.name }));
+      const { data, error } = await supabase.functions.invoke("fetch-grocery-prices", {
+        body: { items, store: storeId, zip: userZip },
+      });
+      if (error) throw error;
+      const prices = (data as any)?.prices ?? {};
+      setPricesByStore(prev => ({ ...prev, [storeId]: prices }));
+    } catch (e: any) {
+      toast({
+        title: "Couldn't fetch prices",
+        description: e?.message ?? "Try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingStore(null);
+    }
+  };
+
+  const getItemPrice = (itemName: string) => {
+    if (!activeStore) return null;
+    const map = pricesByStore[activeStore];
+    if (!map) return null;
+    return map[normalizeKeyLocal(itemName)] ?? null;
+  };
+
   const handlePrint = () => {
+
     const groups = buildShareGroups();
     const win = window.open("", "_blank", "width=800,height=900");
     if (!win) return;
@@ -767,10 +839,40 @@ const GroceryList = () => {
               Auto-generated from your meal plan. Add extra items manually too.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Store price selector */}
+            <div className="flex items-center gap-1 mr-1 flex-wrap">
+              {STORES.map(s => {
+                const isActive = activeStore === s.id;
+                const isLoading = loadingStore === s.id;
+                return (
+                  <Button
+                    key={s.id}
+                    size="sm"
+                    variant={isActive ? "default" : "outline"}
+                    onClick={() => fetchPricesForStore(s.id)}
+                    disabled={isLoading || needToBuy.length === 0}
+                    title={`Show ${s.label} prices`}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <DollarSign className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    {s.label}
+                  </Button>
+                );
+              })}
+              {activeStore && (
+                <Button size="sm" variant="ghost" onClick={() => setActiveStore(null)} title="Hide prices">
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
             <Button onClick={handlePrint} size="sm" variant="outline" disabled={needToBuy.length === 0}>
               <Printer className="mr-2 h-4 w-4" /> Print
             </Button>
+
             {isMobile && hasNativeShare ? (
               <Button onClick={shareViaNative} size="sm" variant="outline" disabled={needToBuy.length === 0}>
                 <Share2 className="mr-2 h-4 w-4" /> Share
@@ -1032,12 +1134,30 @@ const GroceryList = () => {
                                       — {item.quantity}{item.unit ? ` ${item.unit}` : ""}
                                     </span>
                                   )}
+                                  {activeStore && (() => {
+                                    const p = getItemPrice(item.name);
+                                    if (loadingStore === activeStore && !p) {
+                                      return (
+                                        <span className="ml-2 inline-flex items-center text-xs text-muted-foreground">
+                                          <Loader2 className="h-3 w-3 animate-spin mr-1" /> {STORES.find(s => s.id === activeStore)?.label}…
+                                        </span>
+                                      );
+                                    }
+                                    if (!p) return null;
+                                    const storeLabel = STORES.find(s => s.id === activeStore)?.label;
+                                    return (
+                                      <span className="ml-2 inline-flex items-center text-xs font-semibold text-primary">
+                                        {storeLabel} {p.price != null ? `$${Number(p.price).toFixed(2)}` : "—"}
+                                      </span>
+                                    );
+                                  })()}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
                                   Used in: {item.recipes.join(", ")}
                                 </p>
                               </>
                             )}
+
                           </div>
                           {!isEditing && (
                             <div className="flex gap-1 flex-shrink-0">
