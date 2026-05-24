@@ -766,7 +766,7 @@ const MealPlanner = () => {
 
       {/* Recipe Picker Dialog */}
       <Dialog open={!!pickerTarget} onOpenChange={(open) => !open && setPickerTarget(null)}>
-        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-md max-h-[80vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ChefHat className="h-5 w-5" />
