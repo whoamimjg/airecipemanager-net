@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Undo2
+  CalendarIcon, ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Undo2, Printer, Share2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -582,6 +582,86 @@ const GroceryList = () => {
   const checkedCount = allCheckedItems.length;
   const totalToBuy = allGroceryItems.filter(i => !i.inInventory).length;
 
+  // Build grouped "need to buy" items for print/share, preserving category headings
+  const buildShareGroups = () => {
+    const groups: Record<string, GroceryItem[]> = {};
+    needToBuy.forEach(item => {
+      const cat = item.category || "Other";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(item);
+    });
+    return STORE_CATEGORIES
+      .filter(cat => groups[cat]?.length > 0)
+      .map(cat => [cat, groups[cat]] as [string, GroceryItem[]]);
+  };
+
+  const formatItemLine = (item: GroceryItem) => {
+    const qty = [item.quantity, item.unit].filter(Boolean).join(" ").trim();
+    return qty ? `${qty} ${item.name}` : item.name;
+  };
+
+  const buildShareText = () => {
+    const groups = buildShareGroups();
+    const header = `Grocery List (${format(rangeStart, "MMM d")} – ${format(rangeEnd, "MMM d, yyyy")})\n`;
+    if (groups.length === 0) return `${header}\nNo items to buy.`;
+    const body = groups
+      .map(([cat, items]) =>
+        `\n${cat.toUpperCase()}\n${items.map(i => `  • ${formatItemLine(i)}`).join("\n")}`
+      )
+      .join("\n");
+    return `${header}${body}`;
+  };
+
+  const handlePrint = () => {
+    const groups = buildShareGroups();
+    const win = window.open("", "_blank", "width=800,height=900");
+    if (!win) return;
+    const rows = groups.length === 0
+      ? `<p>No items to buy.</p>`
+      : groups.map(([cat, items]) => `
+          <section style="margin-bottom:18px;break-inside:avoid;">
+            <h2 style="font-size:14px;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #1B2A3A;padding-bottom:4px;margin:0 0 8px;color:#1B2A3A;">${cat}</h2>
+            <ul style="list-style:none;padding:0;margin:0;">
+              ${items.map(i => `<li style="padding:4px 0;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-block;width:14px;height:14px;border:1.5px solid #4B6981;border-radius:3px;flex-shrink:0;"></span>
+                <span>${formatItemLine(i).replace(/</g, "&lt;")}</span>
+              </li>`).join("")}
+            </ul>
+          </section>
+        `).join("");
+    win.document.write(`<!doctype html><html><head><title>Grocery List</title>
+      <meta charset="utf-8" />
+      <style>
+        body{font-family:Inter,system-ui,sans-serif;color:#1B2A3A;max-width:680px;margin:24px auto;padding:0 16px;}
+        h1{font-size:22px;margin:0 0 4px;}
+        .range{color:#666;font-size:13px;margin-bottom:20px;}
+        @media print { @page { margin: 0.5in; } }
+      </style></head><body>
+      <h1>Grocery List</h1>
+      <div class="range">${format(rangeStart, "MMM d, yyyy")} – ${format(rangeEnd, "MMM d, yyyy")}</div>
+      ${rows}
+      <script>window.onload=()=>{window.print();}</script>
+    </body></html>`);
+    win.document.close();
+  };
+
+  const handleShare = async () => {
+    const text = buildShareText();
+    const shareData = { title: "Grocery List", text };
+    try {
+      if (typeof navigator !== "undefined" && (navigator as any).share) {
+        await (navigator as any).share(shareData);
+        return;
+      }
+    } catch {
+      // user cancelled or share failed; fall through to mailto
+    }
+    const subject = encodeURIComponent("Grocery List");
+    const body = encodeURIComponent(text);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+
   return (
     <div className="space-y-6">
       {/* Header with date range selection */}
@@ -593,9 +673,17 @@ const GroceryList = () => {
               Auto-generated from your meal plan. Add extra items manually too.
             </p>
           </div>
-          <Button onClick={() => setShowAddForm(true)} size="sm">
-            <Plus className="mr-2 h-4 w-4" /> Add Item
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handlePrint} size="sm" variant="outline" disabled={needToBuy.length === 0}>
+              <Printer className="mr-2 h-4 w-4" /> Print
+            </Button>
+            <Button onClick={handleShare} size="sm" variant="outline" disabled={needToBuy.length === 0}>
+              <Share2 className="mr-2 h-4 w-4" /> Share
+            </Button>
+            <Button onClick={() => setShowAddForm(true)} size="sm">
+              <Plus className="mr-2 h-4 w-4" /> Add Item
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
