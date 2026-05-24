@@ -571,8 +571,8 @@ const GroceryList = () => {
     }
   };
 
-  const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(normalizeKey(i.name)));
-  const alreadyHave = allGroceryItems.filter(i => i.inInventory);
+  const needToBuy = adjustedItems.filter(i => !i.inInventory && !checkedItems.has(normalizeKey(i.name)));
+  const alreadyHave = adjustedItems.filter(i => i.inInventory);
   const allCheckedItems = [
     ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(normalizeKey(i.name))),
     ...dbCheckedManualItems
@@ -580,19 +580,32 @@ const GroceryList = () => {
       .filter(mi => !checkedItems.has(normalizeKey(mi.name)) && !adjustedItems.some(ai => normalizeKey(ai.name) === normalizeKey(mi.name))),
   ];
   const checkedCount = allCheckedItems.length;
-  const totalToBuy = allGroceryItems.filter(i => !i.inInventory).length;
+  const totalToBuy = adjustedItems.filter(i => !i.inInventory).length;
 
-  // Build grouped "need to buy" items for print/share, preserving category headings
+  // Build grouped "need to buy" items for print/share, preserving category headings.
+  // Mirror the on-screen grouping: known store categories in aisle order, then any
+  // extra categories (alphabetical), then a final "Other" bucket for unknowns.
   const buildShareGroups = () => {
     const groups: Record<string, GroceryItem[]> = {};
     needToBuy.forEach(item => {
-      const cat = item.category || "Other";
+      const raw = (item.category || "").trim();
+      const cat = STORE_CATEGORIES.includes(raw) ? raw : (raw || "Other");
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
     });
-    return STORE_CATEGORIES
-      .filter(cat => groups[cat]?.length > 0)
-      .map(cat => [cat, groups[cat]] as [string, GroceryItem[]]);
+    const ordered: [string, GroceryItem[]][] = [];
+    STORE_CATEGORIES.forEach(cat => {
+      if (cat !== "Other" && groups[cat]?.length) {
+        ordered.push([cat, groups[cat]]);
+        delete groups[cat];
+      }
+    });
+    Object.keys(groups)
+      .filter(c => c !== "Other")
+      .sort()
+      .forEach(c => ordered.push([c, groups[c]]));
+    if (groups["Other"]?.length) ordered.push(["Other", groups["Other"]]);
+    return ordered;
   };
 
   const formatItemLine = (item: GroceryItem) => {
