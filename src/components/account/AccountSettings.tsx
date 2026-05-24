@@ -70,6 +70,8 @@ const AccountSettings = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [displayName, setDisplayName] = useState("");
+  const [zipCode, setZipCode] = useState("");
+
   const [dietRestrictions, setDietRestrictions] = useState<string[]>([]);
   const [breakfastTime, setBreakfastTime] = useState("08:00");
   const [lunchTime, setLunchTime] = useState("12:00");
