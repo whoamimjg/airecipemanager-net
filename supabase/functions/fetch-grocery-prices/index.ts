@@ -105,13 +105,22 @@ async function fetchApifyPrice(store: "aldi" | "meijer" | "giant_eagle", term: s
     return { price: null, productName: null, productSize: null, currency: "USD" };
   }
 
-  // Per-actor input shapes. These are best-effort defaults; the actor may need
-  // adjustments (use env APIFY_ACTOR_* to swap actor IDs if needed).
+  // Per-actor input shapes.
   let input: Record<string, any> = {};
   if (store === "aldi") {
-    input = { search: term, zipCode: zip, maxItems: 1 };
+    // eneiromatos/ultimate-aldi-scraper takes a keywords array.
+    // Aldi US pricing does not vary materially by ZIP, so we ignore it here.
+    input = {
+      keywords: [term],
+      startPageNumber: 1,
+      finalPageNumber: 1,
+    };
   } else if (store === "meijer") {
-    input = { search: term, zipCode: zip, maxResults: 1 };
+    // outstanding_vegetable/meijer-scraper does NOT support search terms — it
+    // crawls the full site and times out for per-item lookups. Best-effort.
+    input = {
+      proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"], apifyProxyCountry: "US" },
+    };
   } else if (store === "giant_eagle") {
     input = { search: term, zipCode: zip, maxItems: 1 };
   }
@@ -130,10 +139,11 @@ async function fetchApifyPrice(store: "aldi" | "meijer" | "giant_eagle", term: s
   const first = Array.isArray(items) ? items[0] : null;
   if (!first) return { price: null, productName: null, productSize: null, currency: "USD" };
 
-  // Try a bunch of common field names
+  // Try a bunch of common field names (incl. Aldi nested `pricing.fullPrice`)
   const rawPrice =
     first.price ?? first.salePrice ?? first.currentPrice ?? first.regularPrice ??
-    first.priceCurrent ?? first.priceValue ?? first.price_value ?? null;
+    first.priceCurrent ?? first.priceValue ?? first.price_value ??
+    first?.pricing?.fullPrice ?? first?.pricing?.price ?? null;
   let price: number | null = null;
   if (typeof rawPrice === "number") price = rawPrice;
   else if (typeof rawPrice === "string") {
@@ -146,8 +156,8 @@ async function fetchApifyPrice(store: "aldi" | "meijer" | "giant_eagle", term: s
   return {
     price,
     productName: first.title ?? first.name ?? first.productName ?? null,
-    productSize: first.size ?? first.unitOfMeasure ?? null,
-    currency: first.currency ?? "USD",
+    productSize: first.size ?? first.unitOfMeasure ?? first?.measurements?.baseMeasure ?? null,
+    currency: first.currency ?? first?.pricing?.currencySymbol === "$" ? "USD" : (first.currency ?? "USD"),
   };
 }
 
