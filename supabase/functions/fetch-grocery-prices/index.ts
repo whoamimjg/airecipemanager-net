@@ -58,7 +58,9 @@ async function getKrogerToken(): Promise<string> {
 }
 
 async function getKrogerLocationId(zip: string, token: string): Promise<string | null> {
-  const url = `https://api.kroger.com/v1/locations?filter.zipCode.near=${zip}&filter.limit=1`;
+  // Widen search to 100 miles (Kroger API max) so rural / non-Kroger-dominant
+  // ZIPs still find the nearest banner store.
+  const url = `https://api.kroger.com/v1/locations?filter.zipCode.near=${zip}&filter.radiusInMiles=100&filter.limit=10`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   const text = await res.text();
   if (!res.ok) {
@@ -66,8 +68,9 @@ async function getKrogerLocationId(zip: string, token: string): Promise<string |
     return null;
   }
   const data = JSON.parse(text);
-  const locId = data?.data?.[0]?.locationId ?? null;
-  console.log(`Kroger location for ZIP ${zip}: ${locId}`);
+  const first = data?.data?.[0];
+  const locId = first?.locationId ?? null;
+  console.log(`Kroger location for ZIP ${zip}: ${locId} (${first?.name ?? "n/a"}, ${first?.address?.city ?? ""})`);
   return locId;
 }
 
