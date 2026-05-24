@@ -438,8 +438,9 @@ const GroceryList = () => {
   const softDeleteItem = useMutation({
     mutationFn: async (item: GroceryItem) => {
       if (!user) return;
-      const key = item.name.toLowerCase();
-      const isManual = item.recipes.length === 1 && item.recipes[0] === "Manual";
+      const key = normalizeKey(item.name);
+      const hasManual = item.recipes.includes("Manual");
+      const isPureManual = item.recipes.length === 1 && item.recipes[0] === "Manual";
       await supabase.from("grocery_deleted_keys").upsert(
         {
           user_id: user.id,
@@ -448,19 +449,23 @@ const GroceryList = () => {
           quantity: item.quantity || null,
           unit: item.unit || null,
           category: item.category || null,
-          source: isManual ? "manual" : "recipe",
+          source: isPureManual ? "manual" : "recipe",
         },
         { onConflict: "user_id,item_key" }
       );
-      // Remove from active checked keys + manual table so it's fully gone from active list
+      // Always purge any active checked state for this key
       await supabase
         .from("grocery_checked_keys")
         .delete()
         .eq("user_id", user.id)
         .eq("item_key", key);
-      if (isManual) {
-        await supabase.from("grocery_items").delete().ilike("name", item.name);
-      }
+      // Always remove any matching row from grocery_items (covers manual & combined items,
+      // and any stale checked-but-not-deleted rows). Safe no-op if no rows match.
+      await supabase
+        .from("grocery_items")
+        .delete()
+        .eq("user_id", user.id)
+        .ilike("name", item.name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
