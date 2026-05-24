@@ -78,10 +78,11 @@ Respond with ONLY a JSON array of objects with "name" and "category" fields. No 
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are a grocery categorization expert. Respond only with valid JSON." },
+          { role: "system", content: "You are a grocery categorization expert. Respond only with valid JSON. Use short category names only, do not repeat the full ingredient text." },
           { role: "user", content: prompt },
         ],
         temperature: 0,
+        max_tokens: 8000,
       }),
     });
 
@@ -96,25 +97,45 @@ Respond with ONLY a JSON array of objects with "name" and "category" fields. No 
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
-    
-    // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      console.error("Could not parse AI response:", content);
+
+    // Strip markdown code fences
+    const cleaned = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+
+    // Try to parse, recovering from truncated arrays
+    let categorized: any[] | null = null;
+    try {
+      categorized = JSON.parse(cleaned);
+    } catch {
+      const startIdx = cleaned.indexOf("[");
+      const sliced = startIdx >= 0 ? cleaned.slice(startIdx) : cleaned;
+      try {
+        categorized = JSON.parse(sliced);
+      } catch {
+        // Extract individual complete objects from a possibly-truncated array
+        const objects: any[] = [];
+        const objRegex = /\{[^{}]*\}/g;
+        let m;
+        while ((m = objRegex.exec(sliced)) !== null) {
+          try { objects.push(JSON.parse(m[0])); } catch { /* skip */ }
+        }
+        if (objects.length > 0) categorized = objects;
+      }
+    }
+
+    if (!categorized || !Array.isArray(categorized)) {
+      console.error("Could not parse AI response:", content.slice(0, 500));
       return new Response(
         JSON.stringify({ error: "Failed to parse categorization" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const categorized = JSON.parse(jsonMatch[0]);
-    
     // Build a map for easy lookup
     const categoryMap: Record<string, string> = {};
     for (const item of categorized) {
       const name = (item.name || "").toLowerCase().trim();
       const cat = CATEGORIES.includes(item.category) ? item.category : "Other";
-      categoryMap[name] = cat;
+      if (name) categoryMap[name] = cat;
     }
 
     return new Response(
