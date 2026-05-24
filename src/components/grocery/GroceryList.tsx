@@ -714,7 +714,16 @@ const GroceryList = () => {
   const shareViaEmail = () => {
     const subject = encodeURIComponent("Grocery List");
     const body = encodeURIComponent(buildShareText());
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    // Use an anchor click so the OS default mail handler is invoked
+    // (window.location.href / window.open can be intercepted by the browser
+    // and routed to a web mail client like Gmail instead).
+    const a = document.createElement("a");
+    a.href = `mailto:?subject=${subject}&body=${body}`;
+    a.rel = "noopener noreferrer";
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const shareViaSMS = () => {
