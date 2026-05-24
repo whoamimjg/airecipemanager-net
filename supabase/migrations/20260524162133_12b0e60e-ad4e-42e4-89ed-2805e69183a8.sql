@@ -1,0 +1,1 @@
+DELETE FROM public.grocery_price_cache WHERE price IS NULL;
