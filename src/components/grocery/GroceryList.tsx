@@ -519,11 +519,27 @@ const GroceryList = () => {
       };
     });
 
-  const updateOverride = (key: string, field: string, value: string) => {
-    setItemOverrides(prev => ({
-      ...prev,
-      [key]: { ...prev[key], [field]: value },
-    }));
+  const updateOverride = (key: string, field: "quantity" | "unit" | "category", value: string) => {
+    setItemOverrides(prev => {
+      const merged = { ...(prev[key] || {}), [field]: value };
+      // persist to DB (fire-and-forget)
+      if (user) {
+        void supabase
+          .from("grocery_overrides")
+          .upsert(
+            {
+              user_id: user.id,
+              item_key: key,
+              quantity: merged.quantity ?? null,
+              unit: merged.unit ?? null,
+              category: merged.category ?? null,
+            },
+            { onConflict: "user_id,item_key" }
+          )
+          .then(() => queryClient.invalidateQueries({ queryKey: ["grocery-overrides"] }));
+      }
+      return { ...prev, [key]: merged };
+    });
   };
 
   // Apply overrides then group by store category in aisle order
