@@ -766,7 +766,7 @@ const MealPlanner = () => {
 
       {/* Recipe Picker Dialog */}
       <Dialog open={!!pickerTarget} onOpenChange={(open) => !open && setPickerTarget(null)}>
-        <DialogContent className="max-w-md max-h-[80vh] flex flex-col overflow-hidden">
+        <DialogContent className="max-w-md h-[min(80dvh,42rem)] max-h-[80dvh] !flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ChefHat className="h-5 w-5" />
@@ -783,7 +783,7 @@ const MealPlanner = () => {
               autoFocus
             />
           </div>
-          <ScrollArea className="flex-1 min-h-0 -mx-2 px-2">
+          <div className="flex-1 min-h-0 -mx-2 overflow-y-auto px-2 pr-4 overscroll-contain">
             <div className="space-y-4 pb-2">
               {pickerFilteredRecipes.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
@@ -828,7 +828,7 @@ const MealPlanner = () => {
                 ))
               )}
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 
