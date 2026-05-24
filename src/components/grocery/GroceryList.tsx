@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/native";
 
@@ -696,21 +698,53 @@ const GroceryList = () => {
     win.document.close();
   };
 
-  const handleShare = async () => {
-    const text = buildShareText();
-    const shareData = { title: "Grocery List", text };
-    try {
-      if (typeof navigator !== "undefined" && (navigator as any).share) {
-        await (navigator as any).share(shareData);
-        return;
-      }
-    } catch {
-      // user cancelled or share failed; fall through to mailto
-    }
+  // OS detection — used to tailor share options
+  const detectOS = (): "ios" | "android" | "mac" | "windows" | "other" => {
+    if (typeof navigator === "undefined") return "other";
+    const ua = navigator.userAgent || "";
+    const platform = (navigator as any).platform || "";
+    const isIPad = /iPad/.test(ua) || (platform === "MacIntel" && (navigator as any).maxTouchPoints > 1);
+    if (/iPhone|iPod/.test(ua) || isIPad) return "ios";
+    if (/Android/.test(ua)) return "android";
+    if (/Mac/i.test(platform)) return "mac";
+    if (/Win/i.test(platform)) return "windows";
+    return "other";
+  };
+
+  const shareViaEmail = () => {
     const subject = encodeURIComponent("Grocery List");
-    const body = encodeURIComponent(text);
+    const body = encodeURIComponent(buildShareText());
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
+
+  const shareViaSMS = () => {
+    const os = detectOS();
+    const body = encodeURIComponent(buildShareText());
+    // iOS uses `&`, Android uses `?` for the body param
+    const sep = os === "ios" ? "&" : "?";
+    window.location.href = `sms:${sep}body=${body}`;
+  };
+
+  const shareViaCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(buildShareText());
+      toast({ title: "Copied to clipboard", description: "Grocery list ready to paste anywhere." });
+    } catch {
+      toast({ title: "Copy failed", description: "Could not access clipboard.", variant: "destructive" });
+    }
+  };
+
+  const shareViaNative = async () => {
+    try {
+      await (navigator as any).share({ title: "Grocery List", text: buildShareText() });
+    } catch {
+      // user cancelled
+    }
+  };
+
+  const os = detectOS();
+  const isMobile = os === "ios" || os === "android";
+  const hasNativeShare = typeof navigator !== "undefined" && typeof (navigator as any).share === "function";
 
 
   return (
@@ -728,9 +762,31 @@ const GroceryList = () => {
             <Button onClick={handlePrint} size="sm" variant="outline" disabled={needToBuy.length === 0}>
               <Printer className="mr-2 h-4 w-4" /> Print
             </Button>
-            <Button onClick={handleShare} size="sm" variant="outline" disabled={needToBuy.length === 0}>
-              <Share2 className="mr-2 h-4 w-4" /> Share
-            </Button>
+            {isMobile && hasNativeShare ? (
+              <Button onClick={shareViaNative} size="sm" variant="outline" disabled={needToBuy.length === 0}>
+                <Share2 className="mr-2 h-4 w-4" /> Share
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={needToBuy.length === 0}>
+                    <Share2 className="mr-2 h-4 w-4" /> Share
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover z-50">
+                  {hasNativeShare && (
+                    <DropdownMenuItem onClick={shareViaNative}>
+                      <Share2 className="mr-2 h-4 w-4" /> System share…
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={shareViaEmail}>Email</DropdownMenuItem>
+                  {isMobile && (
+                    <DropdownMenuItem onClick={shareViaSMS}>Text message</DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={shareViaCopy}>Copy to clipboard</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button onClick={() => setShowAddForm(true)} size="sm">
               <Plus className="mr-2 h-4 w-4" /> Add Item
             </Button>
