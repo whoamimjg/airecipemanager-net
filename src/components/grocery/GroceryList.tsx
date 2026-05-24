@@ -673,9 +673,17 @@ const GroceryList = () => {
               Auto-generated from your meal plan. Add extra items manually too.
             </p>
           </div>
-          <Button onClick={() => setShowAddForm(true)} size="sm">
-            <Plus className="mr-2 h-4 w-4" /> Add Item
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handlePrint} size="sm" variant="outline" disabled={needToBuy.length === 0}>
+              <Printer className="mr-2 h-4 w-4" /> Print
+            </Button>
+            <Button onClick={handleShare} size="sm" variant="outline" disabled={needToBuy.length === 0}>
+              <Share2 className="mr-2 h-4 w-4" /> Share
+            </Button>
+            <Button onClick={() => setShowAddForm(true)} size="sm">
+              <Plus className="mr-2 h-4 w-4" /> Add Item
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
