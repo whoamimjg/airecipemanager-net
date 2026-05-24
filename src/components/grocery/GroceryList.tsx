@@ -48,6 +48,19 @@ const GroceryList = () => {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
 
+  // Store pricing
+  type StoreId = "kroger" | "aldi" | "meijer" | "giant_eagle";
+  const STORES: { id: StoreId; label: string }[] = [
+    { id: "kroger", label: "Kroger" },
+    { id: "aldi", label: "Aldi" },
+    { id: "meijer", label: "Meijer" },
+    { id: "giant_eagle", label: "Giant Eagle" },
+  ];
+  const [activeStore, setActiveStore] = useState<StoreId | null>(null);
+  const [pricesByStore, setPricesByStore] = useState<Partial<Record<StoreId, Record<string, { price: number | null; productName: string | null; currency: string }>>>>({});
+  const [loadingStore, setLoadingStore] = useState<StoreId | null>(null);
+
+
   // Load persisted overrides so edits survive refresh / re-login
   useQuery({
     queryKey: ["grocery-overrides", user?.id],
