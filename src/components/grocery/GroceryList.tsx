@@ -44,6 +44,28 @@ const GroceryList = () => {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
+
+  // Load persisted overrides so edits survive refresh / re-login
+  useQuery({
+    queryKey: ["grocery-overrides", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("grocery_overrides")
+        .select("item_key, quantity, unit, category");
+      if (error) throw error;
+      const map: Record<string, { quantity?: string; unit?: string; category?: string }> = {};
+      (data || []).forEach((row: any) => {
+        map[row.item_key] = {
+          quantity: row.quantity ?? undefined,
+          unit: row.unit ?? undefined,
+          category: row.category ?? undefined,
+        };
+      });
+      setItemOverrides(map);
+      return data;
+    },
+    enabled: !!user,
+  });
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItemName, setNewItemName] = useState("");
@@ -519,11 +541,27 @@ const GroceryList = () => {
       };
     });
 
-  const updateOverride = (key: string, field: string, value: string) => {
-    setItemOverrides(prev => ({
-      ...prev,
-      [key]: { ...prev[key], [field]: value },
-    }));
+  const updateOverride = (key: string, field: "quantity" | "unit" | "category", value: string) => {
+    setItemOverrides(prev => {
+      const merged = { ...(prev[key] || {}), [field]: value };
+      // persist to DB (fire-and-forget)
+      if (user) {
+        void supabase
+          .from("grocery_overrides")
+          .upsert(
+            {
+              user_id: user.id,
+              item_key: key,
+              quantity: merged.quantity ?? null,
+              unit: merged.unit ?? null,
+              category: merged.category ?? null,
+            },
+            { onConflict: "user_id,item_key" }
+          )
+          .then(() => queryClient.invalidateQueries({ queryKey: ["grocery-overrides"] }));
+      }
+      return { ...prev, [key]: merged };
+    });
   };
 
   // Apply overrides then group by store category in aisle order
