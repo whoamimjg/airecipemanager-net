@@ -393,12 +393,12 @@ const GroceryList = () => {
 
   // Combine recipe-derived items with manually added items, excluding anything the user deleted
   const allGroceryItems = useMemo(() => {
-    const combined = [...groceryItems].filter(i => !deletedKeySet.has(i.name.toLowerCase()));
+    const combined = [...groceryItems].filter(i => !isDeleted(i.name));
     dbManualItems
-      .filter(m => !deletedKeySet.has(m.name.toLowerCase()))
+      .filter(m => !isDeleted(m.name))
       .forEach(manual => {
-        const key = manual.name.toLowerCase();
-        const existing = combined.find(i => i.name.toLowerCase() === key);
+        const key = normalizeKey(manual.name);
+        const existing = combined.find(i => normalizeKey(i.name) === key);
         if (existing) {
           const mNum = parseFloat(manual.quantity);
           const eNum = parseFloat(existing.quantity);
