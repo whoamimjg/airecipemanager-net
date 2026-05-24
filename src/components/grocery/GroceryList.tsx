@@ -680,23 +680,18 @@ const GroceryList = () => {
   };
 
   // Fetch user's ZIP code (used for store-specific pricing)
-  const { data: userZip } = useQuery({
-    queryKey: ["user-zip", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("zip_code")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      return (data as any)?.zip_code as string | null;
-    },
-  });
-
   const normalizeKeyLocal = (n: string) => n.trim().toLowerCase().replace(/\s+/g, " ");
 
   const fetchPricesForStore = async (storeId: StoreId) => {
-    if (!userZip || !/^\d{5}$/.test(userZip)) {
+    if (!user) return;
+    // Always read the latest ZIP straight from the DB — avoids stale cache
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("zip_code")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const zip = ((profileRow as any)?.zip_code ?? "").toString().trim();
+    if (!zip || !/^\d{5}$/.test(zip)) {
       toast({
         title: "Add your ZIP code",
         description: "Set a 5-digit ZIP in Account settings to fetch store prices.",
@@ -713,7 +708,7 @@ const GroceryList = () => {
     try {
       const items = needToBuy.map(i => ({ key: normalizeKeyLocal(i.name), name: i.name }));
       const { data, error } = await supabase.functions.invoke("fetch-grocery-prices", {
-        body: { items, store: storeId, zip: userZip },
+        body: { items, store: storeId, zip },
       });
       if (error) throw error;
       const prices = (data as any)?.prices ?? {};
@@ -728,6 +723,7 @@ const GroceryList = () => {
       setLoadingStore(null);
     }
   };
+
 
   const getItemPrice = (itemName: string) => {
     if (!activeStore) return null;
