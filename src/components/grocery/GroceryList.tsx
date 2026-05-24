@@ -571,11 +571,13 @@ const GroceryList = () => {
     }
   };
 
-  const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
+  const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(normalizeKey(i.name)));
   const alreadyHave = allGroceryItems.filter(i => i.inInventory);
   const allCheckedItems = [
-    ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(i.name.toLowerCase())),
-    ...dbCheckedManualItems.filter(mi => !checkedItems.has(mi.name.toLowerCase()) && !adjustedItems.some(ai => ai.name.toLowerCase() === mi.name.toLowerCase())),
+    ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(normalizeKey(i.name))),
+    ...dbCheckedManualItems
+      .filter(mi => !isDeleted(mi.name))
+      .filter(mi => !checkedItems.has(normalizeKey(mi.name)) && !adjustedItems.some(ai => normalizeKey(ai.name) === normalizeKey(mi.name))),
   ];
   const checkedCount = allCheckedItems.length;
   const totalToBuy = allGroceryItems.filter(i => !i.inInventory).length;
