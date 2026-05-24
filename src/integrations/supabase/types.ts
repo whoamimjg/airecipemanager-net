@@ -224,6 +224,42 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_price_cache: {
+        Row: {
+          currency: string
+          fetched_at: string
+          id: string
+          item_key: string
+          price: number | null
+          product_name: string | null
+          product_size: string | null
+          store: string
+          zip_code: string
+        }
+        Insert: {
+          currency?: string
+          fetched_at?: string
+          id?: string
+          item_key: string
+          price?: number | null
+          product_name?: string | null
+          product_size?: string | null
+          store: string
+          zip_code: string
+        }
+        Update: {
+          currency?: string
+          fetched_at?: string
+          id?: string
+          item_key?: string
+          price?: number | null
+          product_name?: string | null
+          product_size?: string | null
+          store?: string
+          zip_code?: string
+        }
+        Relationships: []
+      }
       inventory_deletions: {
         Row: {
           category: string | null
@@ -370,6 +406,7 @@ export type Database = {
           snack_time: string | null
           updated_at: string
           user_id: string
+          zip_code: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -385,6 +422,7 @@ export type Database = {
           snack_time?: string | null
           updated_at?: string
           user_id: string
+          zip_code?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -400,6 +438,7 @@ export type Database = {
           snack_time?: string | null
           updated_at?: string
           user_id?: string
+          zip_code?: string | null
         }
         Relationships: []
       }
