@@ -139,10 +139,11 @@ async function fetchApifyPrice(store: "aldi" | "meijer" | "giant_eagle", term: s
   const first = Array.isArray(items) ? items[0] : null;
   if (!first) return { price: null, productName: null, productSize: null, currency: "USD" };
 
-  // Try a bunch of common field names
+  // Try a bunch of common field names (incl. Aldi nested `pricing.fullPrice`)
   const rawPrice =
     first.price ?? first.salePrice ?? first.currentPrice ?? first.regularPrice ??
-    first.priceCurrent ?? first.priceValue ?? first.price_value ?? null;
+    first.priceCurrent ?? first.priceValue ?? first.price_value ??
+    first?.pricing?.fullPrice ?? first?.pricing?.price ?? null;
   let price: number | null = null;
   if (typeof rawPrice === "number") price = rawPrice;
   else if (typeof rawPrice === "string") {
@@ -155,8 +156,8 @@ async function fetchApifyPrice(store: "aldi" | "meijer" | "giant_eagle", term: s
   return {
     price,
     productName: first.title ?? first.name ?? first.productName ?? null,
-    productSize: first.size ?? first.unitOfMeasure ?? null,
-    currency: first.currency ?? "USD",
+    productSize: first.size ?? first.unitOfMeasure ?? first?.measurements?.baseMeasure ?? null,
+    currency: first.currency ?? first?.pricing?.currencySymbol === "$" ? "USD" : (first.currency ?? "USD"),
   };
 }
 
