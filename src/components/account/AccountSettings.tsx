@@ -232,7 +232,9 @@ const AccountSettings = () => {
     try {
       const updates = {
         display_name: displayName || null,
+        zip_code: zipCode.trim() || null,
         diet_restrictions: dietRestrictions,
+
         breakfast_time: breakfastTime + ":00",
         lunch_time: lunchTime + ":00",
         dinner_time: dinnerTime + ":00",
