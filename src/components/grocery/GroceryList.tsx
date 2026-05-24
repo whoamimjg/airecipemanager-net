@@ -302,7 +302,12 @@ const GroceryList = () => {
     },
     enabled: !!user,
   });
-  const deletedKeySet = useMemo(() => new Set(deletedItems.map(d => d.item_key)), [deletedItems]);
+  const normalizeKey = (s: string) => s.trim().toLowerCase();
+  const deletedKeySet = useMemo(
+    () => new Set(deletedItems.map(d => normalizeKey(d.item_key))),
+    [deletedItems]
+  );
+  const isDeleted = (name: string) => deletedKeySet.has(normalizeKey(name));
 
   // Seed local Set from DB whenever it changes (merge, don't overwrite optimistic toggles)
   useEffect(() => {
