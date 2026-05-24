@@ -1134,12 +1134,30 @@ const GroceryList = () => {
                                       — {item.quantity}{item.unit ? ` ${item.unit}` : ""}
                                     </span>
                                   )}
+                                  {activeStore && (() => {
+                                    const p = getItemPrice(item.name);
+                                    if (loadingStore === activeStore && !p) {
+                                      return (
+                                        <span className="ml-2 inline-flex items-center text-xs text-muted-foreground">
+                                          <Loader2 className="h-3 w-3 animate-spin mr-1" /> {STORES.find(s => s.id === activeStore)?.label}…
+                                        </span>
+                                      );
+                                    }
+                                    if (!p) return null;
+                                    const storeLabel = STORES.find(s => s.id === activeStore)?.label;
+                                    return (
+                                      <span className="ml-2 inline-flex items-center text-xs font-semibold text-primary">
+                                        {storeLabel} {p.price != null ? `$${Number(p.price).toFixed(2)}` : "—"}
+                                      </span>
+                                    );
+                                  })()}
                                 </p>
                                 <p className="text-xs text-muted-foreground truncate">
                                   Used in: {item.recipes.join(", ")}
                                 </p>
                               </>
                             )}
+
                           </div>
                           {!isEditing && (
                             <div className="flex gap-1 flex-shrink-0">
