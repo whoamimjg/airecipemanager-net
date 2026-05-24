@@ -839,10 +839,40 @@ const GroceryList = () => {
               Auto-generated from your meal plan. Add extra items manually too.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Store price selector */}
+            <div className="flex items-center gap-1 mr-1 flex-wrap">
+              {STORES.map(s => {
+                const isActive = activeStore === s.id;
+                const isLoading = loadingStore === s.id;
+                return (
+                  <Button
+                    key={s.id}
+                    size="sm"
+                    variant={isActive ? "default" : "outline"}
+                    onClick={() => fetchPricesForStore(s.id)}
+                    disabled={isLoading || needToBuy.length === 0}
+                    title={`Show ${s.label} prices`}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <DollarSign className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    {s.label}
+                  </Button>
+                );
+              })}
+              {activeStore && (
+                <Button size="sm" variant="ghost" onClick={() => setActiveStore(null)} title="Hide prices">
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
             <Button onClick={handlePrint} size="sm" variant="outline" disabled={needToBuy.length === 0}>
               <Printer className="mr-2 h-4 w-4" /> Print
             </Button>
+
             {isMobile && hasNativeShare ? (
               <Button onClick={shareViaNative} size="sm" variant="outline" disabled={needToBuy.length === 0}>
                 <Share2 className="mr-2 h-4 w-4" /> Share
