@@ -762,9 +762,31 @@ const GroceryList = () => {
             <Button onClick={handlePrint} size="sm" variant="outline" disabled={needToBuy.length === 0}>
               <Printer className="mr-2 h-4 w-4" /> Print
             </Button>
-            <Button onClick={handleShare} size="sm" variant="outline" disabled={needToBuy.length === 0}>
-              <Share2 className="mr-2 h-4 w-4" /> Share
-            </Button>
+            {isMobile && hasNativeShare ? (
+              <Button onClick={shareViaNative} size="sm" variant="outline" disabled={needToBuy.length === 0}>
+                <Share2 className="mr-2 h-4 w-4" /> Share
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={needToBuy.length === 0}>
+                    <Share2 className="mr-2 h-4 w-4" /> Share
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover z-50">
+                  {hasNativeShare && (
+                    <DropdownMenuItem onClick={shareViaNative}>
+                      <Share2 className="mr-2 h-4 w-4" /> System share…
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={shareViaEmail}>Email</DropdownMenuItem>
+                  {isMobile && (
+                    <DropdownMenuItem onClick={shareViaSMS}>Text message</DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={shareViaCopy}>Copy to clipboard</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button onClick={() => setShowAddForm(true)} size="sm">
               <Plus className="mr-2 h-4 w-4" /> Add Item
             </Button>
