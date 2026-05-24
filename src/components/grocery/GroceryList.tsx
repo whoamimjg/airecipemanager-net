@@ -302,7 +302,12 @@ const GroceryList = () => {
     },
     enabled: !!user,
   });
-  const deletedKeySet = useMemo(() => new Set(deletedItems.map(d => d.item_key)), [deletedItems]);
+  const normalizeKey = (s: string) => s.trim().toLowerCase();
+  const deletedKeySet = useMemo(
+    () => new Set(deletedItems.map(d => normalizeKey(d.item_key))),
+    [deletedItems]
+  );
+  const isDeleted = (name: string) => deletedKeySet.has(normalizeKey(name));
 
   // Seed local Set from DB whenever it changes (merge, don't overwrite optimistic toggles)
   useEffect(() => {
@@ -388,12 +393,12 @@ const GroceryList = () => {
 
   // Combine recipe-derived items with manually added items, excluding anything the user deleted
   const allGroceryItems = useMemo(() => {
-    const combined = [...groceryItems].filter(i => !deletedKeySet.has(i.name.toLowerCase()));
+    const combined = [...groceryItems].filter(i => !isDeleted(i.name));
     dbManualItems
-      .filter(m => !deletedKeySet.has(m.name.toLowerCase()))
+      .filter(m => !isDeleted(m.name))
       .forEach(manual => {
-        const key = manual.name.toLowerCase();
-        const existing = combined.find(i => i.name.toLowerCase() === key);
+        const key = normalizeKey(manual.name);
+        const existing = combined.find(i => normalizeKey(i.name) === key);
         if (existing) {
           const mNum = parseFloat(manual.quantity);
           const eNum = parseFloat(existing.quantity);
@@ -433,8 +438,9 @@ const GroceryList = () => {
   const softDeleteItem = useMutation({
     mutationFn: async (item: GroceryItem) => {
       if (!user) return;
-      const key = item.name.toLowerCase();
-      const isManual = item.recipes.length === 1 && item.recipes[0] === "Manual";
+      const key = normalizeKey(item.name);
+      const hasManual = item.recipes.includes("Manual");
+      const isPureManual = item.recipes.length === 1 && item.recipes[0] === "Manual";
       await supabase.from("grocery_deleted_keys").upsert(
         {
           user_id: user.id,
@@ -443,19 +449,23 @@ const GroceryList = () => {
           quantity: item.quantity || null,
           unit: item.unit || null,
           category: item.category || null,
-          source: isManual ? "manual" : "recipe",
+          source: isPureManual ? "manual" : "recipe",
         },
         { onConflict: "user_id,item_key" }
       );
-      // Remove from active checked keys + manual table so it's fully gone from active list
+      // Always purge any active checked state for this key
       await supabase
         .from("grocery_checked_keys")
         .delete()
         .eq("user_id", user.id)
         .eq("item_key", key);
-      if (isManual) {
-        await supabase.from("grocery_items").delete().ilike("name", item.name);
-      }
+      // Always remove any matching row from grocery_items (covers manual & combined items,
+      // and any stale checked-but-not-deleted rows). Safe no-op if no rows match.
+      await supabase
+        .from("grocery_items")
+        .delete()
+        .eq("user_id", user.id)
+        .ilike("name", item.name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
@@ -561,11 +571,13 @@ const GroceryList = () => {
     }
   };
 
-  const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
+  const needToBuy = allGroceryItems.filter(i => !i.inInventory && !checkedItems.has(normalizeKey(i.name)));
   const alreadyHave = allGroceryItems.filter(i => i.inInventory);
   const allCheckedItems = [
-    ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(i.name.toLowerCase())),
-    ...dbCheckedManualItems.filter(mi => !checkedItems.has(mi.name.toLowerCase()) && !adjustedItems.some(ai => ai.name.toLowerCase() === mi.name.toLowerCase())),
+    ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(normalizeKey(i.name))),
+    ...dbCheckedManualItems
+      .filter(mi => !isDeleted(mi.name))
+      .filter(mi => !checkedItems.has(normalizeKey(mi.name)) && !adjustedItems.some(ai => normalizeKey(ai.name) === normalizeKey(mi.name))),
   ];
   const checkedCount = allCheckedItems.length;
   const totalToBuy = allGroceryItems.filter(i => !i.inInventory).length;
