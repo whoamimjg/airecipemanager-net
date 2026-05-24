@@ -406,6 +406,22 @@ const AccountSettings = () => {
             <Label>Email</Label>
             <Input value={user?.email ?? ""} disabled className="opacity-60" />
           </div>
+
+          {/* ZIP code for store pricing */}
+          <div className="space-y-1">
+            <Label htmlFor="zipCode">ZIP Code</Label>
+            <Input
+              id="zipCode"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+              placeholder="e.g. 43215"
+              inputMode="numeric"
+              maxLength={5}
+              className="max-w-[140px]"
+            />
+            <p className="text-xs text-muted-foreground">Used to fetch prices from your local Kroger, Aldi, Meijer, and Giant Eagle.</p>
+          </div>
+
         </CardContent>
       </Card>
 
