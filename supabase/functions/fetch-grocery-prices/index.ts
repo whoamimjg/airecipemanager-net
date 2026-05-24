@@ -248,20 +248,23 @@ Deno.serve(async (req) => {
       const key = normalizeKey(item.name);
       const result = await fetchOne(store, item.name, zip, krogerCtx);
       fetched[key] = result;
-      // Upsert to cache
-      await supabase.from("grocery_price_cache").upsert(
-        {
-          item_key: key,
-          store,
-          zip_code: zip,
-          price: result.price,
-          product_name: result.productName,
-          product_size: result.productSize,
-          currency: result.currency,
-          fetched_at: new Date().toISOString(),
-        },
-        { onConflict: "item_key,store,zip_code" },
-      );
+      // Upsert to cache ONLY when we got a real price; never poison cache with nulls.
+      if (result.price != null) {
+        await supabase.from("grocery_price_cache").upsert(
+          {
+            item_key: key,
+            store,
+            zip_code: zip,
+            price: result.price,
+            product_name: result.productName,
+            product_size: result.productSize,
+            currency: result.currency,
+            fetched_at: new Date().toISOString(),
+          },
+          { onConflict: "item_key,store,zip_code" },
+        );
+      }
+
     }
 
     // 3. Build response keyed by original item.key
