@@ -58,23 +58,34 @@ async function getKrogerToken(): Promise<string> {
 }
 
 async function getKrogerLocationId(zip: string, token: string): Promise<string | null> {
-  const res = await fetch(
-    `https://api.kroger.com/v1/locations?filter.zipCode.near=${zip}&filter.limit=1`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data?.data?.[0]?.locationId ?? null;
+  const url = `https://api.kroger.com/v1/locations?filter.zipCode.near=${zip}&filter.limit=1`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const text = await res.text();
+  if (!res.ok) {
+    console.warn(`Kroger locations ${res.status}: ${text}`);
+    return null;
+  }
+  const data = JSON.parse(text);
+  const locId = data?.data?.[0]?.locationId ?? null;
+  console.log(`Kroger location for ZIP ${zip}: ${locId}`);
+  return locId;
 }
 
 async function fetchKrogerPrice(term: string, locationId: string, token: string): Promise<PriceResult> {
   const url = `https://api.kroger.com/v1/products?filter.term=${encodeURIComponent(term)}&filter.locationId=${locationId}&filter.limit=1`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) return { price: null, productName: null, productSize: null, currency: "USD" };
-  const data = await res.json();
+  const text = await res.text();
+  if (!res.ok) {
+    console.warn(`Kroger products ${res.status} for "${term}": ${text}`);
+    return { price: null, productName: null, productSize: null, currency: "USD" };
+  }
+  const data = JSON.parse(text);
   const p = data?.data?.[0];
   const item = p?.items?.[0];
   const price = item?.price?.promo || item?.price?.regular || null;
+  if (!price) {
+    console.log(`Kroger no price for "${term}" at ${locationId}. Items: ${JSON.stringify(p?.items ?? [])}`);
+  }
   return {
     price: price ?? null,
     productName: p?.description ?? null,
@@ -82,6 +93,7 @@ async function fetchKrogerPrice(term: string, locationId: string, token: string)
     currency: "USD",
   };
 }
+
 
 // ----- Apify -----
 async function fetchApifyPrice(store: "aldi" | "meijer" | "giant_eagle", term: string, zip: string): Promise<PriceResult> {
