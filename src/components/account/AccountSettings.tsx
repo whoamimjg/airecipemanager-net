@@ -172,6 +172,8 @@ const AccountSettings = () => {
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name ?? "");
+      setZipCode((profile as any).zip_code ?? "");
+
       setDietRestrictions(profile.diet_restrictions ?? []);
       setBreakfastTime(profile.breakfast_time?.slice(0, 5) ?? "08:00");
       setLunchTime(profile.lunch_time?.slice(0, 5) ?? "12:00");
