@@ -620,7 +620,7 @@ const GroceryList = () => {
       .filter(mi => !checkedItems.has(normalizeKey(mi.name)) && !adjustedItems.some(ai => normalizeKey(ai.name) === normalizeKey(mi.name))),
   ];
   const checkedCount = allCheckedItems.length;
-  const totalToBuy = adjustedItems.filter(i => !i.inInventory).length;
+  const totalToBuy = needToBuy.length;
 
   // Build grouped "need to buy" items for print/share, preserving category headings.
   // Mirror the on-screen grouping: known store categories in aisle order, then any
