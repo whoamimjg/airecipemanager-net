@@ -16,7 +16,9 @@ function getBasicAuth(): string {
     throw new Error("Missing ACCEPT_BLUE_API_SOURCE_KEY");
   }
 
-  return btoa(`${sourceKey}:`);
+  // accept.blue v2 API authenticates as Basic base64(sourceKey:PIN).
+  const pin = Deno.env.get("ACCEPT_BLUE_API_PIN")?.trim() ?? "";
+  return btoa(`${sourceKey}:${pin}`);
 }
 
 serve(async (req) => {

@@ -10,6 +10,8 @@ const corsHeaders = {
 const ACCEPT_BLUE_BASE = "https://api.accept.blue/api/v2";
 
 const ACCEPT_BLUE_API_SOURCE_KEY = Deno.env.get("ACCEPT_BLUE_API_SOURCE_KEY")?.trim();
+// accept.blue v2 Customers/Recurring API authenticates as Basic base64(sourceKey:PIN).
+const ACCEPT_BLUE_API_PIN = Deno.env.get("ACCEPT_BLUE_API_PIN")?.trim() ?? "";
 const ACCEPT_BLUE_API_KEY = ACCEPT_BLUE_API_SOURCE_KEY;
 
 function getAcceptBlueHeaders(extra: HeadersInit = {}): HeadersInit {
@@ -20,7 +22,7 @@ function getAcceptBlueHeaders(extra: HeadersInit = {}): HeadersInit {
   return {
     "Content-Type": "application/json",
     Accept: "application/json",
-    Authorization: `Basic ${btoa(`${ACCEPT_BLUE_API_KEY}:`)}`,
+    Authorization: `Basic ${btoa(`${ACCEPT_BLUE_API_KEY}:${ACCEPT_BLUE_API_PIN}`)}`,
     ...extra,
   };
 }
@@ -276,32 +278,30 @@ async function createRecurring(
     );
   }
 
-  // Ensure source always matches pattern: (nonce|tkn|ref)-[A-Za-z0-9]+
+  // Prefix the nonce with the source type, preserving the token EXACTLY.
+  // Do NOT strip characters: v0.3 tokenization nonces contain '-'/'_' which are part
+  // of the token; stripping them yields "Card token was not found".
   const ensureSourcePrefix = (val: string, prefix: "nonce" | "tkn" | "ref"): string => {
     const trimmed = val.trim();
-    if (/^(nonce|tkn|ref)-[A-Za-z0-9]+$/.test(trimmed)) return trimmed;
-    const clean = trimmed.replace(/^(nonce|tkn|ref)-/, "").replace(/[^A-Za-z0-9]/g, "");
-    return `${prefix}-${clean}`;
+    if (/^(nonce|tkn|ref)-/.test(trimmed)) return trimmed;
+    return `${prefix}-${trimmed}`;
   };
 
   // Step 1: Use the nonce to create a payment method directly on the customer.
   // The accept.blue API requires expiry_month (integer) and expiry_year (integer),
   // NOT an "expiration" MMYY string.
   const nonce = String(card.nonce ?? rawSource);
+  // SINGLE attempt only: the tokenization nonce is single-use. A second attempt with the
+  // same (already-consumed) nonce always returns "Card token was not found" and masks the
+  // real error from the first attempt.
+  // Minimal body: the nonce already encodes the card (number/expiry/cvv). accept.blue can
+  // reject a payment-method create that passes expiry/avs ALONGSIDE a nonce source, so we
+  // send ONLY the source (matches the documented createAcceptBlueCardPaymentMethod input).
   const paymentMethodAttempts: Array<{ label: string; body: Record<string, unknown> }> = [
     {
-      label: "nonce_prefixed",
+      label: "nonce",
       body: {
         source: ensureSourcePrefix(nonce, "nonce"),
-        expiry_month: expiryMonth,
-        expiry_year: expiryYear,
-        ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
-      },
-    },
-    {
-      label: "tkn_prefixed",
-      body: {
-        source: ensureSourcePrefix(nonce, "tkn"),
         expiry_month: expiryMonth,
         expiry_year: expiryYear,
         ...(card.avs_zip ? { avs_zip: card.avs_zip } : {}),
@@ -355,7 +355,14 @@ async function createRecurring(
     }
   }
 
-  if (!createPaymentMethodResponse?.ok) {
+  // accept.blue rejects a duplicate card ("A payment method with these details already
+  // exists for this customer") but returns the existing payment_method — reuse its id
+  // instead of failing, so re-subscribing with the same card works.
+  const existingPaymentMethodId = (createPaymentMethodResult as {
+    error_details?: { payment_method?: { id?: number | string } };
+  }).error_details?.payment_method?.id;
+
+  if (!createPaymentMethodResponse?.ok && !existingPaymentMethodId) {
     console.error("accept.blue create payment method error:", createPaymentMethodResult);
     const paymentMethodError =
       createPaymentMethodResponse?.status === 403
@@ -373,7 +380,7 @@ async function createRecurring(
     );
   }
 
-  const paymentMethodId = createPaymentMethodResult.id;
+  const paymentMethodId = existingPaymentMethodId ?? createPaymentMethodResult.id;
   if (!paymentMethodId) {
     return new Response(
       JSON.stringify({ error: "Recurring payment method ID missing" }),
