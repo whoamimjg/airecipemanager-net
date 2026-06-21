@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { ChefHat } from "lucide-react";
+import { setSeo } from "@/lib/seo";
 
 interface PostCard {
   slug: string;
@@ -15,10 +16,11 @@ interface PostCard {
 
 const Blog = () => {
   useEffect(() => {
-    document.title = "Blog | AI Recipe Manager";
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute("content", "Recipes, kitchen tips, meal-planning ideas and more from AI Recipe Manager.");
+    setSeo({
+      title: "Blog | AI Recipe Manager",
+      description: "Recipes, kitchen tips, meal-planning ideas and more from AI Recipe Manager.",
+      url: "https://airecipemanager.com/blog",
+    });
   }, []);
 
   const { data: posts, isLoading } = useQuery({

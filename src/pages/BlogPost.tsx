@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 import { format, parseISO } from "date-fns";
 import { ChefHat, ArrowLeft } from "lucide-react";
+import { setSeo } from "@/lib/seo";
 
 interface Post {
   title: string;
@@ -34,13 +35,16 @@ const BlogPost = () => {
 
   useEffect(() => {
     if (post) {
-      document.title = `${post.title} | AI Recipe Manager`;
-      if (post.excerpt) {
-        document.querySelector('meta[name="description"]')?.setAttribute("content", post.excerpt);
-      }
+      setSeo({
+        title: `${post.title} | AI Recipe Manager`,
+        description: post.excerpt || undefined,
+        image: post.cover_image_url,
+        url: `https://airecipemanager.com/blog/${slug}`,
+        type: "article",
+      });
     }
     return () => { document.title = "AI Recipe Manager"; };
-  }, [post]);
+  }, [post, slug]);
 
   return (
     <div className="min-h-screen bg-background">
