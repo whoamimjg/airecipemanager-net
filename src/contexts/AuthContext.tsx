@@ -3,7 +3,6 @@ import { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { Preferences } from "@capacitor/preferences";
 import { CapacitorCookies } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 
 const AUTH_SESSION_BACKUP_KEY = "airecipemanager.auth.session";
 const AUTH_SESSION_BACKUP_COOKIE = "airecipemanager_auth_session";
@@ -282,19 +281,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/dashboard",
+    // Supabase OAuth (the old Lovable Cloud /~oauth route was retired -> Vercel 404).
+    // Redirects the browser to Google; on return the onAuthStateChange listener picks up
+    // the session and backs it up.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/dashboard" },
     });
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) await writeSessionBackup(session);
+    if (error) throw new Error(error.message);
   }, []);
 
   const signInWithApple = useCallback(async () => {
-    await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin + "/dashboard",
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: { redirectTo: window.location.origin + "/dashboard" },
     });
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) await writeSessionBackup(session);
+    if (error) throw new Error(error.message);
   }, []);
 
   const signOut = useCallback(async () => {
