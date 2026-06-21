@@ -14,6 +14,9 @@ import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminFeedback from "./pages/admin/AdminFeedback";
+import AdminBlog from "./pages/admin/AdminBlog";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import SharedRecipe from "./pages/SharedRecipe";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -46,7 +49,10 @@ const App = () => (
               <Route path="users" element={<AdminUsers />} />
               <Route path="payments" element={<AdminPayments />} />
               <Route path="feedback" element={<AdminFeedback />} />
+              <Route path="blog" element={<AdminBlog />} />
             </Route>
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/recipe/:id" element={<SharedRecipe />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
