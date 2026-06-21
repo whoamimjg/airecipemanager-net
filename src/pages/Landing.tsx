@@ -425,31 +425,32 @@ const Landing = () => {
             <p className="text-xs uppercase tracking-wider text-white/50">We accept</p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               {/* Visa */}
-              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-2" aria-label="Visa">
-                <svg viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg" className="h-4 w-auto" aria-hidden="true">
-                  <text x="0" y="13" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="14" fontStyle="italic" fill="#1A1F71">VISA</text>
+              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-2 shadow-sm" aria-label="Visa">
+                <svg viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-auto" aria-hidden="true">
+                  <text x="24" y="13" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontWeight="800" fontStyle="italic" fontSize="15" letterSpacing="0.5" fill="#1434CB">VISA</text>
                 </svg>
               </div>
               {/* Mastercard */}
-              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-2" aria-label="Mastercard">
-                <svg viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto" aria-hidden="true">
-                  <circle cx="12" cy="10" r="7" fill="#EB001B" />
-                  <circle cx="20" cy="10" r="7" fill="#F79E1B" />
-                  <path d="M16 4.6a7 7 0 0 0 0 10.8 7 7 0 0 0 0-10.8z" fill="#FF5F00" />
+              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-2 shadow-sm" aria-label="Mastercard">
+                <svg viewBox="0 0 40 24" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto" aria-hidden="true">
+                  <circle cx="15" cy="12" r="9" fill="#EB001B" />
+                  <circle cx="25" cy="12" r="9" fill="#F79E1B" />
+                  <path d="M20 5.2a9 9 0 0 0 0 13.6 9 9 0 0 0 0-13.6z" fill="#FF5F00" />
                 </svg>
               </div>
               {/* American Express */}
-              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-[#2E77BC] px-1" aria-label="American Express">
-                <svg viewBox="0 0 56 16" xmlns="http://www.w3.org/2000/svg" className="h-3 w-auto" aria-hidden="true">
-                  <text x="0" y="13" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="11" fill="#FFFFFF">AMEX</text>
+              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-[#006FCF] px-1 shadow-sm" aria-label="American Express">
+                <svg viewBox="0 0 60 34" xmlns="http://www.w3.org/2000/svg" className="h-6 w-auto" aria-hidden="true">
+                  <text x="30" y="15" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="11" letterSpacing="0.2" fill="#FFFFFF">AMERICAN</text>
+                  <text x="30" y="28" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="11" letterSpacing="0.2" fill="#FFFFFF">EXPRESS</text>
                 </svg>
               </div>
               {/* Discover */}
-              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-1" aria-label="Discover">
-                <svg viewBox="0 0 80 16" xmlns="http://www.w3.org/2000/svg" className="h-3 w-auto" aria-hidden="true">
-                  <text x="0" y="12" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="11" fill="#000000">DISC</text>
-                  <circle cx="44" cy="8" r="5" fill="#F58220" />
-                  <text x="52" y="12" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="11" fill="#000000">VER</text>
+              <div className="flex h-9 w-14 items-center justify-center rounded-md bg-white px-1 shadow-sm" aria-label="Discover">
+                <svg viewBox="0 0 84 16" xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-auto" aria-hidden="true">
+                  <text x="0" y="12.5" fontFamily="Arial, Helvetica, sans-serif" fontWeight="800" fontSize="12" letterSpacing="-0.4" fill="#111111">DISC</text>
+                  <circle cx="47" cy="8" r="6.2" fill="#F58220" />
+                  <text x="55" y="12.5" fontFamily="Arial, Helvetica, sans-serif" fontWeight="800" fontSize="12" letterSpacing="-0.4" fill="#111111">VER</text>
                 </svg>
               </div>
             </div>
