@@ -106,6 +106,7 @@ const Landing = () => {
             <a href="#features" className="text-sm text-white/80 hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="text-sm text-white/80 hover:text-white transition-colors">How It Works</a>
             <a href="#pricing" className="text-sm text-white/80 hover:text-white transition-colors">Pricing</a>
+            <Link to="/blog" className="text-sm text-white/80 hover:text-white transition-colors">Blog</Link>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth">
@@ -411,6 +412,7 @@ const Landing = () => {
             <div className="flex gap-6 text-sm text-white/70">
               <a href="#features" className="hover:text-accent transition-colors">Features</a>
               <a href="#pricing" className="hover:text-accent transition-colors">Pricing</a>
+              <Link to="/blog" className="hover:text-accent transition-colors">Blog</Link>
               <Link to="/terms" className="hover:text-accent transition-colors">Terms & Conditions</Link>
               <Link to="/privacy" className="hover:text-accent transition-colors">Privacy Policy</Link>
               <Link to="/auth" className="hover:text-accent transition-colors">Sign In</Link>
