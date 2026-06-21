@@ -9,7 +9,7 @@ import AIRecipeGenerator from "@/components/recipes/AIRecipeGenerator";
 import InventoryManager from "@/components/inventory/InventoryManager";
 import MealPlanner from "@/components/meal-planner/MealPlanner";
 import GroceryList from "@/components/grocery/GroceryList";
-import ExpenseReport from "@/components/expenses/ExpenseReport";
+import BudgetReport from "@/components/budget/BudgetReport";
 import AccountSettings from "@/components/account/AccountSettings";
 
 const Dashboard = () => {
@@ -66,7 +66,7 @@ const Dashboard = () => {
               <ShoppingCart className="h-4 w-4" /> <span className="hidden sm:inline">Grocery</span>
             </TabsTrigger>
             <TabsTrigger value="expenses" className="gap-1.5 text-xs sm:text-sm">
-              <DollarSign className="h-4 w-4" /> <span className="hidden sm:inline">Expenses</span>
+              <DollarSign className="h-4 w-4" /> <span className="hidden sm:inline">Budget</span>
             </TabsTrigger>
             <TabsTrigger value="account" className="gap-1.5 text-xs sm:text-sm">
               <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Account</span>
@@ -89,7 +89,7 @@ const Dashboard = () => {
             <GroceryList />
           </TabsContent>
           <TabsContent value="expenses">
-            <ExpenseReport />
+            <BudgetReport />
           </TabsContent>
           <TabsContent value="account">
             <AccountSettings />
