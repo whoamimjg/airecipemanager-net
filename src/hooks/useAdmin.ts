@@ -6,7 +6,8 @@ const ADMIN_EMAILS = ["whoamimjg50@gmail.com"];
 
 export const useIsAdmin = () => {
   const { user } = useAuth();
-  return ADMIN_EMAILS.includes(user?.email ?? "");
+  const email = (user?.email ?? "").trim().toLowerCase();
+  return ADMIN_EMAILS.includes(email);
 };
 
 async function fetchAdminData(endpoint: string) {

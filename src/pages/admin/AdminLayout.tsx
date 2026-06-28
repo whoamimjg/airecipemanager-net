@@ -21,7 +21,18 @@ export default function AdminLayout() {
   }
 
   if (!user) return <Navigate to="/auth" replace />;
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-background p-6 text-center">
+        <Shield className="h-8 w-8 text-muted-foreground" />
+        <p className="text-lg font-semibold text-foreground">Admin access only</p>
+        <p className="max-w-md text-sm text-muted-foreground">
+          You're signed in as <span className="font-mono text-foreground">{user.email ?? "(no email)"}</span>, which isn't an admin account.
+        </p>
+        <a href="/dashboard" className="text-sm text-primary hover:underline">Back to the app</a>
+      </div>
+    );
+  }
 
   if (!totpVerified) {
     return <AdminTotpGate onVerified={() => setTotpVerified(true)} />;
