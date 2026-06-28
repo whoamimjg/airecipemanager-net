@@ -15,6 +15,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminFeedback from "./pages/admin/AdminFeedback";
 import AdminBlog from "./pages/admin/AdminBlog";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import SharedRecipe from "./pages/SharedRecipe";
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="payments" element={<AdminPayments />} />
               <Route path="feedback" element={<AdminFeedback />} />
               <Route path="blog" element={<AdminBlog />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
             </Route>
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />

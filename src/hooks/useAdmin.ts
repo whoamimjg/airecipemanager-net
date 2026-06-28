@@ -64,3 +64,24 @@ export const useAdminPayments = () =>
 
 export const useAdminFeedback = () =>
   useQuery({ queryKey: ["admin", "feedback"], queryFn: () => fetchAdminData("feedback") });
+
+async function fetchGaStats(days = 28) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const res = await fetch(
+    `https://${projectId}.supabase.co/functions/v1/ga-stats?days=${days}`,
+    { headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" } },
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to fetch analytics");
+  return data as {
+    days: number;
+    totals: { users: number; pageViews: number; sessions: number };
+    byDay: { date: string; users: number; pageViews: number; sessions: number }[];
+    topPages: { path: string; views: number }[];
+  };
+}
+
+export const useAdminAnalytics = (days = 28) =>
+  useQuery({ queryKey: ["admin", "analytics", days], queryFn: () => fetchGaStats(days) });
