@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -115,6 +116,8 @@ const MealPlanner = () => {
   const [recipePanelOpen, setRecipePanelOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<{ date: Date; slot: MealSlot } | null>(null);
   const [pickerSearch, setPickerSearch] = useState("");
+  const [noteText, setNoteText] = useState("");
+  const [noteGrocery, setNoteGrocery] = useState("");
   const [viewingRecipeId, setViewingRecipeId] = useState<string | null>(null);
 
   const { data: viewingRecipe = null } = useQuery({
@@ -216,6 +219,35 @@ const MealPlanner = () => {
     onError: () => toast.error("Failed to add to meal plan"),
   });
 
+  // Add a note-only entry (leftovers, eating out, or a meal with no saved recipe),
+  // optionally pushing items to the grocery list at the same time.
+  const addNote = useMutation({
+    mutationFn: async ({ date, meal_slot, note, groceryItems }: { date: string; meal_slot: MealSlot; note: string; groceryItems: string[] }) => {
+      if (note) {
+        const { error } = await supabase.from("meal_plans").insert({
+          user_id: user!.id,
+          date,
+          meal_slot,
+          notes: note,
+        });
+        if (error) throw error;
+      }
+      if (groceryItems.length > 0) {
+        const { error } = await supabase.from("grocery_items").insert(
+          groceryItems.map(name => ({ user_id: user!.id, name, quantity: "1", unit: "", category: "Other" }))
+        );
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meal-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["grocery-list"] });
+      toast.success("Added to meal plan");
+    },
+    onError: () => toast.error("Failed to add note"),
+  });
+
   const removeMealPlan = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("meal_plans").delete().eq("id", id);
@@ -274,6 +306,8 @@ const MealPlanner = () => {
 
   const openRecipePicker = (date: Date, slot: MealSlot) => {
     setPickerSearch("");
+    setNoteText("");
+    setNoteGrocery("");
     setPickerTarget({ date, slot });
   };
 
@@ -283,6 +317,24 @@ const MealPlanner = () => {
       recipe_id: recipe.id,
       date: format(pickerTarget.date, "yyyy-MM-dd"),
       meal_slot: pickerTarget.slot,
+    });
+    setPickerTarget(null);
+  };
+
+  const handleAddNote = () => {
+    if (!pickerTarget) return;
+    const note = noteText.trim();
+    const groceryItems = noteGrocery
+      .split("\n")
+      .flatMap(l => l.split(","))
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (!note && groceryItems.length === 0) return;
+    addNote.mutate({
+      date: format(pickerTarget.date, "yyyy-MM-dd"),
+      meal_slot: pickerTarget.slot,
+      note,
+      groceryItems,
     });
     setPickerTarget(null);
   };
@@ -425,7 +477,7 @@ const MealPlanner = () => {
                               <div className="flex items-center gap-1">
                                 <GripVertical className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 opacity-0 group-hover:opacity-100" />
                                 <span className="font-medium line-clamp-1 flex-1">
-                                  {meal.recipe?.title || meal.notes || "Untitled"}
+                                  {(!meal.recipe_id && meal.notes ? "📝 " : "") + (meal.recipe?.title || meal.notes || "Untitled")}
                                 </span>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); removeMealPlan.mutate(meal.id); }}
@@ -499,7 +551,7 @@ const MealPlanner = () => {
                     >
                       <div className="flex items-start justify-between gap-1">
                         <span className="font-medium line-clamp-2 flex-1">
-                          {meal.recipe?.title || meal.notes || "Untitled"}
+                          {(!meal.recipe_id && meal.notes ? "📝 " : "") + (meal.recipe?.title || meal.notes || "Untitled")}
                         </span>
                         <button
                           onClick={(e) => { e.stopPropagation(); removeMealPlan.mutate(meal.id); }}
@@ -770,17 +822,38 @@ const MealPlanner = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ChefHat className="h-5 w-5" />
-              Add Recipe to {pickerTarget && MEAL_SLOTS.find(s => s.key === pickerTarget.slot)?.label}
+              Add to {pickerTarget && MEAL_SLOTS.find(s => s.key === pickerTarget.slot)?.label}
             </DialogTitle>
           </DialogHeader>
-          <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          {/* Note (leftovers, eating out, or a meal with no saved recipe) + optional grocery items */}
+          <div className="space-y-2 rounded-lg border border-border p-3">
+            <Input
+              placeholder="Note (e.g. Leftovers, Eating out)"
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+            />
+            <Textarea
+              placeholder="Add to grocery list — one item per line (optional)"
+              value={noteGrocery}
+              onChange={e => setNoteGrocery(e.target.value)}
+              rows={2}
+            />
+            <Button
+              className="w-full"
+              disabled={(!noteText.trim() && !noteGrocery.trim()) || addNote.isPending}
+              onClick={handleAddNote}
+            >
+              Add note
+            </Button>
+          </div>
+          <div className="relative mb-2 mt-1">
+            <p className="mb-2 text-center text-xs text-muted-foreground">or pick a recipe</p>
+            <Search className="absolute left-2.5 top-[calc(1.5rem+2px)] h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search recipes..."
               value={pickerSearch}
               onChange={e => setPickerSearch(e.target.value)}
               className="pl-9"
-              autoFocus
             />
           </div>
           <div className="flex-1 min-h-0 -mx-2 overflow-y-auto px-2 pr-4 overscroll-contain">
