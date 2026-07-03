@@ -87,6 +87,18 @@ Deno.serve(async (req) => {
       return `${y}${mo}${d}T${h}${mi}00`;
     };
 
+    // Escape ICS text per RFC 5545 (backslash, semicolon, comma, newlines) so titles like
+    // "Rice, Beans" don't corrupt the event and get dropped by the calendar.
+    const esc = (s: string): string =>
+      (s || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/;/g, "\\;")
+        .replace(/,/g, "\\,")
+        .replace(/\r?\n/g, "\\n");
+
+    // DTSTAMP is REQUIRED on every VEVENT — many calendars silently drop events without it.
+    const dtstamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+
     const events = (mealPlans || []).map(meal => {
       const recipe = meal.recipe_id ? recipesMap[meal.recipe_id] : undefined;
       const title = recipe?.title || meal.notes || "Meal";
@@ -98,10 +110,11 @@ Deno.serve(async (req) => {
       return [
         "BEGIN:VEVENT",
         `UID:${meal.id}@airecipemanager`,
+        `DTSTAMP:${dtstamp}`,
         `DTSTART:${toICS(meal.date, time)}`,
         `DTEND:${toICS(meal.date, endTime)}`,
-        `SUMMARY:${slotLabel}: ${title}`,
-        `DESCRIPTION:${slotLabel} meal from AI Recipe Manager`,
+        `SUMMARY:${esc(`${slotLabel}: ${title}`)}`,
+        `DESCRIPTION:${esc(`${slotLabel} meal from AI Recipe Manager`)}`,
         "END:VEVENT",
       ].join("\r\n");
     });
