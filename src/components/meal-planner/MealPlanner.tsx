@@ -35,7 +35,7 @@ type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 const MEAL_SLOTS: { key: MealSlot; label: string; color: string; bgCard: string }[] = [
   { key: "breakfast", label: "Breakfast", color: "bg-warning/15 text-warning border-warning/30", bgCard: "bg-warning/10 border-warning/20" },
   { key: "lunch", label: "Lunch", color: "bg-primary/15 text-primary border-primary/30", bgCard: "bg-primary/10 border-primary/20" },
-  { key: "dinner", label: "Dinner", color: "bg-secondary/30 text-secondary-foreground border-secondary", bgCard: "bg-secondary/20 border-secondary/40" },
+  { key: "dinner", label: "Dinner", color: "bg-pink-100 text-pink-900 border-pink-200", bgCard: "bg-pink-50 border-pink-200" },
   { key: "snack", label: "Snack", color: "bg-info/15 text-info border-info/30", bgCard: "bg-info/10 border-info/20" },
 ];
 
@@ -435,7 +435,7 @@ const MealPlanner = () => {
                       <div
                         key={day.toISOString()}
                         className={cn(
-                          "border-r border-border/50 last:border-r-0 min-h-[36px] p-1 transition-colors relative",
+                          "border-r border-border/50 last:border-r-0 min-h-[52px] p-1.5 transition-colors relative",
                           !inMonth && "bg-muted/20",
                           today && "bg-primary/5"
                         )}
@@ -490,15 +490,14 @@ const MealPlanner = () => {
                           </MealHoverCard>
                         ))}
 
-                        {/* Drop hint */}
-                        {meals.length === 0 && (
-                          <button
-                            onClick={() => openRecipePicker(day, slot.key)}
-                            className="h-full w-full flex items-center justify-center opacity-0 hover:opacity-50 transition-opacity"
-                          >
-                            <Plus className="h-3 w-3 text-muted-foreground" />
-                          </button>
-                        )}
+                        {/* Add — always available, not just when empty */}
+                        <button
+                          onClick={() => openRecipePicker(day, slot.key)}
+                          className="w-full flex items-center justify-center py-0.5 opacity-25 hover:opacity-70 transition-opacity"
+                          title={`Add to ${slot.label}`}
+                        >
+                          <Plus className="h-3 w-3 text-muted-foreground" />
+                        </button>
                       </div>
                     );
                   })}
@@ -517,7 +516,7 @@ const MealPlanner = () => {
       {weekDays.map(date => (
         <div
           key={date.toISOString()}
-          className="flex flex-col border-r border-border last:border-r-0 min-w-[140px] flex-1"
+          className="flex flex-col border-r border-border last:border-r-0 min-w-[160px] flex-1"
         >
           <div
             className={cn(
@@ -535,22 +534,29 @@ const MealPlanner = () => {
             return (
               <div
                 key={slot.key}
-                className="flex-1 p-1.5 border-b border-border last:border-b-0 min-h-[60px] transition-colors"
+                className="flex-1 p-2 border-b border-border last:border-b-0 min-h-[84px] transition-colors"
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDropEvent(e, date, slot.key)}
               >
-                <div className={cn("text-[10px] font-medium mb-0.5 px-1 rounded", slot.color)}>
-                  {slot.label}
+                <div className={cn("flex items-center justify-between text-[10px] font-medium mb-1 px-1.5 py-0.5 rounded border", slot.color)}>
+                  <span>{slot.label}</span>
+                  <button
+                    onClick={() => openRecipePicker(date, slot.key)}
+                    className="hover:opacity-60 transition-opacity"
+                    title={`Add to ${slot.label}`}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 {meals.map(meal => (
                   <MealHoverCard key={meal.id} meal={meal}>
                     <div
                       onClick={() => { if (meal.recipe_id) { haptics.light(); setViewingRecipeId(meal.recipe_id); } }}
-                      className={cn("group relative rounded-md p-1.5 mb-1 text-xs border cursor-pointer", slot.color)}
+                      className={cn("group relative rounded-md p-2 mb-1.5 text-xs border cursor-pointer", slot.color)}
                     >
                       <div className="flex items-start justify-between gap-1">
-                        <span className="font-medium line-clamp-2 flex-1">
+                        <span className="font-medium line-clamp-2 flex-1 leading-snug">
                           {(!meal.recipe_id && meal.notes ? "📝 " : "") + (meal.recipe?.title || meal.notes || "Untitled")}
                         </span>
                         <button
@@ -563,14 +569,6 @@ const MealPlanner = () => {
                     </div>
                   </MealHoverCard>
                 ))}
-                {meals.length === 0 && (
-                  <button
-                    onClick={() => openRecipePicker(date, slot.key)}
-                    className="h-full w-full flex items-center justify-center opacity-0 hover:opacity-50 transition-opacity"
-                  >
-                    <Plus className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                )}
               </div>
             );
           })}
@@ -594,10 +592,17 @@ const MealPlanner = () => {
               onDrop={(e) => handleDropEvent(e, selectedDay, slot.key)}
             >
               <CardHeader className="py-3 px-4">
-                <CardTitle className="text-sm flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center justify-between gap-2">
                   <Badge variant="outline" className={cn("text-xs", slot.color)}>
                     {slot.label}
                   </Badge>
+                  <button
+                    onClick={() => openRecipePicker(selectedDay, slot.key)}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                    title={`Add to ${slot.label}`}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
