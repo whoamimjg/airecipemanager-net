@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support — AI Recipe Manager</title>
+<meta name="description" content="Get help with AI Recipe Manager. FAQs and contact information for support.">
+<style>
+  :root {
+    --slate: #4b6981;
+    --slate-dark: #3a5468;
+    --slate-tint: #eef2f5;
+    --yellow: #f2ea77;
+    --ink: #26333d;
+    --muted: #5f7386;
+    --line: #dde5ea;
+    --white: #ffffff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    background: var(--white);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    background: var(--slate);
+    padding: 20px 24px;
+  }
+  .header-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-bowl { flex-shrink: 0; }
+  .wordmark {
+    color: var(--white);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .hero {
+    background: var(--slate);
+    color: var(--white);
+    padding: 48px 24px 64px;
+    text-align: left;
+  }
+  .hero-inner { max-width: 760px; margin: 0 auto; }
+  .hero h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+  .hero p {
+    color: #d7e0e8;
+    max-width: 46ch;
+  }
+  .hero .accent {
+    display: inline-block;
+    width: 56px;
+    height: 5px;
+    background: var(--yellow);
+    border-radius: 3px;
+    margin-bottom: 18px;
+  }
+  main {
+    max-width: 760px;
+    margin: -32px auto 0;
+    padding: 0 24px 72px;
+  }
+  .contact-card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(38, 51, 61, 0.08);
+    padding: 28px;
+  }
+  .contact-card h2 {
+    font-size: 1.15rem;
+    margin-bottom: 4px;
+  }
+  .card-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 20px; }
+  .row { display: flex; gap: 14px; }
+  .row .field { flex: 1; }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  .optional { color: var(--muted); font-weight: 400; }
+  .field input, .field textarea {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font: inherit;
+    color: var(--ink);
+    background: var(--white);
+  }
+  .field input:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--slate);
+    box-shadow: 0 0 0 3px rgba(75, 105, 129, 0.18);
+  }
+  .field textarea { resize: vertical; }
+  .hp { display: none; }
+  .form-status { margin-top: 12px; font-size: 0.95rem; min-height: 1.4em; }
+  .form-status.ok { color: #2e7d4f; font-weight: 600; }
+  .form-status.err { color: #b3402a; font-weight: 600; }
+  .btn {
+    display: inline-block;
+    background: var(--slate);
+    color: var(--white);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 12px 22px;
+    border-radius: 10px;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn:hover, .btn:focus-visible { background: var(--slate-dark); }
+  .btn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+  section.faq { margin-top: 48px; }
+  section.faq h2 {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+  }
+  details {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    background: var(--white);
+    overflow: hidden;
+  }
+  details[open] { background: var(--slate-tint); }
+  summary {
+    cursor: pointer;
+    padding: 16px 20px;
+    font-weight: 600;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+";
+    font-size: 1.3rem;
+    color: var(--slate);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  details[open] summary::after { content: "–"; }
+  summary:focus-visible {
+    outline: 3px solid var(--yellow);
+    outline-offset: -3px;
+    border-radius: 12px;
+  }
+  .answer {
+    padding: 0 20px 18px;
+    color: var(--muted);
+    font-size: 0.97rem;
+  }
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 28px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  footer a { color: var(--slate); text-decoration: none; font-weight: 600; }
+  footer a:hover { text-decoration: underline; }
+  @media (max-width: 520px) {
+    .hero h1 { font-size: 1.6rem; }
+    .row { flex-direction: column; gap: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <img class="logo-bowl" src="/logo.png" alt="" width="34" height="34">
+    <span class="wordmark">AI Recipe Manager</span>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <span class="accent"></span>
+    <h1>Support</h1>
+    <p>Answers to common questions about AI Recipe Manager, and a direct line to us when you need more help.</p>
+  </div>
+</div>
+
+<main>
+  <div class="contact-card">
+    <h2>Contact us</h2>
+    <p class="card-sub">Send us a message and we'll reply, usually within 1–2 business days.</p>
+    <form id="support-form" novalidate>
+      <input type="hidden" name="access_key" value="f0659931-0e9d-4521-b4e5-dfda8cf1423c">
+      <input type="hidden" name="subject" value="AI Recipe Manager — Support Request">
+      <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="row">
+        <div class="field">
+          <label for="first_name">First name</label>
+          <input type="text" id="first_name" name="first_name" required autocomplete="given-name">
+        </div>
+        <div class="field">
+          <label for="last_name">Last name</label>
+          <input type="text" id="last_name" name="last_name" required autocomplete="family-name">
+        </div>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="phone">Phone <span class="optional">(optional)</span></label>
+        <input type="tel" id="phone" name="phone" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label for="message">Issue you are having</label>
+        <textarea id="message" name="message" rows="5" required></textarea>
+      </div>
+      <button class="btn" type="submit" id="submit-btn">Send message</button>
+      <p class="form-status" id="form-status" role="status"></p>
+    </form>
+  </div>
+
+  <section class="faq" aria-label="Frequently asked questions">
+    <h2>Frequently asked questions</h2>
+
+    <details>
+      <summary>How does receipt scanning work?</summary>
+      <div class="answer">Open the Kitchen Inventory tab and tap Add Receipt, then take a photo of your grocery receipt. The items on it are read automatically and added to your inventory — no manual typing needed.</div>
+    </details>
+
+    <details>
+      <summary>How do AI-generated recipes work?</summary>
+      <div class="answer">Go to the AI Chef tab and tap "Use My Inventory" to get recipe ideas built from ingredients you already have, or type a custom request for something specific. Recipes respect the diets and allergies you set in Settings.</div>
+    </details>
+
+    <details>
+      <summary>Can I import recipes from websites?</summary>
+      <div class="answer">Yes. Paste any recipe URL into the app and it will be clipped into your recipe collection with ingredients and instructions organized for you.</div>
+    </details>
+
+    <details>
+      <summary>How do I set dietary restrictions or allergies?</summary>
+      <div class="answer">Open Settings and choose your diets (vegan, keto, paleo, gluten-free, and more) and any allergies. Every AI recipe and suggestion will respect them automatically.</div>
+    </details>
+
+    <details>
+      <summary>How do grocery lists know what I already own?</summary>
+      <div class="answer">Your grocery list checks against your kitchen inventory. If a planned item is already in your kitchen, the app flags it so you don't buy duplicates.</div>
+    </details>
+
+    <details>
+      <summary>Can I sync my meal plan to my calendar?</summary>
+      <div class="answer">Yes. In Settings, you can subscribe to your meal plan feed in Google Calendar or Apple Calendar so your planned meals show up alongside your day.</div>
+    </details>
+
+    <details>
+      <summary>How do I track my grocery budget?</summary>
+      <div class="answer">Set a monthly budget in the Grocery Budget section. Your scanned receipts count toward it automatically, with spending broken down by category and compared against previous months.</div>
+    </details>
+
+    <details>
+      <summary>How do I delete my account or data?</summary>
+      <div class="answer">You can delete your account and associated data yourself at any time in the Account section of the app, or from your account settings on airecipemanager.com.</div>
+    </details>
+  </section>
+</main>
+
+<footer>
+  <p>© 2026 AI Recipe Manager · <a href="https://airecipemanager.com">airecipemanager.com</a> · <a href="mailto:support@airecipemanager.com">support@airecipemanager.com</a></p>
+</footer>
+
+<script>
+  const form = document.getElementById('support-form');
+  const status = document.getElementById('form-status');
+  const btn = document.getElementById('submit-btn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form.reportValidity()) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    status.className = 'form-status';
+    status.textContent = '';
+
+    const data = Object.fromEntries(new FormData(form).entries());
+    data.name = (data.first_name + ' ' + data.last_name).trim();
+
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      if (json.success) {
+        status.className = 'form-status ok';
+        status.textContent = 'Message sent. We\'ll get back to you soon.';
+        form.reset();
+      } else {
+        throw new Error(json.message || 'Submission failed');
+      }
+    } catch (err) {
+      status.className = 'form-status err';
+      status.textContent = 'Something went wrong. Please email support@airecipemanager.com directly.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send message';
+    }
+  });
+</script>
+
+</body>
+</html>
