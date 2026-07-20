@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Plus, X, Loader2, Save, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { haptics } from "@/lib/native";
+import { recipeSaveErrorMessage } from "@/lib/planLimit";
 
 interface RecipeFormProps {
   recipe?: {
@@ -229,7 +230,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
       haptics.success();
       onClose();
     },
-    onError: () => { toast.error("Failed to save recipe"); haptics.error(); },
+    onError: (error) => { toast.error(recipeSaveErrorMessage(error)); haptics.error(); },
   });
 
   const addItem = (list: string[], setter: (v: string[]) => void) => {

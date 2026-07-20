@@ -42,10 +42,11 @@ begin
     from public.recipes
    where user_id = new.user_id;
 
+  -- Deliberately surface-neutral: each client adds its own guidance. The web app points at
+  -- Settings; the apps must not, so they say nothing about how to upgrade (App Store 3.1.1).
   if v_count >= v_limit then
     raise exception
-      'You have reached the %-recipe limit for your plan. Log in to your account on the web to increase your limit.',
-      v_limit
+      'You have reached the %-recipe limit for your plan.', v_limit
       using errcode = 'check_violation';
   end if;
 
