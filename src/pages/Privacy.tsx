@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const Privacy = () => {
-  const lastUpdated = "May 7, 2026";
+  const lastUpdated = "July 20, 2026";
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,9 +62,21 @@ const Privacy = () => {
           <section>
             <h2 className="text-2xl font-semibold mt-8 mb-3">4. AI Processing</h2>
             <p className="text-muted-foreground leading-relaxed">
-              When you use AI features, the data you submit (such as ingredients, dietary preferences,
-              or scanned receipts) is sent to third-party AI model providers solely to generate the
-              requested response. We do not use your personal content to train third-party AI models.
+              When you use AI features, the data you submit is sent to a third-party AI provider
+              solely to generate the requested response. The model is Google Gemini, accessed
+              through the Lovable AI Gateway. No AI model runs on your device — all AI processing
+              happens on our servers and at that provider.
+            </p>
+            <ul className="list-disc pl-6 mt-3 space-y-2 text-muted-foreground">
+              <li><strong>Recipe generation:</strong> the names, quantities, and storage locations of your pantry items, your saved dietary restrictions and allergies, and any preferences you type.</li>
+              <li><strong>Receipt scanning:</strong> the photograph of the receipt.</li>
+              <li><strong>Recipe photo scanning:</strong> the photograph of the recipe or cookbook page.</li>
+              <li><strong>Ingredient categorization:</strong> ingredient names only.</li>
+            </ul>
+            <p className="text-muted-foreground leading-relaxed mt-3">
+              Your name, email address, account identifier, and authentication token are never
+              included in these requests. We do not use your personal content to train
+              third-party AI models.
             </p>
           </section>
 
@@ -95,12 +107,14 @@ const Privacy = () => {
               policy.
             </p>
             <ul className="list-disc pl-6 mt-3 space-y-2 text-muted-foreground">
-              <li><strong>Lovable Cloud (powered by Supabase):</strong> Hosts our database, authentication, file storage, and serverless functions. Stores your account info, recipes, inventory, and uploaded images.</li>
+              <li><strong>Supabase:</strong> Hosts our database, authentication, file storage, and serverless functions. Stores your account info, recipes, inventory, and uploaded images.</li>
               <li><strong>Google Sign-In:</strong> If you choose to sign in with Google, Google shares your name, email, and profile identifier with us. Governed by the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google Privacy Policy</a>.</li>
               <li><strong>Apple Sign-In:</strong> If you choose to sign in with Apple, Apple shares your name and an email (real or relay) with us. Governed by the <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Apple Privacy Policy</a>.</li>
-              <li><strong>AI model providers (Google Gemini, OpenAI):</strong> Process recipe prompts, receipt images, and cookbook photos via the Lovable AI Gateway to generate AI responses. They do not train models on your content.</li>
-              <li><strong>Firecrawl:</strong> Used when you import a recipe from a URL, to fetch and parse the public web page you provided.</li>
-              <li><strong>Accept.blue:</strong> Processes subscription payments. Card details are handled directly by Accept.blue and never stored on our servers.</li>
+              <li><strong>Google Gemini, via the Lovable AI Gateway:</strong> Processes recipe prompts, receipt images, and cookbook photos to generate AI responses, as described in section 4. Does not train models on your content.</li>
+              <li><strong>Firecrawl:</strong> Used when you import a recipe from a URL, to fetch and parse the public web page you provided. Receives only that URL.</li>
+              <li><strong>Kroger and Apify:</strong> Retrieve store prices for grocery items you choose to price. Receive the item search term and your postal code.</li>
+              <li><strong>Open Food Facts:</strong> Barcode lookup. Receives only the scanned barcode.</li>
+              <li><strong>Accept.blue:</strong> Processes subscription payments made on this website. Card details are handled directly by Accept.blue and never stored on our servers.</li>
             </ul>
           </section>
 
