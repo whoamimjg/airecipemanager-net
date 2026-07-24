@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Brain, ChefHat, Clock, Users, Sparkles, Plus, ShoppingCart, Check, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { recipeSaveErrorMessage } from "@/lib/planLimit";
 
 interface AIIngredient {
   name: string;
@@ -102,7 +103,7 @@ const AIRecipeGenerator = () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
       toast.success("Recipe saved to your collection!");
     },
-    onError: () => toast.error("Failed to save recipe"),
+    onError: (error) => toast.error(recipeSaveErrorMessage(error)),
   });
 
   return (

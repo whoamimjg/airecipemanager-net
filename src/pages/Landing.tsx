@@ -52,6 +52,7 @@ const features = [
 
 const plans = [
   {
+    key: "free",
     name: "Starter",
     price: "Free",
     period: "",
@@ -60,28 +61,31 @@ const plans = [
     features: ["25 recipes", "Manual recipe entry", "Basic inventory", "Grocery list"],
   },
   {
-    name: "Home Cook",
-    price: "$10",
+    key: "basic",
+    name: "Basic",
+    price: "$4.99",
     period: "/mo",
-    recipes: "75",
+    recipes: "100",
     highlight: false,
-    features: ["75 recipes", "URL recipe clipping", "Full inventory tracking", "Meal planner", "Expiration alerts"],
+    features: ["100 recipes", "URL recipe clipping", "AI generation", "Meal planning", "Grocery list"],
   },
   {
-    name: "Chef Pro",
-    price: "$25",
+    key: "pro",
+    name: "Pro",
+    price: "$9.99",
     period: "/mo",
-    recipes: "250",
+    recipes: "500",
     highlight: true,
-    features: ["250 recipes", "AI recipe generation", "Smart grocery lists", "Price comparison", "Calendar sync", "Priority support"],
+    features: ["500 recipes", "Unlimited AI", "Advanced meal planning", "Inventory tracking", "Priority support"],
   },
   {
+    key: "unlimited",
     name: "Unlimited",
-    price: "$35",
+    price: "$19.99",
     period: "/mo",
     recipes: "∞",
     highlight: false,
-    features: ["Unlimited recipes", "Everything in Chef Pro", "Advanced AI suggestions", "Household members", "API access"],
+    features: ["Unlimited recipes", "Unlimited AI", "All features", "Priority support", "Early access"],
   },
 ];
 
@@ -112,11 +116,11 @@ const Landing = () => {
             <Link to="/auth">
               <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white">Log in</Button>
             </Link>
-            <Link to="/auth?mode=signup">
+            <a href="#pricing">
               <Button size="sm" className="bg-cta text-cta-foreground hover:bg-cta/90 rounded-lg font-medium">
                 Get Started <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </nav>
@@ -140,11 +144,11 @@ const Landing = () => {
               AI Recipe Manager helps you plan meals, discover new ideas, and cook with what you already have — powered by AI that knows your kitchen.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/auth?mode=signup">
+              <a href="#pricing">
                 <Button size="lg" className="bg-cta text-cta-foreground hover:bg-cta/90 text-base px-8 h-12 rounded-lg font-medium shadow-lg">
                   Start cooking smarter <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
+              </a>
               <a href="#how-it-works">
                 <Button size="lg" variant="outline" className="text-base px-8 h-12 rounded-lg font-medium bg-transparent border-2 border-white/80 text-white hover:bg-white hover:text-brand-slate">
                   See how it works
@@ -363,7 +367,7 @@ const Landing = () => {
                       </li>
                     ))}
                   </ul>
-                  <Link to="/auth?mode=signup" className="w-full">
+                  <Link to={plan.key === "free" ? "/auth?mode=signup" : `/auth?mode=signup&plan=${plan.key}`} className="w-full">
                     <Button
                       className={`w-full ${
                         plan.highlight
@@ -371,7 +375,7 @@ const Landing = () => {
                           : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                       }`}
                     >
-                      {plan.price === "Free" ? "Get Started Free" : "Choose Plan"}
+                      {plan.key === "free" ? "Get Started Free" : "Choose Plan"}
                     </Button>
                   </Link>
                 </CardContent>
@@ -392,11 +396,11 @@ const Landing = () => {
             <p className="mx-auto mt-4 max-w-lg text-white/80 text-lg">
               Join thousands of home cooks who save time, reduce waste, and eat better with AI Recipe Manager.
             </p>
-            <Link to="/auth?mode=signup">
+            <a href="#pricing">
               <Button size="lg" className="mt-8 bg-cta text-cta-foreground hover:bg-cta/90 text-base px-10 h-12 rounded-lg font-medium shadow-lg">
                 Start cooking smarter <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>

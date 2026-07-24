@@ -13,6 +13,7 @@ import { Link } from "react-router-dom";
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup");
+  const planParam = searchParams.get("plan");
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,12 +47,15 @@ const Auth = () => {
       } else if (isSignUp) {
         const { error } = await signUpWithEmail(email, password, fullName);
         if (error) throw error;
+        if (planParam) sessionStorage.setItem("pendingPlan", planParam);
         toast.success("Account created! Check your email to confirm.");
       } else {
         const { error } = await signInWithEmail(email, password);
         if (error) throw error;
         toast.success("Welcome back!");
-        navigate("/dashboard", { replace: true });
+        const pending = planParam || sessionStorage.getItem("pendingPlan");
+        sessionStorage.removeItem("pendingPlan");
+        navigate(pending ? `/account?checkout=${pending}` : "/dashboard", { replace: true });
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");

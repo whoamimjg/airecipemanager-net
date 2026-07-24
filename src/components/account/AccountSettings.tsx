@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,6 +87,19 @@ const AccountSettings = () => {
   const [deleting, setDeleting] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{ key: string; name: string; price: number } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (checkout && PLAN_DETAILS[checkout as keyof typeof PLAN_DETAILS]) {
+      const plan = PLAN_DETAILS[checkout as keyof typeof PLAN_DETAILS];
+      if (plan.price > 0) {
+        setSelectedPlan({ key: checkout, name: plan.name, price: plan.price });
+        setPaymentOpen(true);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, []);
 
   // Fetch profile
   const { data: profile, isLoading } = useQuery({
