@@ -244,11 +244,16 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
     });
 
   const extractPdfText = async (file: File): Promise<string> => {
-    const [pdfjsLib, workerModule] = await Promise.all([
-      import("pdfjs-dist/legacy/build/pdf.mjs"),
-      import("pdfjs-dist/legacy/build/pdf.worker.mjs?url"),
-    ]);
-    pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default;
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    // The ?url import returns undefined on Safari — fall back to jsDelivr CDN.
+    let workerSrc: string | undefined;
+    try {
+      const m = await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url");
+      workerSrc = m.default;
+    } catch { /* ignore */ }
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      workerSrc ??
+      `https://cdn.jsdelivr.net/npm/pdfjs-dist@${(pdfjsLib as any).version}/legacy/build/pdf.worker.min.js`;
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
     const pages: string[] = [];
