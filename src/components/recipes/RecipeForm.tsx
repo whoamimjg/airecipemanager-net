@@ -272,9 +272,10 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                 <img src={imageUrl} alt={title || "Recipe"} className="w-full max-h-64 object-cover rounded-lg border border-border" />
                 <div className="absolute top-2 right-2 flex gap-2">
                   <Button asChild type="button" variant="secondary" size="sm" disabled={uploadingImage}>
-                    <label htmlFor="recipe-image-input" style={{ cursor: uploadingImage ? "default" : "pointer" }}>
+                    <label style={{ cursor: uploadingImage ? "default" : "pointer" }}>
                       {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                       <span className="ml-1">Replace</span>
+                      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                     </label>
                   </Button>
                   <Button
@@ -289,7 +290,6 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
               </div>
             ) : (
               <label
-                htmlFor="recipe-image-input"
                 style={{ cursor: uploadingImage ? "default" : "pointer" }}
                 className="w-full flex flex-col items-center justify-center gap-2 py-8 border-2 border-dashed border-border rounded-lg hover:bg-muted/40 transition-colors disabled:opacity-50"
               >
@@ -305,6 +305,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
                     <span className="text-xs text-muted-foreground">PNG, JPG up to 5MB</span>
                   </>
                 )}
+                <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
               </label>
             )}
             <Input
@@ -312,14 +313,6 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="Or paste an image URL"
               className="text-xs"
-            />
-            <input
-              id="recipe-image-input"
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageUpload}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

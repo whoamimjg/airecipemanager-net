@@ -110,22 +110,13 @@ const PhotoRecipeScanner = ({ onClose }: PhotoRecipeScannerProps) => {
             </div>
           ) : (
             <Button asChild>
-              <label htmlFor="recipe-photo-input" style={{ cursor: "pointer" }}>
+              <label style={{ cursor: "pointer" }}>
                 <Camera className="mr-2 h-4 w-4" />
                 {previewUrl ? "Retake Photo" : "Take Photo / Upload"}
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} onClick={(e) => { (e.target as HTMLInputElement).value = ""; }} />
               </label>
             </Button>
-          )}
-
-          <input
-            id="recipe-photo-input"
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-            onClick={(e) => { (e.target as HTMLInputElement).value = ""; }}
-          />
+          }}
         </div>
 
         {scanMutation.isError && (

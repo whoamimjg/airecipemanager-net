@@ -63,7 +63,6 @@ type ScanPayload = {
 };
 
 const SCAN_TIMEOUT_MS = 45_000;
-const PDF_TEXT_MIN_LENGTH = 80;
 
 const STORAGE_LOCATIONS = [
   { value: "fridge", label: "🧊 Fridge" },
@@ -243,31 +242,6 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
       img.src = url;
     });
 
-  const extractPdfText = async (file: File): Promise<string> => {
-    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    // Run pdfjs in fake-worker (main-thread) mode — avoids worker URL issues on Safari/Firefox.
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
-    const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const pages: string[] = [];
-    const maxPages = Math.min(pdf.numPages, 20);
-    for (let i = 1; i <= maxPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items
-        .map((item) => ("str" in item ? item.str : ""))
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (text) pages.push(text);
-    }
-    const receiptText = pages.join("\n\n");
-    if (receiptText.length < PDF_TEXT_MIN_LENGTH) {
-      throw new Error("This PDF does not contain readable receipt text. Please upload a screenshot or photo instead.");
-    }
-    return receiptText;
-  };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -278,10 +252,12 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
     try {
       setIsPreparingFile(true);
       if (isPdf) {
-        const receiptText = await extractPdfText(file);
+        // Send PDFs directly to the backend — Gemini handles PDFs natively,
+        // no client-side text extraction needed.
         setPreviewUrl(null);
+        const base64 = await fileToBase64(file);
         setIsPreparingFile(false);
-        scanMutation.mutate({ receipt_text: receiptText, mime_type: "text/plain" });
+        scanMutation.mutate({ file_base64: base64, mime_type: "application/pdf" });
         return;
       }
 
@@ -383,16 +359,18 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                     </Button>
                   ) : (
                     <Button asChild className="w-full sm:w-auto">
-                      <label htmlFor="receipt-camera-input" style={{ cursor: "pointer" }}>
+                      <label style={{ cursor: "pointer" }}>
                         <Camera className="mr-2 h-4 w-4" />
                         {previewUrl ? "Retake Photo" : "Take Photo"}
+                        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
                       </label>
                     </Button>
                   )}
                   <Button asChild variant="outline" className="w-full sm:w-auto">
-                    <label htmlFor="receipt-upload-input" style={{ cursor: "pointer" }}>
+                    <label style={{ cursor: "pointer" }}>
                       <Upload className="mr-2 h-4 w-4" />
                       Upload Receipt
+                      <input ref={uploadInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileChange} />
                     </label>
                   </Button>
                 </div>
@@ -401,24 +379,6 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
               <p className="text-xs text-muted-foreground text-center">
                 Supports JPG, PNG, HEIC and PDF
               </p>
-
-              <input
-                id="receipt-camera-input"
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <input
-                id="receipt-upload-input"
-                ref={uploadInputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                className="hidden"
-                onChange={handleFileChange}
-              />
 
             </div>
           </div>
