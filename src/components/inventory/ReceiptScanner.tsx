@@ -378,13 +378,24 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <Button onClick={handleTakePhoto} className="w-full sm:w-auto">
-                    <Camera className="mr-2 h-4 w-4" />
-                    {previewUrl ? "Retake Photo" : "Take Photo"}
-                  </Button>
-                  <Button onClick={handleUploadClick} variant="outline" className="w-full sm:w-auto">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Receipt
+                  {isNative() ? (
+                    <Button onClick={handleTakePhoto} className="w-full sm:w-auto">
+                      <Camera className="mr-2 h-4 w-4" />
+                      {previewUrl ? "Retake Photo" : "Take Photo"}
+                    </Button>
+                  ) : (
+                    <Button asChild className="w-full sm:w-auto">
+                      <label htmlFor="receipt-camera-input" style={{ cursor: "pointer" }}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        {previewUrl ? "Retake Photo" : "Take Photo"}
+                      </label>
+                    </Button>
+                  )}
+                  <Button asChild variant="outline" className="w-full sm:w-auto">
+                    <label htmlFor="receipt-upload-input" style={{ cursor: "pointer" }}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Receipt
+                    </label>
                   </Button>
                 </div>
               )}
@@ -394,6 +405,7 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
               </p>
 
               <input
+                id="receipt-camera-input"
                 ref={cameraInputRef}
                 type="file"
                 accept="image/*"
@@ -402,6 +414,7 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                 onChange={handleFileChange}
               />
               <input
+                id="receipt-upload-input"
                 ref={uploadInputRef}
                 type="file"
                 accept="image/*,application/pdf"
