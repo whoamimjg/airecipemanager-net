@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { ArrowLeft, Camera, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
@@ -12,7 +13,6 @@ interface PhotoRecipeScannerProps {
 }
 
 const PhotoRecipeScanner = ({ onClose }: PhotoRecipeScannerProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [scannedRecipe, setScannedRecipe] = useState<any>(null);
 
@@ -109,13 +109,11 @@ const PhotoRecipeScanner = ({ onClose }: PhotoRecipeScannerProps) => {
               <p className="text-xs text-muted-foreground">This usually takes 5-10 seconds</p>
             </div>
           ) : (
-            <Button asChild>
-              <label style={{ cursor: "pointer" }}>
-                <Camera className="mr-2 h-4 w-4" />
-                {previewUrl ? "Retake Photo" : "Take Photo / Upload"}
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} onClick={(e) => { (e.target as HTMLInputElement).value = ""; }} />
-              </label>
-            </Button>
+            <label className={cn(buttonVariants(), "cursor-pointer")}>
+              <Camera className="mr-2 h-4 w-4" />
+              {previewUrl ? "Retake Photo" : "Take Photo / Upload"}
+              <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} onClick={(e) => { (e.target as HTMLInputElement).value = ""; }} />
+            </label>
           )}
         </div>
 
