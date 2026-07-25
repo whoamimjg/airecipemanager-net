@@ -116,7 +116,7 @@ const PhotoRecipeScanner = ({ onClose }: PhotoRecipeScannerProps) => {
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} onClick={(e) => { (e.target as HTMLInputElement).value = ""; }} />
               </label>
             </Button>
-          }}
+          )}
         </div>
 
         {scanMutation.isError && (
