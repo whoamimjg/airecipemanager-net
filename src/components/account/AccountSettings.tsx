@@ -389,14 +389,15 @@ const AccountSettings = () => {
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
+              <label
+                htmlFor="avatar-upload-input"
+                style={{ cursor: uploading ? "default" : "pointer" }}
                 className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Camera className="h-5 w-5 text-white" />
-              </button>
+              </label>
               <input
+                id="avatar-upload-input"
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"

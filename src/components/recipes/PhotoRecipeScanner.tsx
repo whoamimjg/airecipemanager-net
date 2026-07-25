@@ -109,13 +109,16 @@ const PhotoRecipeScanner = ({ onClose }: PhotoRecipeScannerProps) => {
               <p className="text-xs text-muted-foreground">This usually takes 5-10 seconds</p>
             </div>
           ) : (
-            <Button onClick={() => fileInputRef.current?.click()}>
-              <Camera className="mr-2 h-4 w-4" />
-              {previewUrl ? "Retake Photo" : "Take Photo / Upload"}
+            <Button asChild>
+              <label htmlFor="recipe-photo-input" style={{ cursor: "pointer" }}>
+                <Camera className="mr-2 h-4 w-4" />
+                {previewUrl ? "Retake Photo" : "Take Photo / Upload"}
+              </label>
             </Button>
           )}
 
           <input
+            id="recipe-photo-input"
             ref={fileInputRef}
             type="file"
             accept="image/*"
