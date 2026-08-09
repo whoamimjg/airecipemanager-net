@@ -86,29 +86,16 @@ const GroceryList = () => {
   // matching the iOS/Android apps.
   const queryStart = format(today, "yyyy-MM-dd");
 
-  // Fetch meal plans (today onward) with recipe details
+  // Fetch meal plans (today onward) with recipe details in a single joined query.
   const { data: mealPlans = [] } = useQuery({
     queryKey: ["grocery-meal-plans", queryStart],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("meal_plans")
-        .select("*")
+        .select("*, recipe:recipes(id, title, ingredients)")
         .gte("date", queryStart);
       if (error) throw error;
-
-      const recipeIds = [...new Set((data || []).filter(mp => mp.recipe_id).map(mp => mp.recipe_id))];
-      if (recipeIds.length === 0) return [];
-
-      const { data: recipes } = await supabase
-        .from("recipes")
-        .select("id, title, ingredients")
-        .in("id", recipeIds);
-
-      const recipesMap = Object.fromEntries((recipes || []).map(r => [r.id, r]));
-      return (data || []).map(mp => ({
-        ...mp,
-        recipe: mp.recipe_id ? recipesMap[mp.recipe_id] : undefined,
-      }));
+      return data || [];
     },
     enabled: !!user,
   });
