@@ -21,6 +21,7 @@ import StarRating from "./StarRating";
 import { Button } from "@/components/ui/button";
 import { PlayCircle } from "lucide-react";
 import ShareRecipeButton from "./ShareRecipeButton";
+import NutritionPanel, { type Nutrition } from "./NutritionPanel";
 
 interface Recipe {
   id: string;
@@ -36,6 +37,7 @@ interface Recipe {
   source_url: string | null;
   image_url: string | null;
   rating: number | null;
+  nutrition?: Nutrition | null;
   created_at: string;
 }
 
@@ -139,6 +141,13 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
             </ul>
           </div>
         )}
+
+        <NutritionPanel
+          recipeId={recipe.id}
+          ingredients={ingredients}
+          servings={recipe.servings}
+          nutrition={recipe.nutrition ?? null}
+        />
 
         {instructions.length > 0 && (
           <div>

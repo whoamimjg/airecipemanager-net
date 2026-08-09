@@ -27,3 +27,6 @@ dist-ssr
 # The shipping mobile apps live in the airecipemanager-android (KMP) repo.
 android/
 ios/
+
+# Supabase CLI local state
+supabase/.temp/
