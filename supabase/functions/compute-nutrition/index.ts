@@ -25,6 +25,14 @@ const corsHeaders = {
 const FDC_API_KEY = Deno.env.get("FDC_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Service-role client used only for the FDC lookup cache — no caller JWT needed.
+const dbCache = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+});
+
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // USDA nutrient numbers. Energy is reported twice (kcal 208, kJ 268) — we only
 // ever take the kcal row.
@@ -148,6 +156,13 @@ function cleanName(name: string): string {
   s = s.replace(
     /\b(chopped|minced|diced|sliced|grated|shredded|crushed|ground|melted|softened|beaten|peeled|seeded|trimmed|rinsed|drained|cooked|uncooked|raw|dried|fresh|divided|packed|room temperature|plus more|for serving|for garnish|optional)\b/g,
     " ");
+  // Adjectives that describe quality/preparation but don't change the food —
+  // "lean ground beef" → "beef", "boneless chicken thigh" → "chicken thigh".
+  // Color/flavor adjectives that distinguish different foods (sweet potato,
+  // black bean, red onion, brown rice) are intentionally excluded.
+  s = s.replace(
+    /\b(boneless|skinless|lean|extra-lean|organic|natural|frozen|plain|low-fat|reduced-fat|fat-free|low-sodium|reduced-sodium|unsalted|salted|sweetened|unsweetened|blanched|roasted|toasted|pitted|hulled|deveined|shelled)\b/g,
+    " ");
   s = s.replace(/\b(large|medium|small|extra)\b/g, " ");
   s = s.replace(/[^a-z\s-]/g, " ");
   s = s.replace(/\s+/g, " ").trim();
@@ -270,6 +285,10 @@ function rankCandidates(candidates: any[], query: string): any[] {
       for (const w of words) if (desc.includes(w)) score += 10;
       // A description that leads with the ingredient is usually the plain form.
       if (words[0] && desc.startsWith(words[0])) score += 6;
+      // The last word is usually the core food noun ("sweet ham" → "ham").
+      // Bonus when the FDC description leads with it regardless of modifiers.
+      const lastWord = words[words.length - 1];
+      if (words.length > 1 && lastWord && desc.startsWith(lastWord)) score += 6;
       // Prefer simple entries ("Butter, salted") over heavily qualified ones.
       score -= desc.split(",").length * 2;
       // Only penalise a processed form when the recipe didn't ask for it.
@@ -319,8 +338,32 @@ function needFor(unit: string): Need {
 
 async function lookupFood(query: string, need: Need): Promise<FdcFood | null> {
   const cacheKey = `${need}:${query}`;
+
+  // 1. In-memory hit (same invocation, e.g. ingredient appears twice in a recipe).
   if (cache.has(cacheKey)) return cache.get(cacheKey)!;
 
+  // 2. Persistent DB cache — avoids repeating FDC API calls across recipes and
+  //    users for staple ingredients like "butter", "flour", "chicken breast".
+  try {
+    const { data: row } = await dbCache
+      .from("fdc_cache")
+      .select("result, cached_at")
+      .eq("query", query)
+      .eq("need", need)
+      .maybeSingle();
+    if (row) {
+      const age = Date.now() - new Date(row.cached_at as string).getTime();
+      if (age < CACHE_TTL_MS) {
+        const hit = (row.result ?? null) as FdcFood | null;
+        cache.set(cacheKey, hit);
+        return hit;
+      }
+    }
+  } catch {
+    // Non-fatal: if the cache table is unreachable, fall through to FDC.
+  }
+
+  // 3. Live FDC lookup.
   const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
   url.searchParams.set("query", query);
   // Foundation/SR Legacy are the whole-food reference sets — far better for
@@ -335,7 +378,11 @@ async function lookupFood(query: string, need: Need): Promise<FdcFood | null> {
   if (!res.ok) throw new Error(`FDC search failed (${res.status})`);
 
   const ranked = rankCandidates((await res.json())?.foods ?? [], query);
-  if (ranked.length === 0) { cache.set(cacheKey, null); return null; }
+  if (ranked.length === 0) {
+    cache.set(cacheKey, null);
+    dbCache.from("fdc_cache").upsert({ query, need, result: null }).then(() => {});
+    return null;
+  }
 
   // Search results omit the portion table, so without a detail call every
   // volume amount silently falls back to water density and every countable
@@ -398,6 +445,8 @@ async function lookupFood(query: string, need: Need): Promise<FdcFood | null> {
     unitGrams,
   };
   cache.set(cacheKey, result);
+  // Fire-and-forget — a failed write shouldn't block the response.
+  dbCache.from("fdc_cache").upsert({ query, need, result }).then(() => {});
   return result;
 }
 
@@ -491,7 +540,7 @@ Deno.serve(async (req) => {
     const unmatched: string[] = [];
     const totals = { kcal: 0, protein: 0, fat: 0, carbs: 0 };
 
-    const results = await mapLimit(rows, 4, async (row) => {
+    const results = await mapLimit(rows, 10, async (row) => {
       const label = `${row.quantity} ${row.unit} ${row.name}`.replace(/\s+/g, " ").trim();
       const query = cleanName(row.name);
       if (!query || IGNORABLE.test(row.quantity.trim())) {
