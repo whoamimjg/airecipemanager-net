@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Camera, Loader2, Receipt, Check, Package, X, Upload, FileText } from "lucide-react";
+import { STORAGE_LOCATIONS, StorageLocationLabel } from "@/lib/storage-locations";
 import { toast } from "sonner";
 import { isNative, captureNativePhoto, haptics } from "@/lib/native";
 
@@ -63,15 +64,6 @@ type ScanPayload = {
 };
 
 const SCAN_TIMEOUT_MS = 45_000;
-
-const STORAGE_LOCATIONS = [
-  { value: "fridge", label: "🧊 Fridge" },
-  { value: "freezer", label: "❄️ Freezer" },
-  { value: "pantry", label: "🏪 Pantry" },
-  { value: "cabinet", label: "🗄️ Cabinet" },
-  { value: "counter", label: "🍎 Counter" },
-  { value: "other", label: "📦 Other" },
-];
 
 const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
   const { user } = useAuth();
@@ -426,7 +418,9 @@ const ReceiptScanner = ({ open, onOpenChange }: ReceiptScannerProps) => {
                             </SelectTrigger>
                             <SelectContent>
                               {STORAGE_LOCATIONS.map((loc) => (
-                                <SelectItem key={loc.value} value={loc.value} className="text-xs">{loc.label}</SelectItem>
+                                <SelectItem key={loc.value} value={loc.value} className="text-xs">
+                                  <StorageLocationLabel value={loc.value} />
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>

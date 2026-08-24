@@ -33,10 +33,10 @@ import { haptics } from "@/lib/native";
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
 const MEAL_SLOTS: { key: MealSlot; label: string; color: string; bgCard: string }[] = [
-  { key: "breakfast", label: "Breakfast", color: "bg-warning/15 text-warning border-warning/30", bgCard: "bg-warning/10 border-warning/20" },
-  { key: "lunch", label: "Lunch", color: "bg-primary/15 text-primary border-primary/30", bgCard: "bg-primary/10 border-primary/20" },
-  { key: "dinner", label: "Dinner", color: "bg-pink-100 text-pink-900 border-pink-200", bgCard: "bg-pink-50 border-pink-200" },
-  { key: "snack", label: "Snack", color: "bg-info/15 text-info border-info/30", bgCard: "bg-info/10 border-info/20" },
+  { key: "breakfast", label: "Breakfast", color: "bg-[var(--gold-cream)] text-[var(--neutral-dark)] border-[var(--gold-base)]", bgCard: "bg-[var(--gold-cream)] text-[var(--neutral-dark)] border-[var(--gold-base)]" },
+  { key: "lunch", label: "Lunch", color: "bg-[var(--slate-mist)] text-[var(--neutral-dark)] border-[var(--slate-light)]", bgCard: "bg-[var(--slate-mist)] text-[var(--neutral-dark)] border-[var(--slate-light)]" },
+  { key: "dinner", label: "Dinner", color: "bg-[var(--gold-light)] text-[var(--neutral-dark)] border-[var(--gold-deep)]", bgCard: "bg-[var(--gold-light)] text-[var(--neutral-dark)] border-[var(--gold-deep)]" },
+  { key: "snack", label: "Snack", color: "bg-[var(--neutral-light)] text-[var(--neutral-dark)] border-[var(--neutral-mid)]", bgCard: "bg-[var(--neutral-light)] text-[var(--neutral-dark)] border-[var(--neutral-mid)]" },
 ];
 
 const DAY_HEADERS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];

@@ -62,9 +62,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        success: "hsl(var(--success))",
-        warning: "hsl(var(--warning))",
-        info: "hsl(var(--info))",
+        // *-hsl vars, not the literal-hex --success/--warning brand tokens:
+        // Tailwind opacity modifiers (bg-warning/15) need a bare HSL triplet.
+        success: "hsl(var(--success-hsl))",
+        warning: "hsl(var(--warning-hsl))",
+        info: "hsl(var(--info-hsl))",
         cta: {
           DEFAULT: "hsl(var(--cta))",
           foreground: "hsl(var(--cta-foreground))",
