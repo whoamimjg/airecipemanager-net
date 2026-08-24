@@ -27,6 +27,9 @@ interface Recipe {
   cook_time: number | null;
   servings: number | null;
   category: string | null;
+  /** Two-axis taxonomy; null on recipes predating the split (fall back to `category`). */
+  meal_type: string | null;
+  dish_type: string | null;
   tags: string[] | null;
   source_url: string | null;
   image_url: string | null;
@@ -230,9 +233,12 @@ const RecipeManager = () => {
                     </Button>
                   </div>
                 </div>
-                {recipe.category && (
+                {/* Cards show meal_type. Falls back to the legacy mixed-axis
+                    `category` for recipes not yet migrated to the two-axis
+                    taxonomy, so unmigrated accounts render exactly as before. */}
+                {(recipe.meal_type || recipe.category) && (
                   <Badge variant="secondary" className="w-fit text-xs">
-                    {recipe.category}
+                    {recipe.meal_type || recipe.category}
                   </Badge>
                 )}
               </CardHeader>

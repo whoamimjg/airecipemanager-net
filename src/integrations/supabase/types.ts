@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -74,6 +99,69 @@ export type Database = {
           plan?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      blog_posts: {
+        Row: {
+          body: string
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          published_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          body?: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fdc_cache: {
+        Row: {
+          cached_at: string
+          need: string
+          query: string
+          result: Json | null
+        }
+        Insert: {
+          cached_at?: string
+          need: string
+          query: string
+          result?: Json | null
+        }
+        Update: {
+          cached_at?: string
+          need?: string
+          query?: string
+          result?: Json | null
         }
         Relationships: []
       }
@@ -401,8 +489,11 @@ export type Database = {
           dinner_time: string | null
           display_name: string | null
           email: string | null
+          grocery_goal: string | null
+          household_size: number | null
           id: string
           lunch_time: string | null
+          monthly_grocery_budget: number | null
           snack_time: string | null
           updated_at: string
           user_id: string
@@ -417,8 +508,11 @@ export type Database = {
           dinner_time?: string | null
           display_name?: string | null
           email?: string | null
+          grocery_goal?: string | null
+          household_size?: number | null
           id?: string
           lunch_time?: string | null
+          monthly_grocery_budget?: number | null
           snack_time?: string | null
           updated_at?: string
           user_id: string
@@ -433,8 +527,11 @@ export type Database = {
           dinner_time?: string | null
           display_name?: string | null
           email?: string | null
+          grocery_goal?: string | null
+          household_size?: number | null
           id?: string
           lunch_time?: string | null
+          monthly_grocery_budget?: number | null
           snack_time?: string | null
           updated_at?: string
           user_id?: string
@@ -528,11 +625,15 @@ export type Database = {
           cook_time: number | null
           created_at: string
           description: string | null
+          dish_type: string | null
           id: string
           image_url: string | null
           ingredients: Json
           instructions: Json
           is_ai_generated: boolean | null
+          meal_type: string | null
+          nutrition: Json | null
+          nutrition_updated_at: string | null
           prep_time: number | null
           rating: number | null
           servings: number | null
@@ -547,11 +648,15 @@ export type Database = {
           cook_time?: number | null
           created_at?: string
           description?: string | null
+          dish_type?: string | null
           id?: string
           image_url?: string | null
           ingredients?: Json
           instructions?: Json
           is_ai_generated?: boolean | null
+          meal_type?: string | null
+          nutrition?: Json | null
+          nutrition_updated_at?: string | null
           prep_time?: number | null
           rating?: number | null
           servings?: number | null
@@ -566,11 +671,15 @@ export type Database = {
           cook_time?: number | null
           created_at?: string
           description?: string | null
+          dish_type?: string | null
           id?: string
           image_url?: string | null
           ingredients?: Json
           instructions?: Json
           is_ai_generated?: boolean | null
+          meal_type?: string | null
+          nutrition?: Json | null
+          nutrition_updated_at?: string | null
           prep_time?: number | null
           rating?: number | null
           servings?: number | null
@@ -762,6 +871,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       storage_location: [
