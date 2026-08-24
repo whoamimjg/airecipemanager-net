@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,23 @@ const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("recipes");
 
+  // Header shows the display name, never the email address. Same query key as
+  // AccountSettings so the two share a cache entry and a rename shows up here
+  // as soon as it's saved.
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -32,13 +51,14 @@ const Dashboard = () => {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="AI Recipe Manager" className="h-7 w-7" />
-            <span className="text-lg font-bold font-serif text-foreground hidden sm:inline">AI Recipe Manager</span>
+            <img src="/logo-horizontal.svg" alt="AI Recipe Manager" className="h-8 w-auto" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden md:inline">
-              {user.email}
-            </span>
+            {profile?.display_name && (
+              <span className="text-sm text-muted-foreground hidden md:inline">
+                {profile.display_name}
+              </span>
+            )}
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" />
             </Button>
