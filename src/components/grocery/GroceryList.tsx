@@ -18,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/native";
+import { cleanIngredientName, resolveIngredients } from "@/lib/ingredient-match";
 
 interface GroceryItem {
   name: string;
@@ -119,12 +120,12 @@ const GroceryList = () => {
   const markNeededMutation = useMutation({
     mutationFn: async (ingredientName: string) => {
       if (!user) return;
+      // Exact name match only. The list now hands us the inventory item's own
+      // name, so the old two-way substring fallback bought nothing and could
+      // delete the wrong row — "Milk" also matched "Buttermilk".
       const key = ingredientName.toLowerCase().trim();
-      const match = (invName: string) =>
-        invName === key ||
-        (invName.length > 3 && key.length > 3 && (invName.includes(key) || key.includes(invName)));
       const ids = (inventory as { id: string; name: string }[])
-        .filter(inv => match(inv.name.toLowerCase()))
+        .filter(inv => inv.name.toLowerCase().trim() === key)
         .map(inv => inv.id)
         .filter(Boolean);
       if (ids.length === 0) return;
@@ -138,15 +139,18 @@ const GroceryList = () => {
     onError: () => toast.error("Couldn't update inventory"),
   });
 
-  // Extract raw ingredient names for AI categorization
+  // Pantry-level food names for AI categorization. Sending cleaned names rather
+  // than raw lines keeps the returned keys aligned with the grocery list's own
+  // dedup keys, and collapses the cache across differing quantities.
   const rawIngredients = useMemo(() => {
     const names = new Set<string>();
     mealPlans.forEach(mp => {
       const recipe = mp.recipe;
       if (!recipe?.ingredients || !Array.isArray(recipe.ingredients)) return;
       recipe.ingredients.forEach((ing: any) => {
-        const name = (typeof ing === "string" ? ing : ing.name || "").trim();
-        if (name) names.add(name.toLowerCase());
+        const raw = (typeof ing === "string" ? ing : ing.name || "").trim();
+        const cleaned = cleanIngredientName(raw);
+        if (cleaned) names.add(cleaned);
       });
     });
     return Array.from(names);
@@ -170,67 +174,61 @@ const GroceryList = () => {
     staleTime: 1000 * 60 * 30, // Cache for 30 minutes
   });
 
-  // Build grocery list
+  // Build grocery list.
+  //
+  // Entries are keyed on the *cleaned* food name, not the raw ingredient line,
+  // so "¼ cup granulated sugar" and "1 cup granulated sugar" collapse into one
+  // "Sugar". When an inventory item covers the ingredient the entry takes that
+  // item's name, which is what "Already in Inventory" renders — previously it
+  // showed the raw line verbatim. See src/lib/ingredient-match.ts.
   const groceryItems = useMemo(() => {
-    const ingredientMap = new Map<string, GroceryItem>();
-    const inventoryNames = inventory.map(i => i.name.toLowerCase());
+    const contributors: { raw: string; recipeTitle: string; quantity: string; unit: string }[] = [];
 
     mealPlans.forEach(mp => {
       const recipe = mp.recipe;
       if (!recipe?.ingredients || !Array.isArray(recipe.ingredients)) return;
 
       recipe.ingredients.forEach((ing: any) => {
-        const name = (typeof ing === "string" ? ing : ing.name || "").trim();
-        if (!name) return;
-
-        const key = name.toLowerCase();
-        const quantity = typeof ing === "object" ? (ing.quantity || ing.amount || "") : "";
-        const unit = typeof ing === "object" ? (ing.unit || "") : "";
-        
-        // Use AI category - try exact match first, then check if any AI key is contained in this ingredient
-        let category = aiCategories[key] || "";
-        if (!category) {
-          for (const [aiName, aiCat] of Object.entries(aiCategories)) {
-            if (key.includes(aiName) || aiName.includes(key)) {
-              category = aiCat;
-              break;
-            }
-          }
-        }
-        if (!category) category = "Other";
-        const inInventory = inventoryNames.some(inv => inv.includes(key) || key.includes(inv));
-
-        if (ingredientMap.has(key)) {
-          const existing = ingredientMap.get(key)!;
-          if (!existing.recipes.includes(recipe.title)) {
-            existing.recipes.push(recipe.title);
-          }
-          // Aggregate quantities
-          const qNum = parseFloat(String(quantity));
-          const eNum = parseFloat(existing.quantity);
-          if (!isNaN(qNum) && qNum > 0) {
-            if (!isNaN(eNum)) {
-              existing.quantity = String(eNum + qNum);
-            } else {
-              existing.quantity = String(qNum);
-            }
-          }
-        } else {
-          ingredientMap.set(key, {
-            name,
-            quantity: String(quantity),
-            unit: String(unit),
-            category,
-            recipes: [recipe.title],
-            inInventory,
-          });
-        }
+        const raw = (typeof ing === "string" ? ing : ing.name || "").trim();
+        if (!raw) return;
+        contributors.push({
+          raw,
+          recipeTitle: recipe.title,
+          quantity: typeof ing === "object" ? String(ing.quantity ?? ing.amount ?? "") : "",
+          unit: typeof ing === "object" ? String(ing.unit ?? "") : "",
+        });
       });
     });
 
-    return Array.from(ingredientMap.values()).sort((a, b) => {
-      if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
-      return a.name.localeCompare(b.name);
+    const resolved = resolveIngredients(contributors.map(c => c.raw), inventory as { id: string; name: string }[]);
+
+    return resolved.map<GroceryItem>(entry => {
+      const mine = contributors.filter(c => entry.sources.includes(c.raw));
+
+      const total = mine.reduce((sum, c) => {
+        const n = parseFloat(c.quantity);
+        return isNaN(n) ? sum : sum + n;
+      }, 0);
+
+      let category = aiCategories[entry.key] || "";
+      if (!category) {
+        for (const [aiName, aiCat] of Object.entries(aiCategories)) {
+          if (entry.key.includes(aiName) || aiName.includes(entry.key)) {
+            category = aiCat;
+            break;
+          }
+        }
+      }
+      if (!category) category = "Other";
+
+      return {
+        name: entry.displayName,
+        quantity: total > 0 ? String(total) : "",
+        unit: mine.find(c => c.unit)?.unit ?? "",
+        category,
+        recipes: Array.from(new Set(mine.map(c => c.recipeTitle))),
+        inInventory: entry.inInventory,
+      };
     });
   }, [mealPlans, inventory, aiCategories]);
 

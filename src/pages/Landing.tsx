@@ -103,8 +103,7 @@ const Landing = () => {
       <nav className="sticky top-0 z-50 border-b border-border/20 bg-brand-slate text-white">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="AI Recipe Manager" className="h-8 w-8 rounded" />
-            <span className="text-xl font-bold tracking-tight">AI Recipe Manager</span>
+            <img src="/logo-horizontal-white.svg" alt="AI Recipe Manager" className="h-8 w-auto" />
           </div>
           <div className="hidden items-center gap-6 md:flex">
             <a href="#features" className="text-sm text-white/80 hover:text-white transition-colors">Features</a>
@@ -389,7 +388,7 @@ const Landing = () => {
       <section className="py-20 md:py-28">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl rounded-2xl bg-brand-navy p-12 text-center shadow-2xl md:p-16">
-            <img src="/logo.png" alt="" className="mx-auto mb-6 h-14 w-14 rounded" />
+            <img src="/logo-icon.svg" alt="" className="mx-auto mb-6 h-14 w-14" />
             <h2 className="text-3xl font-bold text-white md:text-4xl">
               Ready to transform your kitchen?
             </h2>
@@ -410,8 +409,7 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center gap-6 md:flex-row md:justify-between">
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="AI Recipe Manager" className="h-7 w-7 rounded" />
-              <span className="font-bold text-white">AI Recipe Manager</span>
+              <img src="/logo-horizontal-white.svg" alt="AI Recipe Manager" className="h-7 w-auto" />
             </div>
             <div className="flex gap-6 text-sm text-white/70">
               <a href="#features" className="hover:text-accent transition-colors">Features</a>

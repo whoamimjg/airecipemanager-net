@@ -233,7 +233,7 @@ const BudgetSetup = ({
 };
 
 const Bar = ({ frac, color }: { frac: number; color: string }) => (
-  <div className="h-4 flex-1 overflow-hidden rounded bg-muted">
+  <div className="h-4 flex-1 overflow-hidden rounded" style={{ backgroundColor: "var(--neutral-light)" }}>
     <div className="h-full rounded" style={{ width: `${Math.min(100, Math.max(0, frac * 100))}%`, backgroundColor: color }} />
   </div>
 );
@@ -260,10 +260,10 @@ const BudgetDashboard = ({ s }: { s: BudgetData }) => {
           {budget > 0 && (
             <>
               <p className="text-sm text-muted-foreground">of {money(budget)} budget</p>
-              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full" style={{ width: `${Math.min(100, (s.monthSpent / budget) * 100)}%`, backgroundColor: over ? "hsl(var(--destructive))" : "hsl(var(--primary))" }} />
+              <div className="mt-3 h-2.5 overflow-hidden rounded-full" style={{ backgroundColor: "var(--neutral-light)" }}>
+                <div className="h-full rounded-full" style={{ width: `${Math.min(100, (s.monthSpent / budget) * 100)}%`, backgroundColor: over ? "var(--error)" : "var(--slate-base)" }} />
               </div>
-              <p className={`mt-1.5 text-sm font-medium ${over ? "text-destructive" : "text-green-600"}`}>
+              <p className="mt-1.5 text-sm font-medium" style={{ color: over ? "var(--error)" : "var(--success)" }}>
                 {over ? `${money(-remaining)} over budget` : `${money(remaining)} left`}
               </p>
             </>
@@ -282,7 +282,7 @@ const BudgetDashboard = ({ s }: { s: BudgetData }) => {
             {(() => {
               const diff = s.monthSpent - (s.nationalAverage ?? 0);
               return (
-                <p className={`text-sm font-medium ${diff <= 0 ? "text-green-600" : "text-amber-600"}`}>
+                <p className="text-sm font-medium" style={{ color: diff <= 0 ? "var(--success)" : "var(--warning)" }}>
                   {diff <= 0 ? `You're ${money(-diff)} below average` : `You're ${money(diff)} above average`}
                 </p>
               );
@@ -299,7 +299,7 @@ const BudgetDashboard = ({ s }: { s: BudgetData }) => {
           {s.byCategory.map((c) => (
             <div key={c.name} className="flex items-center gap-3 text-sm">
               <span className="w-16 text-muted-foreground">{c.name}</span>
-              <Bar frac={c.amount / maxCat} color="hsl(var(--primary))" />
+              <Bar frac={c.amount / maxCat} color="var(--slate-base)" />
               <span className="w-20 text-right text-foreground">{money(c.amount)}</span>
             </div>
           ))}
@@ -313,7 +313,7 @@ const BudgetDashboard = ({ s }: { s: BudgetData }) => {
           {s.trend.map((m, i) => (
             <div key={i} className="flex items-center gap-3 text-xs">
               <span className="w-10 text-muted-foreground">{m.label}</span>
-              <Bar frac={m.amount / maxMonth} color="hsl(248 25% 47%)" />
+              <Bar frac={m.amount / maxMonth} color="var(--slate-base)" />
               <span className="w-20 text-right text-foreground">{money(m.amount)}</span>
             </div>
           ))}
@@ -325,13 +325,13 @@ const BudgetDashboard = ({ s }: { s: BudgetData }) => {
         <Card className="border-border bg-card">
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Food waste</p>
-            <p className="text-xl font-bold text-destructive">{money(s.monthWaste)}</p>
+            <p className="text-xl font-bold" style={{ color: "var(--error)" }}>{money(s.monthWaste)}</p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card">
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Receipts</p>
-            <p className="text-xl font-bold text-primary">{s.receiptCount}</p>
+            <p className="text-xl font-bold" style={{ color: "var(--slate-base)" }}>{s.receiptCount}</p>
           </CardContent>
         </Card>
       </div>

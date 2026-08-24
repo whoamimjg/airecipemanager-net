@@ -26,6 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Package, Trash2, Edit, AlertTriangle, ScanLine, Receipt, CheckSquare, X } from "lucide-react";
+import { STORAGE_LOCATIONS, StorageLocationLabel } from "@/lib/storage-locations";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -60,15 +61,6 @@ interface InventoryItem {
   notes: string | null;
   created_at: string;
 }
-
-const STORAGE_LABELS: Record<string, string> = {
-  fridge: "🧊 Fridge",
-  freezer: "❄️ Freezer",
-  pantry: "🏪 Pantry",
-  cabinet: "🗄️ Cabinet",
-  counter: "🍎 Counter",
-  other: "📦 Other",
-};
 
 const getExpirationStatus = (date: string | null) => {
   if (!date) return null;
@@ -323,8 +315,8 @@ const InventoryManager = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Locations</SelectItem>
-            {Object.entries(STORAGE_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
+            {STORAGE_LOCATIONS.map(({ value }) => (
+              <SelectItem key={value} value={value}><StorageLocationLabel value={value} /></SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -427,7 +419,7 @@ const InventoryManager = () => {
                     </div>
                     <div className="flex gap-3 text-xs text-muted-foreground mt-1">
                       <span>{item.quantity} {item.unit || "pcs"}</span>
-                      <span>{STORAGE_LABELS[item.storage_location] || item.storage_location}</span>
+                      <StorageLocationLabel value={item.storage_location} />
                       {item.price_per_unit != null && <span>${item.price_per_unit.toFixed(2)}/unit</span>}
                     </div>
                   </div>

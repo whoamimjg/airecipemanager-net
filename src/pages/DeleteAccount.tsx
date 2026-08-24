@@ -9,8 +9,7 @@ const DeleteAccount = () => {
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="AI Recipe Manager" className="h-7 w-7" />
-            <span className="text-lg font-bold font-serif text-foreground">AI Recipe Manager</span>
+            <img src="/logo-horizontal.svg" alt="AI Recipe Manager" className="h-8 w-auto" />
           </Link>
           <Link to="/auth">
             <Button variant="outline" size="sm">Sign In</Button>

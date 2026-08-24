@@ -10,8 +10,7 @@ const Privacy = () => {
       <nav className="sticky top-0 z-50 border-b border-border/20 bg-brand-slate text-white">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="AI Recipe Manager" className="h-8 w-8 rounded" />
-            <span className="text-xl font-bold tracking-tight">AI Recipe Manager</span>
+            <img src="/logo-horizontal-white.svg" alt="AI Recipe Manager" className="h-8 w-auto" />
           </Link>
           <Link to="/">
             <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 hover:text-white">

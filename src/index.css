@@ -72,9 +72,37 @@
     --sidebar-border: 0 0% 91%;
     --sidebar-ring: 210 27% 40%;
 
-    --success: 148 52% 37%;
-    --warning: 37 79% 55%;
-    --info: 210 27% 40%;
+    /* HSL triplets consumed by tailwind.config.ts (need bare H S% L% so
+       Tailwind opacity modifiers like `bg-warning/15` keep working). The
+       literal-hex equivalents live in the brand palette block below. */
+    --success-hsl: 148 52% 37%;
+    --warning-hsl: 37 79% 55%;
+    --info-hsl: 210 27% 40%;
+
+    /* ── Brand palette (literal hex, per brand guidelines) ───────────────
+       Use these directly: color: var(--slate-base). Every color in the app
+       must come from this list. */
+    --slate-deep-navy: #1B2A3A;
+    --slate-dark:      #2E4457;
+    --slate-base:      #4B6981;
+    --slate-light:     #7A97AB;
+    --slate-mist:      #C8D6DF;
+
+    --gold-deep:       #D4A030;
+    --gold-base:       #E8C84A;
+    --gold-warm:       #F2EA77;
+    --gold-light:      #F7F2A8;
+    --gold-cream:      #FCF9D9;
+
+    --neutral-near-black: #1A1A1A;
+    --neutral-dark:       #4A4A4A;
+    --neutral-mid:        #8A8A8A;
+    --neutral-light:      #E8E8E8;
+    --neutral-off-white:  #F5F5F5;
+
+    --success: #2D8F5E;
+    --error:   #D4573A;
+    --warning: #E8A830;
   }
 
   .dark {

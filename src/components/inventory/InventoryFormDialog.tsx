@@ -21,6 +21,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2, Save } from "lucide-react";
+import { STORAGE_LOCATIONS, StorageLocationLabel } from "@/lib/storage-locations";
 import { toast } from "sonner";
 import { haptics } from "@/lib/native";
 
@@ -42,15 +43,6 @@ interface InventoryFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const STORAGE_LOCATIONS = [
-  { value: "fridge", label: "🧊 Fridge" },
-  { value: "freezer", label: "❄️ Freezer" },
-  { value: "pantry", label: "🏪 Pantry" },
-  { value: "cabinet", label: "🗄️ Cabinet" },
-  { value: "counter", label: "🍎 Counter" },
-  { value: "other", label: "📦 Other" },
-];
 
 const CATEGORIES = [
   "Produce", "Dairy", "Meat & Seafood", "Grains & Pasta", "Canned Goods",
@@ -144,7 +136,9 @@ const InventoryFormDialog = ({ item, open, onOpenChange }: InventoryFormDialogPr
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {STORAGE_LOCATIONS.map((loc) => (
-                    <SelectItem key={loc.value} value={loc.value}>{loc.label}</SelectItem>
+                    <SelectItem key={loc.value} value={loc.value}>
+                      <StorageLocationLabel value={loc.value} />
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
