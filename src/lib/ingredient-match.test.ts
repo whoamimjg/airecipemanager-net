@@ -4,6 +4,7 @@ import {
   covers,
   parseAmount,
   detectPurchaseUnit,
+  ingredientNote,
   matchInventoryItem,
   resolveIngredients,
   toDisplayName,
@@ -260,5 +261,25 @@ describe("purchase units", () => {
     expect(detectPurchaseUnit("½ cup plain breadcrumbs")).toBe("");
     expect(detectPurchaseUnit("1 tsp Worcestershire sauce")).toBe("");
     expect(detectPurchaseUnit("1 ½ lbs ground beef")).toBe("");
+  });
+});
+
+describe("ingredientNote — prep detail belongs beside the name, not in it", () => {
+  it("splits the prep wording off the food", () => {
+    expect(ingredientNote("4 slices bacon, cooked and crumbled (optional)"))
+      .toBe("cooked and crumbled (optional)");
+    expect(ingredientNote("1 cup cheddar cheese, grated")).toBe("grated");
+    expect(ingredientNote("1 medium yellow onion, finely chopped")).toBe("finely chopped");
+  });
+
+  it("is empty when the line is just an ingredient", () => {
+    expect(ingredientNote("½ cup plain breadcrumbs")).toBe("");
+    expect(ingredientNote("1 tsp Worcestershire sauce")).toBe("");
+    expect(ingredientNote("")).toBe("");
+  });
+
+  it("does not treat a leading qualifier clause as the note", () => {
+    // The food is in the second clause here, so nothing precedes it as a note.
+    expect(ingredientNote("boneless, skinless chicken thighs")).toBe("");
   });
 });

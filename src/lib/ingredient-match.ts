@@ -305,6 +305,36 @@ export function detectPurchaseUnit(raw: string): string {
   return "";
 }
 
+/**
+ * The preparation note a line carries, in its original wording:
+ *
+ *   "4 slices bacon, cooked and crumbled (optional)" -> "cooked and crumbled (optional)"
+ *   "1 cup cheddar cheese, grated"                   -> "grated"
+ *   "½ cup plain breadcrumbs"                        -> ""
+ *
+ * The food name is what you shop for; this is what you do with it once home.
+ * Keeping them apart is what lets the list show a clean "Bacon" without losing
+ * the detail the recipe gave.
+ */
+export function ingredientNote(raw: string): string {
+  if (!raw) return "";
+  const clauses = raw.split(/[,;]/).map((c) => c.trim()).filter(Boolean);
+  if (clauses.length < 2) return "";
+
+  // Everything after the clause the food came from is preparation.
+  let foodClauseIndex = -1;
+  for (let i = 0; i < clauses.length; i++) {
+    if (cleanIngredientName(clauses[i])) { foodClauseIndex = i; break; }
+  }
+  if (foodClauseIndex === -1) return "";
+
+  return clauses
+    .slice(foodClauseIndex + 1)
+    .join(", ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** The head noun is the last surviving token: "chicken breast" -> "breast". */
 export function headNoun(cleaned: string): string {
   const parts = cleaned.split(/\s+/).filter(Boolean);

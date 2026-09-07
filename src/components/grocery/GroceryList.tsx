@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Printer, Share2, DollarSign, Loader2
+  ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Undo2, Printer, Share2, DollarSign, Loader2
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/native";
-import { cleanIngredientName, detectPurchaseUnit, formatAmount, parseAmount, resolveIngredients } from "@/lib/ingredient-match";
+import { cleanIngredientName, detectPurchaseUnit, formatAmount, ingredientNote, parseAmount, resolveIngredients } from "@/lib/ingredient-match";
 
 interface GroceryItem {
   name: string;
@@ -27,6 +27,8 @@ interface GroceryItem {
   category: string;
   recipes: string[];
   inInventory: boolean;
+  /** Prep detail from the recipe ("grated", "cooked and crumbled"). */
+  note: string;
 }
 
 const STORE_CATEGORIES = [
@@ -228,8 +230,14 @@ const GroceryList = () => {
       }
       if (!category) category = "Other";
 
+      // Keep the prep wording the recipe used, without letting it into the name.
+      const notes = Array.from(
+        new Set(mine.map(c => ingredientNote(c.raw)).filter(Boolean))
+      );
+
       return {
         name: entry.displayName,
+        note: notes.join("; "),
         quantity: measured.length > 0 ? quantityText : "",
         unit: unitText,
         category,
@@ -415,7 +423,8 @@ const GroceryList = () => {
           }
           if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
         } else {
-          combined.push(manual);
+          // Manually added rows carry no recipe prep note.
+          combined.push({ ...manual, note: "" });
         }
       });
     return combined.sort((a, b) => {
@@ -471,6 +480,15 @@ const GroceryList = () => {
       queryClient.invalidateQueries({ queryKey: ["grocery-checked-keys"] });
     },
   });
+
+  // Plan-to-Eat style undo: removals and inventory overrides only ever applied
+  // to this list, so putting it back is just clearing them.
+  const resetList = () => {
+    haptics.light();
+    setSessionHidden(new Set());
+    setWantAnyway(new Set());
+    toast({ title: "List reset", description: "Removed items are back." });
+  };
 
   const removeItem = (item: GroceryItem) => {
     haptics.light();
@@ -809,6 +827,16 @@ const GroceryList = () => {
                 </Button>
               )}
             </div>
+            {(sessionHidden.size > 0 || wantAnyway.size > 0) && (
+              <Button
+                onClick={resetList}
+                size="sm"
+                variant="outline"
+                title="Bring back everything you removed from this list"
+              >
+                <Undo2 className="mr-2 h-4 w-4" /> Reset list
+              </Button>
+            )}
             <Button onClick={handlePrint} size="sm" variant="outline" disabled={needToBuy.length === 0}>
               <Printer className="mr-2 h-4 w-4" /> Print
             </Button>
@@ -1043,6 +1071,11 @@ const GroceryList = () => {
                                     );
                                   })()}
                                 </p>
+                                {item.note && (
+                                  <p className="text-xs text-muted-foreground/90 truncate">
+                                    {item.note}
+                                  </p>
+                                )}
                                 <p className="text-xs text-muted-foreground truncate">
                                   Used in: {item.recipes.join(", ")}
                                 </p>
