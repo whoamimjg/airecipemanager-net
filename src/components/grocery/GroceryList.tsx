@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { format, startOfDay } from "date-fns";
+import { addDays, format, startOfDay } from "date-fns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -95,18 +95,43 @@ const GroceryList = () => {
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("Other");
 
-  // Auto-build the list from every recipe planned today or later — no date-range buttons,
-  // matching the iOS/Android apps.
-  const queryStart = format(today, "yyyy-MM-dd");
+  // How far ahead to shop for. "All upcoming" is the default because it is what
+  // the list has always done — narrowing it silently would make a planned meal
+  // look like it had gone missing again.
+  const RANGES = [
+    { id: "7", label: "Next 7 days", days: 7 },
+    { id: "14", label: "Next 14 days", days: 14 },
+    { id: "30", label: "Next 30 days", days: 30 },
+    { id: "all", label: "All upcoming", days: null as number | null },
+  ];
+  const [rangeId, setRangeId] = useState<string>(() => {
+    try {
+      return localStorage.getItem("grocery-range") ?? "all";
+    } catch {
+      return "all";
+    }
+  });
+  const range = RANGES.find(r => r.id === rangeId) ?? RANGES[3];
+  const rangeEnd = range.days ? addDays(today, range.days - 1) : null;
 
-  // Fetch meal plans (today onward) with recipe details in a single joined query.
+  const queryStart = format(today, "yyyy-MM-dd");
+  const queryEnd = rangeEnd ? format(rangeEnd, "yyyy-MM-dd") : null;
+
+  const setRange = (id: string) => {
+    setRangeId(id);
+    try { localStorage.setItem("grocery-range", id); } catch { /* private mode */ }
+  };
+
+  // Fetch meal plans in range, with recipe details, in a single joined query.
   const { data: mealPlans = [] } = useQuery({
-    queryKey: ["grocery-meal-plans", queryStart],
+    queryKey: ["grocery-meal-plans", queryStart, queryEnd],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("meal_plans")
         .select("*, recipe:recipes(id, title, ingredients)")
         .gte("date", queryStart);
+      if (queryEnd) q = q.lte("date", queryEnd);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     },
@@ -796,6 +821,23 @@ const GroceryList = () => {
             <p className="text-sm text-muted-foreground mt-1">
               Auto-generated from your meal plan. Add extra items manually too.
             </p>
+            <div className="flex items-center gap-2 mt-3">
+              <Select value={rangeId} onValueChange={setRange}>
+                <SelectTrigger className="h-8 w-[160px] text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RANGES.map(r => (
+                    <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">
+                {rangeEnd
+                  ? `${format(today, "EEE, MMM d")} – ${format(rangeEnd, "EEE, MMM d")}`
+                  : `${format(today, "EEE, MMM d")} onward`}
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             {/* Store price selector */}
@@ -873,7 +915,9 @@ const GroceryList = () => {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Includes ingredients from every recipe planned for today or later.
+          {rangeEnd
+            ? `Includes ingredients from every recipe planned through ${format(rangeEnd, "EEE, MMM d")}.`
+            : "Includes ingredients from every recipe planned for today or later."}
         </p>
       </div>
 
