@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Undo2, Printer, Share2, DollarSign, Loader2
+  ShoppingCart, Package, Check, AlertTriangle, Pencil, Plus, X, Trash2, Printer, Share2, DollarSign, Loader2
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/native";
-import { cleanIngredientName, formatAmount, parseAmount, resolveIngredients } from "@/lib/ingredient-match";
+import { cleanIngredientName, detectPurchaseUnit, formatAmount, parseAmount, resolveIngredients } from "@/lib/ingredient-match";
 
 interface GroceryItem {
   name: string;
@@ -184,7 +184,11 @@ const GroceryList = () => {
           raw,
           recipeTitle: recipe.title,
           quantity: typeof ing === "object" ? String(ing.quantity ?? ing.amount ?? "") : "",
-          unit: typeof ing === "object" ? String(ing.unit ?? "") : "",
+          // Fall back to the unit you'd buy in ("1 head of cabbage") when the
+          // recipe gave none, so the row says how much to pick up.
+          unit:
+            (typeof ing === "object" ? String(ing.unit ?? "") : "") ||
+            detectPurchaseUnit(raw),
         });
       });
     });
@@ -307,36 +311,10 @@ const GroceryList = () => {
     enabled: !!user,
   });
 
-  // Persisted deleted items (recipe-derived + manual). These never reappear unless restored.
-  const { data: deletedItems = [] } = useQuery({
-    queryKey: ["grocery-deleted-keys"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("grocery_deleted_keys")
-        .select("*")
-        .order("deleted_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as Array<{
-        id: string;
-        item_key: string;
-        display_name: string;
-        quantity: string | null;
-        unit: string | null;
-        category: string | null;
-        source: string;
-        deleted_at: string;
-      }>;
-    },
-    enabled: !!user,
-  });
   const normalizeKey = (s: string) => s.trim().toLowerCase();
-  const deletedKeySet = useMemo(
-    () => new Set(deletedItems.map(d => normalizeKey(d.item_key))),
-    [deletedItems]
-  );
-  // Only this session's removals hide a row now. `deletedKeySet` is retained
-  // solely so the legacy "recently removed" panel can still restore old rows;
-  // it deliberately no longer filters the list.
+  // Removals last for this session only — see `sessionHidden`. The old
+  // grocery_deleted_keys table and its "Deleted Items" panel are gone: a
+  // permanent blocklist is the wrong model for a list rebuilt from meal plans.
   const isDeleted = (name: string) => sessionHidden.has(normalizeKey(name));
 
   // Seed local Set from DB whenever it changes (merge, don't overwrite optimistic toggles)
@@ -444,7 +422,7 @@ const GroceryList = () => {
       if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
-  }, [groceryItems, dbManualItems, deletedKeySet]);
+  }, [groceryItems, dbManualItems, sessionHidden]);
 
   const addManualItem = () => {
     const name = newItemName.trim();
@@ -491,27 +469,6 @@ const GroceryList = () => {
       queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
       queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
       queryClient.invalidateQueries({ queryKey: ["grocery-checked-keys"] });
-    },
-  });
-
-  const restoreDeletedItem = useMutation({
-    mutationFn: async (d: { id: string; item_key: string; source: string; display_name: string; quantity: string | null; unit: string | null; category: string | null }) => {
-      if (!user) return;
-      // If it was a manual item, re-create it so it shows again (recipe items come back from meal plans automatically)
-      if (d.source === "manual") {
-        await supabase.from("grocery_items").insert({
-          user_id: user.id,
-          name: d.display_name,
-          quantity: d.quantity || "1",
-          unit: d.unit || "",
-          category: d.category || "Other",
-        });
-      }
-      await supabase.from("grocery_deleted_keys").delete().eq("id", d.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
-      queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
     },
   });
 
@@ -1229,52 +1186,6 @@ const GroceryList = () => {
               </Card>
             )}
 
-            {deletedItems.length > 0 && (
-              <Card className="border-border">
-                <CardHeader className="py-3 px-4">
-                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                    Deleted Items
-                    <Badge variant="secondary" className="text-xs ml-auto">{deletedItems.length}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <div className="max-h-[400px] overflow-y-auto pr-1">
-                    <div className="space-y-1">
-                      {deletedItems.map(d => (
-                        <div
-                          key={d.id}
-                          className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-foreground truncate">
-                              {d.display_name}
-                              {d.quantity && (
-                                <span className="text-muted-foreground font-normal ml-1">
-                                  — {d.quantity}{d.unit ? ` ${d.unit}` : ""}
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground/70 truncate">
-                              {d.source === "manual" ? "Manual" : "From meal plan"} · {new Date(d.deleted_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-primary"
-                            onClick={() => restoreDeletedItem.mutate(d)}
-                            title="Restore"
-                          >
-                            <Undo2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       )}

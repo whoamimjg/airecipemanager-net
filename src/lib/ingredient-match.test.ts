@@ -3,6 +3,7 @@ import {
   cleanIngredientName,
   covers,
   parseAmount,
+  detectPurchaseUnit,
   matchInventoryItem,
   resolveIngredients,
   toDisplayName,
@@ -41,7 +42,8 @@ describe("cleanIngredientName", () => {
   });
 
   it("handles unicode fractions, decimals and ranges", () => {
-    expect(cleanIngredientName("1.5 lbs ground beef")).toBe("beef");
+    // "ground" is part of the product, not a prep note — you buy ground beef.
+    expect(cleanIngredientName("1.5 lbs ground beef")).toBe("ground beef");
     expect(cleanIngredientName("2 1/2 cups all-purpose flour")).toBe("flour");
   });
 
@@ -199,9 +201,64 @@ describe("meatloaf regressions", () => {
     expect(parseAmount("to taste")).toBeNull();
   });
 
-  it("keeps ground beef resolvable rather than dropping it", () => {
+  it("keeps ground beef resolvable, and distinct from plain beef", () => {
     const resolved = resolveIngredients(["1 ½ lbs ground beef (80/20)"], []);
     expect(resolved).toHaveLength(1);
+    expect(resolved[0].key).toBe("ground beef");
     expect(resolved[0].inInventory).toBe(false);
+    // You buy ground beef, not beef — a pantry "Beef" must not cover it.
+    expect(covers("Beef", "1 ½ lbs ground beef")).toBe(false);
+  });
+});
+
+// Real lines from the user's own recipes. The scraper stores whole sentences in
+// the ingredient `name` field, so the grocery list has to recover the food from
+// prose — these all produced junk rows before clause-aware extraction.
+describe("real scraped ingredient lines", () => {
+  const cases: [string, string][] = [
+    ["pounds ground beef (i like to use 85% lean)", "ground beef"],
+    ["1 \u00bd lbs ground beef (80/20)", "ground beef"],
+    ["strips bacon, cooked until crispy and broken into pieces", "bacon"],
+    ["scallions, thinly sliced, green and white parts separated", "scallion"],
+    ["small head of cabbage, cored and coarsely chopped", "cabbage"],
+    ["Homemade Tortillas or store-bought 8-inch flour tortillas", "tortilla"],
+    ["Fresh parsley or basil, chopped (optional for garnish)", "parsley"],
+    ["4 boneless, skinless chicken breasts (about 6\u20138 oz each)", "chicken breast"],
+    ["1 (12 ounce) bottle barbecue sauce (such as Sweet Baby Ray\u2019s)", "barbecue sauce"],
+    ["cup, sliced into rounds Carrots", "carrot"],
+    ["ketchup, for serving (optional)", "ketchup"],
+    ["1 medium yellow onion, finely chopped", "yellow onion"],
+  ];
+  it.each(cases)("%s -> %s", (raw, expected) => {
+    expect(cleanIngredientName(raw)).toBe(expected);
+  });
+
+  it("does not split an adjective list into a bogus food", () => {
+    // "small or medium" and "red and/or yellow" join adjectives, not foods.
+    expect(cleanIngredientName("2 small or medium racks baby back ribs, membranes removed"))
+      .toBe("baby back rib");
+    expect(cleanIngredientName("red and/or yellow bell peppers, stemmed, seeded"))
+      .toBe("red yellow bell pepper");
+  });
+
+  it("keeps words that only look plural, and folds accents", () => {
+    expect(cleanIngredientName("asparagus, trimmed")).toBe("asparagus");
+    expect(cleanIngredientName("jalape\u00f1o pepper, stemmed, seeded, and chopped"))
+      .toBe("jalapeno pepper");
+  });
+});
+
+describe("purchase units", () => {
+  it("recovers the unit you'd buy in when the recipe gave none", () => {
+    expect(detectPurchaseUnit("1 small head of cabbage, cored")).toBe("head");
+    expect(detectPurchaseUnit("1 (15 oz) can black beans, drained")).toBe("can");
+    expect(detectPurchaseUnit("3 garlic cloves, minced")).toBe("clove");
+    expect(detectPurchaseUnit("2 bunches scallions")).toBe("bunch");
+  });
+
+  it("ignores measuring units, which describe the recipe not the trip", () => {
+    expect(detectPurchaseUnit("½ cup plain breadcrumbs")).toBe("");
+    expect(detectPurchaseUnit("1 tsp Worcestershire sauce")).toBe("");
+    expect(detectPurchaseUnit("1 ½ lbs ground beef")).toBe("");
   });
 });
