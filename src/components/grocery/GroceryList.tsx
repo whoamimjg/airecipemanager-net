@@ -18,7 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/native";
-import { cleanIngredientName, resolveIngredients } from "@/lib/ingredient-match";
+import { cleanIngredientName, formatAmount, parseAmount, resolveIngredients } from "@/lib/ingredient-match";
 
 interface GroceryItem {
   name: string;
@@ -39,6 +39,16 @@ const GroceryList = () => {
   const today = startOfDay(new Date());
 
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  // Removing a recipe-derived row hides it for THIS session only. It used to be
+  // written to grocery_deleted_keys, which suppressed that ingredient in every
+  // future list for every recipe — one click on "Ground Beef" meant no recipe
+  // could ever put beef on the list again. A planned meal must always be able
+  // to put its ingredients back on the list.
+  const [sessionHidden, setSessionHidden] = useState<Set<string>>(new Set());
+  // Inventory is advisory: an item the user has is shown under "Already in
+  // Inventory" rather than dropped, and ticking it there forces it onto the buy
+  // list at the full recipe amount without touching the inventory row.
+  const [wantAnyway, setWantAnyway] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
 
@@ -114,30 +124,9 @@ const GroceryList = () => {
     enabled: !!user,
   });
 
-  // "Need it" — inventory was stale, so pull a planned ingredient into the buy list by deleting
-  // the inventory row(s) that were covering it. When the receipt is later scanned it's re-added,
-  // keeping inventory counts and spend accurate.
-  const markNeededMutation = useMutation({
-    mutationFn: async (ingredientName: string) => {
-      if (!user) return;
-      // Exact name match only. The list now hands us the inventory item's own
-      // name, so the old two-way substring fallback bought nothing and could
-      // delete the wrong row — "Milk" also matched "Buttermilk".
-      const key = ingredientName.toLowerCase().trim();
-      const ids = (inventory as { id: string; name: string }[])
-        .filter(inv => inv.name.toLowerCase().trim() === key)
-        .map(inv => inv.id)
-        .filter(Boolean);
-      if (ids.length === 0) return;
-      const { error } = await supabase.from("inventory_items").delete().in("id", ids);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grocery-inventory"] });
-      toast.success("Added to your list");
-    },
-    onError: () => toast.error("Couldn't update inventory"),
-  });
+  // "Need it" used to delete the covering inventory row to force an ingredient
+  // onto the buy list — destructive, and wrong now that inventory is advisory.
+  // It is handled in the UI by `wantAnyway`, which touches no data.
 
   // Pantry-level food names for AI categorization. Sending cleaned names rather
   // than raw lines keeps the returned keys aligned with the grocery list's own
@@ -205,10 +194,24 @@ const GroceryList = () => {
     return resolved.map<GroceryItem>(entry => {
       const mine = contributors.filter(c => entry.sources.includes(c.raw));
 
-      const total = mine.reduce((sum, c) => {
-        const n = parseFloat(c.quantity);
-        return isNaN(n) ? sum : sum + n;
-      }, 0);
+      // Total per unit, never across units. Meatloaf asks for Worcestershire
+      // twice — 1 tsp and 1 Tbsp — which used to be added together and labelled
+      // with whichever unit happened to come first ("2 tsp").
+      const byUnit = new Map<string, number>();
+      mine.forEach(c => {
+        const n = parseAmount(c.quantity);
+        if (n === null) return;
+        const u = c.unit.trim();
+        byUnit.set(u, (byUnit.get(u) ?? 0) + n);
+      });
+      const measured = Array.from(byUnit.entries());
+      // One unit renders as a plain quantity; mixed units keep their own totals
+      // ("1 tsp + 1 Tbsp") rather than being silently combined.
+      const quantityText =
+        measured.length === 1
+          ? formatAmount(measured[0][1])
+          : measured.map(([u, n]) => `${formatAmount(n)}${u ? ` ${u}` : ""}`).join(" + ");
+      const unitText = measured.length === 1 ? measured[0][0] : "";
 
       let category = aiCategories[entry.key] || "";
       if (!category) {
@@ -223,8 +226,8 @@ const GroceryList = () => {
 
       return {
         name: entry.displayName,
-        quantity: total > 0 ? String(total) : "",
-        unit: mine.find(c => c.unit)?.unit ?? "",
+        quantity: measured.length > 0 ? quantityText : "",
+        unit: unitText,
         category,
         recipes: Array.from(new Set(mine.map(c => c.recipeTitle))),
         inInventory: entry.inInventory,
@@ -331,7 +334,10 @@ const GroceryList = () => {
     () => new Set(deletedItems.map(d => normalizeKey(d.item_key))),
     [deletedItems]
   );
-  const isDeleted = (name: string) => deletedKeySet.has(normalizeKey(name));
+  // Only this session's removals hide a row now. `deletedKeySet` is retained
+  // solely so the legacy "recently removed" panel can still restore old rows;
+  // it deliberately no longer filters the list.
+  const isDeleted = (name: string) => sessionHidden.has(normalizeKey(name));
 
   // Seed local Set from DB whenever it changes (merge, don't overwrite optimistic toggles)
   useEffect(() => {
@@ -457,42 +463,31 @@ const GroceryList = () => {
     setShowAddForm(false);
   };
 
-  // Soft-delete: record in grocery_deleted_keys so it never auto-reappears.
-  // Manual rows are also removed from grocery_items so they aren't re-aggregated.
+  // Remove a row from the list.
+  //
+  // A manual row is genuinely the user's own, so it is deleted from
+  // grocery_items and stays gone. A recipe-derived row is only hidden for this
+  // session — it belongs to a planned meal, so the next time that meal is
+  // planned the ingredient must come back. Nothing is written to a blocklist.
   const softDeleteItem = useMutation({
     mutationFn: async (item: GroceryItem) => {
       if (!user) return;
       const key = normalizeKey(item.name);
-      const hasManual = item.recipes.includes("Manual");
-      const isPureManual = item.recipes.length === 1 && item.recipes[0] === "Manual";
-      await supabase.from("grocery_deleted_keys").upsert(
-        {
-          user_id: user.id,
-          item_key: key,
-          display_name: item.name,
-          quantity: item.quantity || null,
-          unit: item.unit || null,
-          category: item.category || null,
-          source: isPureManual ? "manual" : "recipe",
-        },
-        { onConflict: "user_id,item_key" }
-      );
-      // Always purge any active checked state for this key
+      // Drop any stored check so the row doesn't return pre-ticked.
       await supabase
         .from("grocery_checked_keys")
         .delete()
         .eq("user_id", user.id)
         .eq("item_key", key);
-      // Always remove any matching row from grocery_items (covers manual & combined items,
-      // and any stale checked-but-not-deleted rows). Safe no-op if no rows match.
-      await supabase
-        .from("grocery_items")
-        .delete()
-        .eq("user_id", user.id)
-        .ilike("name", item.name);
+      if (item.recipes.includes("Manual")) {
+        await supabase
+          .from("grocery_items")
+          .delete()
+          .eq("user_id", user.id)
+          .ilike("name", item.name);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
       queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
       queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
       queryClient.invalidateQueries({ queryKey: ["grocery-checked-keys"] });
@@ -522,6 +517,7 @@ const GroceryList = () => {
 
   const removeItem = (item: GroceryItem) => {
     haptics.light();
+    setSessionHidden(prev => new Set(prev).add(normalizeKey(item.name)));
     softDeleteItem.mutate(item);
     setCheckedItems(prev => {
       const next = new Set(prev);
@@ -611,8 +607,13 @@ const GroceryList = () => {
     }
   };
 
-  const needToBuy = adjustedItems.filter(i => !i.inInventory && !checkedItems.has(normalizeKey(i.name)));
-  const alreadyHave = adjustedItems.filter(i => i.inInventory);
+  // An owned item the user has explicitly asked for moves onto the buy list at
+  // the full recipe amount — we never subtract what's in the pantry.
+  const wanted = (i: GroceryItem) => wantAnyway.has(normalizeKey(i.name));
+  const needToBuy = adjustedItems.filter(
+    i => (!i.inInventory || wanted(i)) && !checkedItems.has(normalizeKey(i.name))
+  );
+  const alreadyHave = adjustedItems.filter(i => i.inInventory && !wanted(i));
   const allCheckedItems = [
     ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(normalizeKey(i.name))),
     ...dbCheckedManualItems
@@ -1157,8 +1158,11 @@ const GroceryList = () => {
                             size="sm"
                             variant="outline"
                             className="h-6 px-2 text-[11px] flex-shrink-0"
-                            disabled={markNeededMutation.isPending}
-                            onClick={() => markNeededMutation.mutate(item.name)}
+                            onClick={() => {
+                              haptics.light();
+                              setWantAnyway(prev => new Set(prev).add(normalizeKey(item.name)));
+                              toast({ title: "Added to your list" });
+                            }}
                           >
                             Need it
                           </Button>

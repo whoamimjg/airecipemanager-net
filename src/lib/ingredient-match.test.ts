@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   cleanIngredientName,
   covers,
+  parseAmount,
   matchInventoryItem,
   resolveIngredients,
   toDisplayName,
@@ -164,5 +165,43 @@ describe("cleanIngredientSurface — display must not inherit the singular key",
     const byKey = Object.fromEntries(resolved.map((r) => [r.key, r.displayName]));
     expect(byKey["apple"]).toBe("Apples");
     expect(byKey["butter"]).toBe("Butter");
+  });
+});
+
+// Regressions from the Classic Homemade Meatloaf report: ingredients were
+// vanishing from the grocery list, and the ones that survived were mismeasured.
+describe("meatloaf regressions", () => {
+  it("does not let a generic pantry item cover a specific ingredient", () => {
+    // "Granulated Sugar" cleans to "sugar" — it must not absorb brown sugar.
+    expect(covers("Granulated Sugar", "1 Tbsp brown sugar")).toBe(false);
+    expect(covers("Sugar", "1 Tbsp brown sugar")).toBe(false);
+    expect(covers("Pepper", "¼ tsp black pepper")).toBe(false);
+    expect(covers("Onion", "1 cup red onion, diced")).toBe(false);
+  });
+
+  it("still covers when the recipe only adds words we strip anyway", () => {
+    expect(covers("Butter", "½ cup unsalted butter, softened")).toBe(true);
+    expect(covers("Granulated Sugar", "¼ cup granulated sugar")).toBe(true);
+  });
+
+  it("matches compound foods written with or without a space", () => {
+    expect(covers("Bread Crumbs", "½ cup plain breadcrumbs")).toBe(true);
+    expect(covers("Breadcrumbs", "1 cup bread crumbs")).toBe(true);
+  });
+
+  it("parses the fraction amounts that used to render blank", () => {
+    expect(parseAmount("½")).toBeCloseTo(0.5);
+    expect(parseAmount("1 ½")).toBeCloseTo(1.5);
+    expect(parseAmount("1½")).toBeCloseTo(1.5);
+    expect(parseAmount("1/3")).toBeCloseTo(1 / 3);
+    expect(parseAmount("2-3")).toBe(2);
+    expect(parseAmount("")).toBeNull();
+    expect(parseAmount("to taste")).toBeNull();
+  });
+
+  it("keeps ground beef resolvable rather than dropping it", () => {
+    const resolved = resolveIngredients(["1 ½ lbs ground beef (80/20)"], []);
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0].inInventory).toBe(false);
   });
 });
