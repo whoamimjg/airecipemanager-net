@@ -14,6 +14,9 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import type { DateRange } from "react-day-picker";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -103,6 +106,7 @@ const GroceryList = () => {
     { id: "14", label: "Next 14 days", days: 14 },
     { id: "30", label: "Next 30 days", days: 30 },
     { id: "all", label: "All upcoming", days: null as number | null },
+    { id: "custom", label: "Custom range…", days: null as number | null },
   ];
   const [rangeId, setRangeId] = useState<string>(() => {
     try {
@@ -111,15 +115,49 @@ const GroceryList = () => {
       return "all";
     }
   });
-  const range = RANGES.find(r => r.id === rangeId) ?? RANGES[3];
-  const rangeEnd = range.days ? addDays(today, range.days - 1) : null;
+  // A custom range can start on a day other than today — shopping on Saturday
+  // for next week's plan is the obvious case — so it carries its own start.
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(() => {
+    try {
+      const stored = localStorage.getItem("grocery-range-custom");
+      if (!stored) return undefined;
+      const { from, to } = JSON.parse(stored) as { from?: string; to?: string };
+      return { from: from ? new Date(from) : undefined, to: to ? new Date(to) : undefined };
+    } catch {
+      return undefined;
+    }
+  });
+  const [customOpen, setCustomOpen] = useState(false);
 
-  const queryStart = format(today, "yyyy-MM-dd");
+  const range = RANGES.find(r => r.id === rangeId) ?? RANGES[3];
+  const isCustom = rangeId === "custom";
+
+  const rangeStart = isCustom && customRange?.from ? startOfDay(customRange.from) : today;
+  const rangeEnd = isCustom
+    ? (customRange?.to ? startOfDay(customRange.to) : customRange?.from ? startOfDay(customRange.from) : null)
+    : range.days
+      ? addDays(today, range.days - 1)
+      : null;
+
+  const queryStart = format(rangeStart, "yyyy-MM-dd");
   const queryEnd = rangeEnd ? format(rangeEnd, "yyyy-MM-dd") : null;
 
   const setRange = (id: string) => {
     setRangeId(id);
     try { localStorage.setItem("grocery-range", id); } catch { /* private mode */ }
+    if (id === "custom") setCustomOpen(true);
+  };
+
+  const applyCustomRange = (next: DateRange | undefined) => {
+    setCustomRange(next);
+    try {
+      localStorage.setItem(
+        "grocery-range-custom",
+        JSON.stringify({ from: next?.from?.toISOString(), to: next?.to?.toISOString() }),
+      );
+    } catch { /* private mode */ }
+    // Close once both ends are chosen, so picking a start doesn't dismiss it.
+    if (next?.from && next?.to) setCustomOpen(false);
   };
 
   // Fetch meal plans in range, with recipe details, in a single joined query.
@@ -832,10 +870,40 @@ const GroceryList = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {isCustom && (
+                <Popover open={customOpen} onOpenChange={setCustomOpen}>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-8">
+                      <Pencil className="mr-2 h-3.5 w-3.5" />
+                      {customRange?.from ? "Edit dates" : "Pick dates"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-3 space-y-2" align="start">
+                    <p className="text-sm font-medium text-foreground">Shop for these dates</p>
+                    <Calendar
+                      mode="range"
+                      selected={customRange}
+                      onSelect={applyCustomRange}
+                      numberOfMonths={1}
+                      defaultMonth={customRange?.from ?? today}
+                      className={cn("p-0 pointer-events-auto")}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {customRange?.from
+                        ? customRange.to
+                          ? `${format(customRange.from, "MMM d")} – ${format(customRange.to, "MMM d")}`
+                          : "Now pick the last day."
+                        : "Pick the first day."}
+                    </p>
+                  </PopoverContent>
+                </Popover>
+              )}
               <span className="text-xs text-muted-foreground">
-                {rangeEnd
-                  ? `${format(today, "EEE, MMM d")} – ${format(rangeEnd, "EEE, MMM d")}`
-                  : `${format(today, "EEE, MMM d")} onward`}
+                {isCustom && !customRange?.from
+                  ? "No dates chosen yet"
+                  : rangeEnd
+                    ? `${format(rangeStart, "EEE, MMM d")} – ${format(rangeEnd, "EEE, MMM d")}`
+                    : `${format(rangeStart, "EEE, MMM d")} onward`}
               </span>
             </div>
           </div>
@@ -916,7 +984,7 @@ const GroceryList = () => {
 
         <p className="text-xs text-muted-foreground">
           {rangeEnd
-            ? `Includes ingredients from every recipe planned through ${format(rangeEnd, "EEE, MMM d")}.`
+            ? `Includes ingredients from every recipe planned ${format(rangeStart, "EEE, MMM d")} through ${format(rangeEnd, "EEE, MMM d")}.`
             : "Includes ingredients from every recipe planned for today or later."}
         </p>
       </div>
