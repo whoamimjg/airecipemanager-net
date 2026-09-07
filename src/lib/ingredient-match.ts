@@ -39,13 +39,20 @@ const UNITS = [
   "head", "heads", "bunch", "bunches", "sprig", "sprigs",
   "pinch", "pinches", "dash", "dashes", "handful",
   "piece", "pieces", "pc", "pcs",
+  // Counting words scraped recipes lead with: "strips bacon", "scoops powder".
+  "strip", "strips", "round", "rounds", "scoop", "scoops",
+  "block", "blocks", "rack", "racks", "wedge", "wedges",
+  "envelope", "envelopes", "packet", "packets", "bottle", "bottles",
+  "stalk", "stalks", "ear", "ears", "sheet", "sheets", "loaf", "loaves",
 ];
 
 /** Preparation verbs and qualifiers — describe handling, not the food. */
 const PREP = [
   "finely", "freshly", "thinly", "roughly", "coarsely", "lightly", "well", "very",
   "chopped", "minced", "diced", "sliced", "grated", "shredded", "crushed",
-  "ground", "melted", "softened", "beaten", "peeled", "seeded", "trimmed",
+  // "ground" is NOT here: ground beef is a different product from beef, and
+  // ground cumin from cumin seed. It names what you buy, not how you prep it.
+  "melted", "softened", "beaten", "peeled", "seeded", "trimmed",
   "rinsed", "drained", "cooked", "uncooked", "raw", "divided", "packed",
   "cubed", "julienned", "quartered", "halved", "crumbled", "shaved",
   "room", "temperature", "optional", "garnish", "serving", "taste", "needed",
@@ -64,6 +71,7 @@ const QUALITY = [
   "toasted", "pitted", "hulled", "deveined", "shelled", "granulated", "powdered",
   "all-purpose", "fresh", "dried", "large", "medium", "small", "extra", "jumbo",
   "ripe", "warm", "cold", "hot", "cooled", "softened",
+  "homemade", "store-bought", "bought", "mixed", "assorted", "prepared",
 ];
 
 /**
@@ -84,9 +92,70 @@ const PREP_SET = wordSet(PREP);
 const QUALITY_SET = wordSet(QUALITY);
 const STOPWORD_SET = wordSet(STOPWORDS);
 
+const FRACTION_VALUES: Record<string, number> = {
+  "½": 0.5, "⅓": 1 / 3, "⅔": 2 / 3, "¼": 0.25, "¾": 0.75,
+  "⅕": 0.2, "⅖": 0.4, "⅗": 0.6, "⅘": 0.8,
+  "⅙": 1 / 6, "⅚": 5 / 6, "⅐": 1 / 7, "⅑": 1 / 9, "⅒": 0.1,
+  "⅛": 0.125, "⅜": 0.375, "⅝": 0.625, "⅞": 0.875,
+};
+
+/**
+ * Parses the amount a recipe wrote: "1 1/2", "½", "1½", "0.75", "2-3" (low end).
+ *
+ * parseFloat() alone returns NaN for "½ cup", which is why half-cup rows showed
+ * on the grocery list with no quantity at all.
+ */
+export function parseAmount(raw: string): number | null {
+  if (!raw) return null;
+  let s = raw.trim().toLowerCase();
+  if (!s) return null;
+
+  const range = s.match(/^([^-–]+)[-–]/);
+  if (range) s = range[1].trim();
+
+  let total = 0;
+  let matched = false;
+
+  for (const [glyph, value] of Object.entries(FRACTION_VALUES)) {
+    if (s.includes(glyph)) {
+      total += value;
+      matched = true;
+      s = s.split(glyph).join(" ");
+    }
+  }
+
+  for (const token of s.split(/\s+/).filter(Boolean)) {
+    const frac = token.match(/^(\d+)\/(\d+)$/);
+    if (frac) {
+      const denom = Number(frac[2]);
+      if (denom !== 0) { total += Number(frac[1]) / denom; matched = true; }
+      continue;
+    }
+    const n = Number(token.replace(/,/g, ""));
+    if (Number.isFinite(n)) { total += n; matched = true; }
+  }
+
+  return matched && total > 0 ? total : null;
+}
+
+/** Trims float noise: 0.30000000000000004 -> "0.3", 2 -> "2". */
+export function formatAmount(n: number): string {
+  return String(Math.round(n * 100) / 100);
+}
+
+/**
+ * Singular-looking words that merely end in "s". Without these, "asparagus"
+ * became "asparagu" on the shopping list.
+ */
+const ALREADY_SINGULAR = new Set([
+  "asparagus", "hummus", "couscous", "molasses", "watercress",
+  "swiss", "bass", "citrus", "cactus",
+]);
+
 /** Light plural→singular for the head noun. Deliberately conservative. */
 export function singularize(word: string): string {
   if (word.length <= 3 || word.endsWith("ss")) return word;
+  if (ALREADY_SINGULAR.has(word) || word.endsWith("us")) return word;
   if (word.endsWith("ies")) return word.slice(0, -3) + "y";
   if (/(oes|ches|shes|sses|xes)$/.test(word)) return word.slice(0, -2);
   if (word.endsWith("s")) return word.slice(0, -1);
@@ -104,12 +173,54 @@ export function singularize(word: string): string {
  */
 export function cleanIngredientName(raw: string): string {
   if (!raw) return "";
-  let s = raw.toLowerCase();
+  // Fold accents first: the a-z filter below would otherwise turn "jalapeño"
+  // into "jalape o" and put two words on the shopping list.
+  let s = raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
   s = s.replace(/\([^)]*\)/g, " ");   // parentheticals: "(about 2 cups)"
+  s = s.replace(/[*_`]+/g, " ");      // markdown emphasis from scraped lines
   s = s.replace(FRACTIONS, " ");
   s = s.replace(/\d+([./]\d+)?/g, " "); // whole numbers, decimals, 1/2 style
-  s = s.replace(/[^a-z\s-]/g, " ");     // punctuation, incl. the commas we keep words across
+
+  // Recipe lines read "FOOD, prep clause, prep clause" — everything after the
+  // food describes handling. Cleaning noise words while keeping every clause
+  // produced grocery rows like "strips bacon until crispy broken" and
+  // "scallions green white parts separated". Split on the clause boundaries and
+  // take the FIRST clause that still contains a food once the noise is gone.
+  // Splitting only on the first comma would be wrong — "boneless, skinless
+  // chicken breasts" has no food until the second clause — which is exactly why
+  // the first surviving clause wins rather than the first clause.
+  const clauses = s.split(/[,;:]|\s+-\s+/);
+
+  for (const clause of clauses) {
+    // "Parsley or basil" offers a substitution, so the first alternative is the
+    // item to buy. But "or" also joins adjectives — "small or medium racks baby
+    // back ribs", "red and/or yellow bell peppers" — where taking the first
+    // alternative yields "membranes removed" or "red". Only trust the split when
+    // the left side is a food in its own right, not an empty or colour-only
+    // fragment; otherwise read the clause whole.
+    const [alternative] = clause.split(/\s+(?:and\/or|or)\s+/);
+    const fromAlternative = cleanClause(alternative);
+    if (fromAlternative && !isColorOnly(fromAlternative)) return fromAlternative;
+
+    const whole = cleanClause(clause);
+    if (whole) return whole;
+  }
+  return "";
+}
+
+/** Colour words describe a variety, but alone they name no food. */
+const COLORS = new Set([
+  "red", "yellow", "green", "white", "black", "orange",
+  "purple", "brown", "golden", "pink",
+]);
+
+const isColorOnly = (cleaned: string) =>
+  cleaned.split(/\s+/).every((w) => COLORS.has(w));
+
+/** Strips noise words from one clause. Returns "" when nothing survives. */
+function cleanClause(clause: string): string {
+  let s = clause.replace(/[^a-z\s-]/g, " ");
 
   // Multi-word qualifiers go before the hyphen split, or they fragment into
   // tokens ("all", "purpose") that match nothing downstream.
@@ -168,6 +279,32 @@ export function toDisplayName(s: string): string {
     .join(" ");
 }
 
+/**
+ * Units you actually buy in, as opposed to units you measure with. "1 head of
+ * cabbage" and "1 can black beans" are shopping instructions; dropping the unit
+ * left a bare "Cabbage" with no idea how much to get. Measurement units (cup,
+ * tsp) are deliberately excluded — those belong to the recipe, not the trip.
+ */
+const PURCHASE_UNITS = [
+  "head", "bunch", "can", "jar", "bottle", "package", "packet", "container",
+  "bag", "box", "loaf", "rack", "block", "stick", "clove", "ear", "stalk",
+  "sprig", "envelope", "sheet",
+];
+
+/**
+ * The purchase unit a line mentions, singular, or "" if none. Used only when
+ * the recipe supplied no unit of its own.
+ */
+export function detectPurchaseUnit(raw: string): string {
+  if (!raw) return "";
+  const words = raw.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").match(/[a-z]+/g) ?? [];
+  for (const w of words) {
+    const singular = singularize(w);
+    if (PURCHASE_UNITS.includes(singular)) return singular;
+  }
+  return "";
+}
+
 /** The head noun is the last surviving token: "chicken breast" -> "breast". */
 export function headNoun(cleaned: string): string {
   const parts = cleaned.split(/\s+/).filter(Boolean);
@@ -197,6 +334,21 @@ export function covers(inventoryName: string, ingredientRaw: string): boolean {
   const ing = cleanIngredientName(ingredientRaw);
   if (!inv || !ing) return false;
   if (inv === ing) return true;
+
+  // Compound foods are written both ways. Inventory "Bread Crumbs" cleans to
+  // "bread crumb" and the recipe's "plain breadcrumbs" to "breadcrumb"; without
+  // this the user is told to buy something already in the pantry.
+  const squash = (s: string) => s.replace(/[\s-]/g, "");
+  if (squash(inv) === squash(ing)) return true;
+
+  // A more general pantry item must NOT cover a more specific ingredient.
+  // "Granulated Sugar" cleans to "sugar" (granulated is a quality word) and
+  // would otherwise cover "brown sugar", because the token check below runs
+  // .every() over an empty array and vacuously passes. Any modifier the recipe
+  // names and the inventory item lacks makes them different foods.
+  const invTokens = new Set(inv.split(/\s+/));
+  const ingExtras = ing.split(/\s+/).filter((t) => !invTokens.has(t));
+  if (ingExtras.length > 0) return false;
 
   if (headNoun(inv) !== headNoun(ing)) return false;
 
