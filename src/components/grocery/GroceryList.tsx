@@ -32,6 +32,8 @@ interface GroceryItem {
   inInventory: boolean;
   /** Prep detail from the recipe ("grated", "cooked and crumbled"). */
   note: string;
+  /** ISO time of the newest meal-plan entry requiring this item; "" for manual rows. */
+  plannedAt: string;
 }
 
 /**
@@ -243,7 +245,7 @@ const GroceryList = () => {
   // item's name, which is what "Already in Inventory" renders — previously it
   // showed the raw line verbatim. See src/lib/ingredient-match.ts.
   const groceryItems = useMemo(() => {
-    const contributors: { raw: string; recipeTitle: string; quantity: string; unit: string }[] = [];
+    const contributors: { raw: string; recipeTitle: string; quantity: string; unit: string; plannedAt: string }[] = [];
 
     mealPlans.forEach(mp => {
       const recipe = mp.recipe;
@@ -254,6 +256,7 @@ const GroceryList = () => {
         if (!raw) return;
         contributors.push({
           raw,
+          plannedAt: String(mp.created_at ?? ""),
           recipeTitle: recipe.title,
           quantity: typeof ing === "object" ? String(ing.quantity ?? ing.amount ?? "") : "",
           // Fall back to the unit you'd buy in ("1 head of cabbage") when the
@@ -305,8 +308,13 @@ const GroceryList = () => {
         new Set(mine.map(c => ingredientNote(c.raw)).filter(Boolean))
       );
 
+      // The newest meal-plan entry needing this item. A tick made before this
+      // was about a different shopping list and must not suppress the item now.
+      const plannedAt = mine.map(c => c.plannedAt).filter(Boolean).sort().pop() ?? "";
+
       return {
         name: entry.displayName,
+        plannedAt,
         note: notes.join("; "),
         quantity: measured.length > 0 ? quantityText : "",
         unit: unitText,
@@ -387,10 +395,10 @@ const GroceryList = () => {
       const cutoff = new Date(Date.now() - CHECK_TTL_DAYS * 86400_000).toISOString();
       const { data, error } = await supabase
         .from("grocery_checked_keys")
-        .select("item_key")
+        .select("item_key, created_at")
         .gte("created_at", cutoff);
       if (error) throw error;
-      return (data || []).map((r: any) => r.item_key as string);
+      return (data || []).map((r: any) => ({ key: r.item_key as string, checkedAt: String(r.created_at) }));
     },
     enabled: !!user,
   });
@@ -406,7 +414,7 @@ const GroceryList = () => {
     if (!dbCheckedKeys.length) return;
     setCheckedItems(prev => {
       const next = new Set(prev);
-      dbCheckedKeys.forEach(k => next.add(k));
+      dbCheckedKeys.forEach(r => next.add(r.key));
       return next;
     });
   }, [dbCheckedKeys]);
@@ -500,7 +508,7 @@ const GroceryList = () => {
           if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
         } else {
           // Manually added rows carry no recipe prep note.
-          combined.push({ ...manual, note: "" });
+          combined.push({ ...manual, note: "", plannedAt: "" });
         }
       });
     return combined.sort((a, b) => {
@@ -658,15 +666,38 @@ const GroceryList = () => {
     }
   };
 
+  // When each key was last ticked, so a tick can be compared against the plan
+  // that needs it.
+  const checkedAtByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    dbCheckedKeys.forEach(r => {
+      const prev = m.get(r.key);
+      if (!prev || r.checkedAt > prev) m.set(r.key, r.checkedAt);
+    });
+    return m;
+  }, [dbCheckedKeys]);
+
+  /**
+   * A tick means "I bought this for the list I was looking at". If a recipe was
+   * planned AFTER the tick, this is a different list and the item is needed
+   * again — otherwise last night's shop quietly hides tonight's ingredients.
+   * A tick the user just made has no stored timestamp yet and always counts.
+   */
+  const isChecked = (i: GroceryItem) => {
+    const key = normalizeKey(i.name);
+    if (!checkedItems.has(key)) return false;
+    const checkedAt = checkedAtByKey.get(key);
+    if (!checkedAt || !i.plannedAt) return true;
+    return checkedAt >= i.plannedAt;
+  };
+
   // An owned item the user has explicitly asked for moves onto the buy list at
   // the full recipe amount — we never subtract what's in the pantry.
   const wanted = (i: GroceryItem) => wantAnyway.has(normalizeKey(i.name));
-  const needToBuy = adjustedItems.filter(
-    i => (!i.inInventory || wanted(i)) && !checkedItems.has(normalizeKey(i.name))
-  );
+  const needToBuy = adjustedItems.filter(i => (!i.inInventory || wanted(i)) && !isChecked(i));
   const alreadyHave = adjustedItems.filter(i => i.inInventory && !wanted(i));
   const allCheckedItems = [
-    ...adjustedItems.filter(i => !i.inInventory && checkedItems.has(normalizeKey(i.name))),
+    ...adjustedItems.filter(i => !i.inInventory && isChecked(i)),
     ...dbCheckedManualItems
       .filter(mi => !isDeleted(mi.name))
       .filter(mi => !checkedItems.has(normalizeKey(mi.name)) && !adjustedItems.some(ai => normalizeKey(ai.name) === normalizeKey(mi.name))),
