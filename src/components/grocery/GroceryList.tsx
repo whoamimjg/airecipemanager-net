@@ -407,7 +407,40 @@ const GroceryList = () => {
   // Removals last for this session only — see `sessionHidden`. The old
   // grocery_deleted_keys table and its "Deleted Items" panel are gone: a
   // permanent blocklist is the wrong model for a list rebuilt from meal plans.
-  const isDeleted = (name: string) => sessionHidden.has(normalizeKey(name));
+  // Removals are shared, so clearing a row on the laptop clears it on the phone.
+  // They are NOT a permanent blocklist: the same recency rule as ticks applies,
+  // so planning a new meal brings the ingredient back.
+  const { data: dbRemovedKeys = [] } = useQuery({
+    queryKey: ["grocery-deleted-keys"],
+    queryFn: async () => {
+      const cutoff = new Date(Date.now() - CHECK_TTL_DAYS * 86400_000).toISOString();
+      const { data, error } = await supabase
+        .from("grocery_deleted_keys")
+        .select("item_key, deleted_at")
+        .gte("deleted_at", cutoff);
+      if (error) throw error;
+      return (data || []).map((r: any) => ({ key: r.item_key as string, removedAt: String(r.deleted_at) }));
+    },
+    enabled: !!user,
+  });
+
+  const removedAtByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    dbRemovedKeys.forEach(r => {
+      const prev = m.get(r.key);
+      if (!prev || r.removedAt > prev) m.set(r.key, r.removedAt);
+    });
+    return m;
+  }, [dbRemovedKeys]);
+
+  /** Hidden if removed on this device, or removed since the meal was planned. */
+  const isDeleted = (name: string, plannedAt = "") => {
+    const key = normalizeKey(name);
+    if (sessionHidden.has(key)) return true;
+    const removedAt = removedAtByKey.get(key);
+    if (!removedAt) return false;
+    return !plannedAt || removedAt >= plannedAt;
+  };
 
   // Seed local Set from DB whenever it changes (merge, don't overwrite optimistic toggles)
   useEffect(() => {
@@ -493,7 +526,7 @@ const GroceryList = () => {
 
   // Combine recipe-derived items with manually added items, excluding anything the user deleted
   const allGroceryItems = useMemo(() => {
-    const combined = [...groceryItems].filter(i => !isDeleted(i.name));
+    const combined = [...groceryItems].filter(i => !isDeleted(i.name, i.plannedAt));
     dbManualItems
       .filter(m => !isDeleted(m.name))
       .forEach(manual => {
@@ -515,7 +548,7 @@ const GroceryList = () => {
       if (a.inInventory !== b.inInventory) return a.inInventory ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
-  }, [groceryItems, dbManualItems, sessionHidden]);
+  }, [groceryItems, dbManualItems, sessionHidden, removedAtByKey]);
 
   const addManualItem = () => {
     const name = newItemName.trim();
@@ -556,9 +589,17 @@ const GroceryList = () => {
           .delete()
           .eq("user_id", user.id)
           .ilike("name", item.name);
+      } else {
+        // Recorded so the other devices agree, and stamped so a future meal plan
+        // overrides it. deleted_at defaults to now().
+        await supabase.from("grocery_deleted_keys").upsert(
+          { user_id: user.id, item_key: key, display_name: item.name, source: "recipe" },
+          { onConflict: "user_id,item_key" },
+        );
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
       queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
       queryClient.invalidateQueries({ queryKey: ["checked-grocery-items"] });
       queryClient.invalidateQueries({ queryKey: ["grocery-checked-keys"] });
@@ -571,6 +612,13 @@ const GroceryList = () => {
     haptics.light();
     setSessionHidden(new Set());
     setWantAnyway(new Set());
+    if (user) {
+      void supabase
+        .from("grocery_deleted_keys")
+        .delete()
+        .eq("user_id", user.id)
+        .then(() => queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] }));
+    }
     toast({ title: "List reset", description: "Removed items are back." });
   };
 
