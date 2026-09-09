@@ -24,6 +24,14 @@ import { haptics } from "@/lib/native";
 import { cleanIngredientName, detectPurchaseUnit, formatAmount, ingredientNote, parseAmount, resolveIngredients } from "@/lib/ingredient-match";
 
 interface GroceryItem {
+  /**
+   * Canonical dedup key — the cleaned, singular food name, identical to the key
+   * the iOS/Android apps use. Everything persisted (ticks, removals, category
+   * overrides) is keyed on THIS, not on the display name: the display name keeps
+   * the plural the recipe used ("Bagels"), so keying on it wrote `bagels` where
+   * the apps looked for `bagel` and neither side saw the other's changes.
+   */
+  key: string;
   name: string;
   quantity: string;
   unit: string;
@@ -313,6 +321,7 @@ const GroceryList = () => {
       const plannedAt = mine.map(c => c.plannedAt).filter(Boolean).sort().pop() ?? "";
 
       return {
+        key: entry.key,
         name: entry.displayName,
         plannedAt,
         note: notes.join("; "),
@@ -434,8 +443,7 @@ const GroceryList = () => {
   }, [dbRemovedKeys]);
 
   /** Hidden if removed on this device, or removed since the meal was planned. */
-  const isDeleted = (name: string, plannedAt = "") => {
-    const key = normalizeKey(name);
+  const isDeleted = (key: string, plannedAt = "") => {
     if (sessionHidden.has(key)) return true;
     const removedAt = removedAtByKey.get(key);
     if (!removedAt) return false;
@@ -526,12 +534,12 @@ const GroceryList = () => {
 
   // Combine recipe-derived items with manually added items, excluding anything the user deleted
   const allGroceryItems = useMemo(() => {
-    const combined = [...groceryItems].filter(i => !isDeleted(i.name, i.plannedAt));
+    const combined = [...groceryItems].filter(i => !isDeleted(i.key, i.plannedAt));
     dbManualItems
-      .filter(m => !isDeleted(m.name))
+      .filter(m => !isDeleted(cleanIngredientName(m.name) || normalizeKey(m.name)))
       .forEach(manual => {
-        const key = normalizeKey(manual.name);
-        const existing = combined.find(i => normalizeKey(i.name) === key);
+        const key = cleanIngredientName(manual.name) || normalizeKey(manual.name);
+        const existing = combined.find(i => i.key === key);
         if (existing) {
           const mNum = parseFloat(manual.quantity);
           const eNum = parseFloat(existing.quantity);
@@ -541,7 +549,12 @@ const GroceryList = () => {
           if (!existing.recipes.includes("Manual")) existing.recipes.push("Manual");
         } else {
           // Manually added rows carry no recipe prep note.
-          combined.push({ ...manual, note: "", plannedAt: "" });
+          combined.push({
+            ...manual,
+            key: cleanIngredientName(manual.name) || normalizeKey(manual.name),
+            note: "",
+            plannedAt: "",
+          });
         }
       });
     return combined.sort((a, b) => {
@@ -576,7 +589,7 @@ const GroceryList = () => {
   const softDeleteItem = useMutation({
     mutationFn: async (item: GroceryItem) => {
       if (!user) return;
-      const key = normalizeKey(item.name);
+      const key = item.key;
       // Drop any stored check so the row doesn't return pre-ticked.
       await supabase
         .from("grocery_checked_keys")
@@ -624,7 +637,7 @@ const GroceryList = () => {
 
   const removeItem = (item: GroceryItem) => {
     haptics.light();
-    setSessionHidden(prev => new Set(prev).add(normalizeKey(item.name)));
+    setSessionHidden(prev => new Set(prev).add(item.key));
     softDeleteItem.mutate(item);
     setCheckedItems(prev => {
       const next = new Set(prev);
@@ -732,7 +745,7 @@ const GroceryList = () => {
    * A tick the user just made has no stored timestamp yet and always counts.
    */
   const isChecked = (i: GroceryItem) => {
-    const key = normalizeKey(i.name);
+    const key = i.key;
     if (!checkedItems.has(key)) return false;
     const checkedAt = checkedAtByKey.get(key);
     if (!checkedAt || !i.plannedAt) return true;
@@ -741,14 +754,19 @@ const GroceryList = () => {
 
   // An owned item the user has explicitly asked for moves onto the buy list at
   // the full recipe amount — we never subtract what's in the pantry.
-  const wanted = (i: GroceryItem) => wantAnyway.has(normalizeKey(i.name));
+  const wanted = (i: GroceryItem) => wantAnyway.has(i.key);
   const needToBuy = adjustedItems.filter(i => (!i.inInventory || wanted(i)) && !isChecked(i));
   const alreadyHave = adjustedItems.filter(i => i.inInventory && !wanted(i));
   const allCheckedItems = [
     ...adjustedItems.filter(i => !i.inInventory && isChecked(i)),
     ...dbCheckedManualItems
-      .filter(mi => !isDeleted(mi.name))
-      .filter(mi => !checkedItems.has(normalizeKey(mi.name)) && !adjustedItems.some(ai => normalizeKey(ai.name) === normalizeKey(mi.name))),
+      .filter(mi => !isDeleted(cleanIngredientName(mi.name) || normalizeKey(mi.name)))
+      .filter(mi => {
+        const k = cleanIngredientName(mi.name) || normalizeKey(mi.name);
+        return !checkedItems.has(k) && !adjustedItems.some(ai => ai.key === k);
+      })
+      // Give manual rows the same canonical key so the rendered list is uniform.
+      .map(mi => ({ ...mi, key: cleanIngredientName(mi.name) || normalizeKey(mi.name) })),
   ];
   const checkedCount = allCheckedItems.length;
   const totalToBuy = needToBuy.length;
@@ -1195,7 +1213,7 @@ const GroceryList = () => {
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-1">
                     {toBuyItems.map(item => {
-                      const key = item.name.toLowerCase();
+                      const key = item.key;
                       const isEditing = editingItem === key;
                       return (
                         <div
@@ -1354,7 +1372,7 @@ const GroceryList = () => {
                             className="h-6 px-2 text-[11px] flex-shrink-0"
                             onClick={() => {
                               haptics.light();
-                              setWantAnyway(prev => new Set(prev).add(normalizeKey(item.name)));
+                              setWantAnyway(prev => new Set(prev).add(item.key));
                               toast({ title: "Added to your list" });
                             }}
                           >
@@ -1389,7 +1407,7 @@ const GroceryList = () => {
                   <div className="max-h-[400px] overflow-y-auto pr-1">
                     <div className="space-y-1">
                       {allCheckedItems.map(item => {
-                          const key = item.name.toLowerCase();
+                          const key = item.key;
                           return (
                             <div
                               key={key}
