@@ -34,6 +34,13 @@ interface GroceryItem {
   note: string;
 }
 
+/**
+ * How long a tick on the shopping list stays meaningful. Long enough that a
+ * trip survives a refresh or a phone-to-laptop switch, short enough that last
+ * week's shop can't hide this week's ingredients.
+ */
+const CHECK_TTL_DAYS = 7;
+
 const STORE_CATEGORIES = [
   "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Snacks", "Condiments & Spices", "Other"
 ];
@@ -373,9 +380,15 @@ const GroceryList = () => {
   const { data: dbCheckedKeys = [] } = useQuery({
     queryKey: ["grocery-checked-keys"],
     queryFn: async () => {
+      // Only recent checks count. These persist so a shopping trip survives a
+      // refresh, but they were never cleared, so a tick from a previous trip
+      // silently hid that ingredient the next time a recipe called for it —
+      // the same disappearing act the deleted-keys blocklist used to cause.
+      const cutoff = new Date(Date.now() - CHECK_TTL_DAYS * 86400_000).toISOString();
       const { data, error } = await supabase
         .from("grocery_checked_keys")
-        .select("item_key");
+        .select("item_key")
+        .gte("created_at", cutoff);
       if (error) throw error;
       return (data || []).map((r: any) => r.item_key as string);
     },
