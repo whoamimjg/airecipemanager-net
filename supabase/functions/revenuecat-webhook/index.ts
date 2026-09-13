@@ -98,11 +98,17 @@ function recipeLimitForTier(tier: string): number {
   }
 }
 
+/**
+ * What the user actually pays through Apple. This webhook only ever handles App
+ * Store purchases (payment_method "apple_iap"), so these must match App Store
+ * Connect, not the web's accept.blue prices — Pro and Unlimited were recorded
+ * at 11.99 / 22.99 while Apple charges 12.99 / 24.99.
+ */
 function priceForTier(tier: string): number {
   switch (tier) {
     case "basic": return 5.99;
-    case "pro": return 11.99;
-    case "unlimited": return 22.99;
+    case "pro": return 12.99;
+    case "unlimited": return 24.99;
     default: return 0;
   }
 }
