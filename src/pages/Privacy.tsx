@@ -63,7 +63,7 @@ const Privacy = () => {
             <p className="text-muted-foreground leading-relaxed">
               When you use AI features, the data you submit is sent to a third-party AI provider
               solely to generate the requested response. The model is Google Gemini, accessed
-              through the Lovable AI Gateway. No AI model runs on your device — all AI processing
+              through OpenRouter. No AI model runs on your device — all AI processing
               happens on our servers and at that provider.
             </p>
             <ul className="list-disc pl-6 mt-3 space-y-2 text-muted-foreground">
@@ -109,10 +109,12 @@ const Privacy = () => {
               <li><strong>Supabase:</strong> Hosts our database, authentication, file storage, and serverless functions. Stores your account info, recipes, inventory, and uploaded images.</li>
               <li><strong>Google Sign-In:</strong> If you choose to sign in with Google, Google shares your name, email, and profile identifier with us. Governed by the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google Privacy Policy</a>.</li>
               <li><strong>Apple Sign-In:</strong> If you choose to sign in with Apple, Apple shares your name and an email (real or relay) with us. Governed by the <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Apple Privacy Policy</a>.</li>
-              <li><strong>Google Gemini, via the Lovable AI Gateway:</strong> Processes recipe prompts, receipt images, and cookbook photos to generate AI responses, as described in section 4. Does not train models on your content.</li>
+              <li><strong>Google Gemini, via OpenRouter:</strong> Processes recipe prompts, receipt images, and cookbook photos to generate AI responses, as described in section 4. Does not train models on your content.</li>
               <li><strong>Firecrawl:</strong> Used when you import a recipe from a URL, to fetch and parse the public web page you provided. Receives only that URL.</li>
               <li><strong>Kroger and Apify:</strong> Retrieve store prices for grocery items you choose to price. Receive the item search term and your postal code.</li>
               <li><strong>Open Food Facts:</strong> Barcode lookup. Receives only the scanned barcode.</li>
+              <li><strong>USDA FoodData Central:</strong> Calculates a recipe's nutrition when you ask for it. Receives ingredient names and amounts only.</li>
+              <li><strong>Apple and RevenueCat:</strong> Process subscriptions purchased in the iOS app. Apple handles payment; RevenueCat receives your account identifier and purchase status so your plan is applied to your account. Card details are never shared with us.</li>
               <li><strong>Accept.blue:</strong> Processes subscription payments made on this website. Card details are handled directly by Accept.blue and never stored on our servers.</li>
             </ul>
           </section>

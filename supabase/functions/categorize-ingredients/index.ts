@@ -36,7 +36,7 @@ serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("OPENROUTER_API_KEY");
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: "API key not configured" }),
@@ -69,7 +69,7 @@ ${ingredients.map((name: string, i: number) => `${i + 1}. ${name}`).join("\n")}
 
 Respond with ONLY a JSON array of objects with "name" and "category" fields. No explanation.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
