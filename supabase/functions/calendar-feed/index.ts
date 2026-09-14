@@ -5,6 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/** Used until the user's own zone has been recorded from their browser or device. */
+const DEFAULT_TIME_ZONE = "America/New_York";
+
+const isValidTimeZone = (tz: unknown): tz is string => {
+  if (typeof tz !== "string" || !tz) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -25,7 +38,7 @@ Deno.serve(async (req) => {
     // Look up user by calendar token
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("user_id, breakfast_time, lunch_time, dinner_time, snack_time")
+      .select("user_id, breakfast_time, lunch_time, dinner_time, snack_time, timezone")
       .eq("calendar_token", token)
       .maybeSingle();
 
@@ -73,19 +86,39 @@ Deno.serve(async (req) => {
       return times[slot] || "12:00";
     };
 
-    const addMinutes = (time: string, minutes: number): string => {
-      const [h, m] = time.split(":").map(Number);
-      const total = h * 60 + m + minutes;
-      const newH = Math.floor(total / 60) % 24;
-      const newM = total % 60;
-      return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+    // Meal times are wall-clock times with no zone. They used to be written as
+    // floating ICS times ("DTSTART:20260914T080000"), which Google Calendar reads
+    // as UTC — an 8:00 AM breakfast showed at 4:00 AM Eastern, and each calendar
+    // app guessed differently. Convert each one to an exact UTC instant in the
+    // user's own time zone instead; every calendar shows UTC correctly in the
+    // viewer's local time, daylight saving included.
+    const timeZone = isValidTimeZone(profile.timezone) ? profile.timezone : DEFAULT_TIME_ZONE;
+
+    /** Epoch ms for a wall-clock date + "HH:MM" in [timeZone]. */
+    const zonedToUtcMs = (date: string, time: string): number => {
+      const [y, mo, d] = date.split("-").map(Number);
+      const [h, mi] = time.split(":").map(Number);
+      const asIfUtc = Date.UTC(y, mo - 1, d, h, mi);
+      // Offset of the zone at a given instant, in ms (local - UTC).
+      const offsetAt = (ms: number) => {
+        const parts = Object.fromEntries(
+          new Intl.DateTimeFormat("en-US", {
+            timeZone, hourCycle: "h23",
+            year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", second: "2-digit",
+          }).formatToParts(new Date(ms)).map((p) => [p.type, p.value]),
+        );
+        const local = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+        return local - ms;
+      };
+      // Two passes so a date on a daylight-saving boundary uses that day's offset.
+      let utc = asIfUtc - offsetAt(asIfUtc);
+      utc = asIfUtc - offsetAt(utc);
+      return utc;
     };
 
-    const toICS = (date: string, time: string): string => {
-      const [y, mo, d] = date.split("-");
-      const [h, mi] = time.split(":");
-      return `${y}${mo}${d}T${h}${mi}00`;
-    };
+    const toICSUtc = (ms: number): string =>
+      new Date(ms).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
     // Escape ICS text per RFC 5545 (backslash, semicolon, comma, newlines) so titles like
     // "Rice, Beans" don't corrupt the event and get dropped by the calendar.
@@ -105,14 +138,17 @@ Deno.serve(async (req) => {
       const slotLabel = meal.meal_slot.charAt(0).toUpperCase() + meal.meal_slot.slice(1);
       const time = getMealTime(meal.meal_slot);
       const duration = recipe ? (recipe.prep_time || 0) + (recipe.cook_time || 0) || 60 : 60;
-      const endTime = addMinutes(time, duration);
+      const startMs = zonedToUtcMs(meal.date, time);
+      // Add the duration as real time, so a late meal ends the next day instead of
+      // producing an end before its start (which calendars silently drop).
+      const endMs = startMs + duration * 60_000;
 
       return [
         "BEGIN:VEVENT",
         `UID:${meal.id}@airecipemanager`,
         `DTSTAMP:${dtstamp}`,
-        `DTSTART:${toICS(meal.date, time)}`,
-        `DTEND:${toICS(meal.date, endTime)}`,
+        `DTSTART:${toICSUtc(startMs)}`,
+        `DTEND:${toICSUtc(endMs)}`,
         `SUMMARY:${esc(`${slotLabel}: ${title}`)}`,
         `DESCRIPTION:${esc(`${slotLabel} meal from AI Recipe Manager`)}`,
         "END:VEVENT",
@@ -126,6 +162,7 @@ Deno.serve(async (req) => {
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
       "X-WR-CALNAME:Meal Plan",
+      `X-WR-TIMEZONE:${timeZone}`,
       "X-PUBLISHED-TTL:PT1H",
       ...events,
       "END:VCALENDAR",

@@ -33,7 +33,8 @@ const CalendarSync = () => {
       const newToken = crypto.randomUUID();
       const { error } = await supabase
         .from("profiles")
-        .update({ calendar_token: newToken } as any)
+        // Record the zone with the link so the feed places meals at the right hour.
+        .update({ calendar_token: newToken, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone } as any)
         .eq("user_id", user!.id);
       if (error) throw error;
     },

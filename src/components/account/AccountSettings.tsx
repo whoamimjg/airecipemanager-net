@@ -253,6 +253,9 @@ const AccountSettings = () => {
         lunch_time: lunchTime + ":00",
         dinner_time: dinnerTime + ":00",
         snack_time: snackTime + ":00",
+        // The calendar feed turns these wall-clock times into real instants using
+        // this zone; without it Google Calendar showed meals hours off.
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         updated_at: new Date().toISOString(),
       };
 
