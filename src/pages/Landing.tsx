@@ -63,7 +63,7 @@ const plans = [
   {
     key: "basic",
     name: "Basic",
-    price: "$4.99",
+    price: "$5.99",
     period: "/mo",
     recipes: "100",
     highlight: false,
@@ -72,7 +72,7 @@ const plans = [
   {
     key: "pro",
     name: "Pro",
-    price: "$9.99",
+    price: "$12.99",
     period: "/mo",
     recipes: "500",
     highlight: true,
@@ -81,7 +81,7 @@ const plans = [
   {
     key: "unlimited",
     name: "Unlimited",
-    price: "$19.99",
+    price: "$24.99",
     period: "/mo",
     recipes: "∞",
     highlight: false,

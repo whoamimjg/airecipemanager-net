@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       recipe_limit: recipeLimitForTier(tier),
       price_monthly: priceForTier(tier),
       is_active: isActive,
-      payment_method: "apple_iap",
+      payment_method: paymentMethodForStore(event.store as string | undefined),
       next_billing_date: nextBillingDate,
       iap_event_at_ms: eventAtMs,
     },
@@ -144,6 +144,19 @@ function tierFromProductId(productId: string): string {
   return "free";
 }
 
+/**
+ * Where the subscription is billed. The website reads this to send people to the
+ * right place to change or cancel (Apple, Google, or RevenueCat's web portal).
+ */
+function paymentMethodForStore(store: string | undefined): string {
+  switch (store) {
+    case "PLAY_STORE": return "google_play";
+    case "RC_BILLING":
+    case "STRIPE": return "revenuecat_web";
+    default: return "apple_iap";
+  }
+}
+
 function tierRank(tier: string): number {
   switch (tier) {
     case "basic": return 1;
@@ -163,10 +176,9 @@ function recipeLimitForTier(tier: string): number {
 }
 
 /**
- * What the user actually pays through Apple. This webhook only ever handles App
- * Store purchases (payment_method "apple_iap"), so these must match App Store
- * Connect, not the web's accept.blue prices — Pro and Unlimited were recorded
- * at 11.99 / 22.99 while Apple charges 12.99 / 24.99.
+ * What the user pays. App Store, Google Play and the website (RevenueCat Web
+ * Billing) all charge the same prices, which must match App Store Connect, the
+ * Play Console and the RevenueCat web products.
  */
 function priceForTier(tier: string): number {
   switch (tier) {

@@ -11,11 +11,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, FileText, Download, Calendar, MessageSquare, BookOpen, Settings } from "lucide-react";
+import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, Calendar, Loader2, MessageSquare, BookOpen, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import PaymentDialog from "@/components/payment/PaymentDialog";
+import { isSandboxBilling, purchasePlan, webManagementUrl, type PaidPlan } from "@/lib/revenuecat";
 import CalendarSync from "@/components/account/CalendarSync";
 import FeedbackForm from "@/components/account/FeedbackForm";
 import KnowledgeBase from "@/components/account/KnowledgeBase";
@@ -60,10 +59,39 @@ const DIET_OPTIONS = DIET_GROUPS.flatMap((g) => g.options);
 
 const PLAN_DETAILS = {
   free: { name: "Free", price: 0, recipes: 25, features: ["25 recipes", "Basic AI generation", "Grocery list"] },
-  basic: { name: "Basic", price: 4.99, recipes: 100, features: ["100 recipes", "AI generation", "Meal planning", "Grocery list"] },
-  pro: { name: "Pro", price: 9.99, recipes: 500, features: ["500 recipes", "Unlimited AI", "Advanced meal planning", "Inventory tracking", "Priority support"] },
-  unlimited: { name: "Unlimited", price: 19.99, recipes: -1, features: ["Unlimited recipes", "Unlimited AI", "All features", "Priority support", "Early access"] },
+  basic: { name: "Basic", price: 5.99, recipes: 100, features: ["100 recipes", "AI generation", "Meal planning", "Grocery list"] },
+  pro: { name: "Pro", price: 12.99, recipes: 500, features: ["500 recipes", "Unlimited AI", "Advanced meal planning", "Inventory tracking", "Priority support"] },
+  unlimited: { name: "Unlimited", price: 24.99, recipes: -1, features: ["Unlimited recipes", "Unlimited AI", "All features", "Priority support", "Early access"] },
 };
+
+type BillingSource =
+  | { kind: "store"; label: string; hint: string; url: string }
+  | { kind: "web"; label: string; hint: string }
+  | { kind: "legacy"; label: string; hint: string };
+
+/** Where a subscription is billed, from `subscriptions.payment_method` (set by revenuecat-webhook). */
+function billingSourceOf(paymentMethod: string | null | undefined): BillingSource {
+  switch (paymentMethod) {
+    case "apple_iap":
+      return {
+        kind: "store",
+        label: "Apple App Store",
+        hint: "Change or cancel in your iPhone's Settings → Apple Account → Subscriptions",
+        url: "https://apps.apple.com/account/subscriptions",
+      };
+    case "google_play":
+      return {
+        kind: "store",
+        label: "Google Play",
+        hint: "Change or cancel in the Google Play Store → Subscriptions",
+        url: "https://play.google.com/store/account/subscriptions",
+      };
+    case "revenuecat_web":
+      return { kind: "web", label: "Card on this website", hint: "Update your card or cancel any time. Receipts are emailed." };
+    default:
+      return { kind: "legacy", label: "Card on this website", hint: "Contact support to change or cancel this plan." };
+  }
+}
 
 const AccountSettings = () => {
   const { user, signOut } = useAuth();
@@ -85,21 +113,10 @@ const AccountSettings = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [paymentOpen, setPaymentOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<{ key: string; name: string; price: number } | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<PaidPlan | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-
-  useEffect(() => {
-    const checkout = searchParams.get("checkout");
-    if (checkout && PLAN_DETAILS[checkout as keyof typeof PLAN_DETAILS]) {
-      const plan = PLAN_DETAILS[checkout as keyof typeof PLAN_DETAILS];
-      if (plan.price > 0) {
-        setSelectedPlan({ key: checkout, name: plan.name, price: plan.price });
-        setPaymentOpen(true);
-        setSearchParams({}, { replace: true });
-      }
-    }
-  }, []);
+  const pendingCheckout = useRef(searchParams.get("checkout"));
 
   // Fetch profile
   const { data: profile, isLoading } = useQuery({
@@ -145,43 +162,6 @@ const AccountSettings = () => {
     enabled: !!user,
   });
 
-  // Fetch billing history
-  const { data: billingHistory } = useQuery({
-    queryKey: ["billingHistory", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billing_history")
-        .select("*")
-        .eq("user_id", user!.id)
-        .order("date", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!user,
-  });
-
-  // Seed sample billing data if none exists
-  const seedBillingData = async () => {
-    if (!user) return;
-    const { count } = await supabase
-      .from("billing_history")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id);
-    if ((count ?? 0) > 0) return;
-
-    const sampleInvoices = [
-      { user_id: user.id, invoice_number: "INV-2025-001", date: "2025-01-15", amount: 9.99, plan: "pro", status: "paid", payment_method: "Visa •••• 4242", description: "Pro Plan - Monthly" },
-      { user_id: user.id, invoice_number: "INV-2024-012", date: "2024-12-15", amount: 9.99, plan: "pro", status: "paid", payment_method: "Visa •••• 4242", description: "Pro Plan - Monthly" },
-      { user_id: user.id, invoice_number: "INV-2024-011", date: "2024-11-15", amount: 4.99, plan: "basic", status: "paid", payment_method: "Visa •••• 4242", description: "Basic Plan - Monthly" },
-      { user_id: user.id, invoice_number: "INV-2024-010", date: "2024-10-15", amount: 4.99, plan: "basic", status: "paid", payment_method: "Visa •••• 4242", description: "Basic Plan - Monthly" },
-    ];
-    await supabase.from("billing_history").insert(sampleInvoices);
-    queryClient.invalidateQueries({ queryKey: ["billingHistory"] });
-  };
-
-  useEffect(() => {
-    if (user) seedBillingData();
-  }, [user]);
 
   useEffect(() => {
     if (profile) {
@@ -198,7 +178,77 @@ const AccountSettings = () => {
   }, [profile]);
 
   const currentPlan = subscription?.plan ?? "free";
-  const planInfo = PLAN_DETAILS[currentPlan as keyof typeof PLAN_DETAILS];
+  const planInfo = PLAN_DETAILS[currentPlan as keyof typeof PLAN_DETAILS] ?? PLAN_DETAILS.free;
+  const hasPaidPlan = currentPlan !== "free" && !!subscription?.is_active;
+  const billingSource = billingSourceOf(subscription?.payment_method);
+
+  /** Waits for the RevenueCat webhook to record the new plan, then refreshes the page's data. */
+  const waitForPlan = async (plan: PaidPlan) => {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("plan, is_active")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (data?.plan === plan && data.is_active) break;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    queryClient.invalidateQueries({ queryKey: ["subscription"] });
+  };
+
+  const startCheckout = async (plan: PaidPlan) => {
+    if (!user) return;
+    if (hasPaidPlan && billingSource.kind === "store") {
+      // Buying here as well would bill the customer twice.
+      toast.info(`Your plan is billed through ${billingSource.label}. Change it there.`, {
+        action: { label: "Open", onClick: () => window.open(billingSource.url, "_blank") },
+      });
+      return;
+    }
+    if (hasPaidPlan && billingSource.kind === "web") {
+      toast.info("To switch plans, cancel your current plan under Manage subscription, then choose the new one.");
+      return;
+    }
+    setCheckoutPlan(plan);
+    try {
+      const outcome = await purchasePlan(user.id, user.email ?? undefined, plan);
+      if (outcome === "purchased") {
+        toast.success(`You're subscribed to ${PLAN_DETAILS[plan].name}!`);
+        await waitForPlan(plan);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Checkout failed");
+    } finally {
+      setCheckoutPlan(null);
+    }
+  };
+
+  // Sign-up from a pricing card lands here as /account?checkout=<plan>.
+  useEffect(() => {
+    const pending = pendingCheckout.current;
+    if (!user || subscription === undefined || !pending) return;
+    pendingCheckout.current = null;
+    setSearchParams({}, { replace: true });
+    if (pending === "basic" || pending === "pro" || pending === "unlimited") startCheckout(pending);
+  }, [user, subscription]);
+
+  const handleManageSubscription = async () => {
+    if (!user) return;
+    if (billingSource.kind === "store") {
+      window.open(billingSource.url, "_blank");
+      return;
+    }
+    setOpeningPortal(true);
+    try {
+      const url = await webManagementUrl(user.id);
+      if (url) window.open(url, "_blank");
+      else toast.info("No website subscription found for this account.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't open subscription management");
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -300,28 +350,6 @@ const AccountSettings = () => {
       toast.error(err.message || "Failed to update password");
     } finally {
       setChangingPassword(false);
-    }
-  };
-
-  const handleDownloadInvoice = async (invoiceId: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke("generate-invoice", {
-        body: { invoiceId },
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-      if (res.error) throw res.error;
-
-      const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `invoice-${invoiceId}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Invoice downloaded!");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to download invoice");
     }
   };
 
@@ -551,21 +579,19 @@ const AccountSettings = () => {
                       </li>
                     ))}
                   </ul>
-                  {!isCurrent && (
+                  {!isCurrent && plan.price > 0 && (
                     <Button
                       variant={key === "pro" ? "default" : "outline"}
                       size="sm"
                       className="w-full mt-2"
-                      onClick={() => {
-                        if (plan.price === 0) {
-                          toast.info("You're already on the free plan");
-                          return;
-                        }
-                        setSelectedPlan({ key, name: plan.name, price: plan.price });
-                        setPaymentOpen(true);
-                      }}
+                      disabled={checkoutPlan !== null}
+                      onClick={() => startCheckout(key as PaidPlan)}
                     >
-                      <Crown className="h-3.5 w-3.5 mr-1" />
+                      {checkoutPlan === key ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      ) : (
+                        <Crown className="h-3.5 w-3.5 mr-1" />
+                      )}
                       {Object.keys(PLAN_DETAILS).indexOf(key) > Object.keys(PLAN_DETAILS).indexOf(currentPlan)
                         ? "Upgrade"
                         : "Switch"}
@@ -575,6 +601,11 @@ const AccountSettings = () => {
               );
             })}
           </div>
+          {isSandboxBilling && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Test mode: checkout uses Stripe test cards (4242 4242 4242 4242) and charges nothing.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -584,7 +615,7 @@ const AccountSettings = () => {
           <CardTitle className="text-xl flex items-center gap-2">
             <CreditCard className="h-5 w-5" /> Payment & Billing
           </CardTitle>
-          <CardDescription>Manage your payment method and view upcoming charges</CardDescription>
+          <CardDescription>Upcoming charges, payment method and receipts</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Next billing */}
@@ -604,103 +635,36 @@ const AccountSettings = () => {
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Amount</p>
               <p className="text-lg font-bold font-serif text-foreground">
-                ${planInfo.price.toFixed(2)}
+                {hasPaidPlan ? `$${planInfo.price.toFixed(2)}` : "—"}
               </p>
             </div>
           </div>
 
-          {/* Payment method */}
+          {/* Where the plan is billed */}
           <div className="space-y-2">
-            <Label>Payment Method</Label>
-            <div className="flex items-center justify-between rounded-lg border border-border p-4">
+            <Label>Billed through</Label>
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-14 rounded bg-muted flex items-center justify-center">
                   <CreditCard className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {subscription?.payment_method ?? "No payment method"}
+                    {hasPaidPlan ? billingSource.label : "No active subscription"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {subscription?.payment_method ? "Default payment method" : "Add a payment method to upgrade"}
+                    {hasPaidPlan ? billingSource.hint : "Choose a plan above to subscribe"}
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => toast.info("Payment method management coming soon!")}
-              >
-                {subscription?.payment_method ? "Update" : "Add"}
-              </Button>
+              {hasPaidPlan && billingSource.kind !== "legacy" && (
+                <Button variant="outline" size="sm" onClick={handleManageSubscription} disabled={openingPortal}>
+                  {openingPortal && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}
+                  Manage subscription
+                </Button>
+              )}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Billing History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2">
-            <FileText className="h-5 w-5" /> Billing History
-          </CardTitle>
-          <CardDescription>View and download past invoices</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {billingHistory && billingHistory.length > 0 ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">PDF</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {billingHistory.map((inv: any) => (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-mono text-xs">{inv.invoice_number}</TableCell>
-                      <TableCell className="text-sm">
-                        {new Date(inv.date).toLocaleDateString("en-US", {
-                          month: "short", day: "numeric", year: "numeric",
-                        })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="text-xs capitalize">{inv.plan}</Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">${Number(inv.amount).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={inv.status === "paid" ? "default" : "destructive"}
-                          className="text-xs capitalize"
-                        >
-                          {inv.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownloadInvoice(inv.id)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              <p>No billing history yet</p>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -781,22 +745,6 @@ const AccountSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Payment Dialog */}
-      {selectedPlan && (
-        <PaymentDialog
-          open={paymentOpen}
-          onOpenChange={setPaymentOpen}
-          planKey={selectedPlan.key}
-          planName={selectedPlan.name}
-          amount={selectedPlan.price}
-          mode="subscription"
-          frequency="monthly"
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["subscription"] });
-            queryClient.invalidateQueries({ queryKey: ["billingHistory"] });
-          }}
-        />
-      )}
     </div>
       </TabsContent>
     </Tabs>
