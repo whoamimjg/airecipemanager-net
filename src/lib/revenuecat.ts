@@ -6,12 +6,15 @@ import { ErrorCode, Purchases, PurchasesError, type Package } from "@revenuecat/
  * ID on every platform, so a plan bought here unlocks the apps and vice versa;
  * the revenuecat-webhook edge function writes the result to `subscriptions`.
  *
- * These are PUBLIC keys (safe in front-end code). `rcb_sb_` is the sandbox key:
- * purchases use Stripe test cards and charge nothing. Set VITE_REVENUECAT_WEB_KEY
- * to the live `rcb_` key to take real payments.
+ * These are PUBLIC keys (safe in front-end code). Deployed builds take real
+ * payments with the live key; `npm run dev` uses the sandbox key, where checkout
+ * accepts Stripe test cards and charges nothing. VITE_REVENUECAT_WEB_KEY
+ * overrides either (e.g. set it to the sandbox key to test a deployed preview).
  */
+const LIVE_KEY = "rcb_beNbnYBiURNJzeAStuDGAdgxVzrT";
 const SANDBOX_KEY = "rcb_sb_aOzxMCLHoatBKnUQDgoFKTfqM";
-const API_KEY = import.meta.env.VITE_REVENUECAT_WEB_KEY || SANDBOX_KEY;
+const API_KEY =
+  import.meta.env.VITE_REVENUECAT_WEB_KEY || (import.meta.env.DEV ? SANDBOX_KEY : LIVE_KEY);
 
 export const isSandboxBilling = API_KEY.startsWith("rcb_sb_");
 

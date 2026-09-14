@@ -205,6 +205,10 @@ const AccountSettings = () => {
       });
       return;
     }
+    if (hasPaidPlan && billingSource.kind === "legacy") {
+      toast.info("Your current plan is billed by our previous card processor. Contact support to switch plans.");
+      return;
+    }
     if (hasPaidPlan && billingSource.kind === "web") {
       toast.info("To switch plans, cancel your current plan under Manage subscription, then choose the new one.");
       return;
