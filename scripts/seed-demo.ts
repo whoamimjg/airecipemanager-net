@@ -27,7 +27,7 @@ import { readFileSync } from "node:fs";
 import { resolve as resolvePath, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  DEMO_EMAIL, DISPLAY_NAME, HOUSEHOLD_SIZE, MONTHLY_BUDGET, ZIP_CODE, DEMO_PLAN,
+  DEMO_EMAIL, DISPLAY_NAME, HOUSEHOLD_SIZE, MONTHLY_BUDGET, ZIP_CODE, DEMO_PLAN, DEMO_PLAN_AFTER_SEED,
   RECIPES, INVENTORY, WEEK_PLAN, MONTHLY_SPEND, CATEGORY_SPLIT, STORES,
   type DemoRecipe,
 } from "./demo-data";
@@ -358,8 +358,29 @@ async function ensureUnlimitedPlan(admin: SupabaseClient, userId: string) {
   log(`· plan set to ${DEMO_PLAN.plan} (recipe_limit ${DEMO_PLAN.recipe_limit} = unlimited)`);
 }
 
+/**
+ * Puts the demo account back on Free once the data is in. It is the App Store
+ * review login, so it must not keep a plan nobody paid for in the app.
+ */
+async function resetToFreePlan(admin: SupabaseClient, userId: string) {
+  const { error } = await admin
+    .from("subscriptions")
+    .upsert({ user_id: userId, ...DEMO_PLAN_AFTER_SEED }, { onConflict: "user_id" });
+  if (error) die(`Could not return the demo account to the free plan: ${error.message}`);
+  log(`· plan returned to ${DEMO_PLAN_AFTER_SEED.plan} for App Review`);
+}
+
 async function seed(admin: SupabaseClient, userId: string) {
   await ensureUnlimitedPlan(admin, userId);
+  try {
+    await seedData(admin, userId);
+  } finally {
+    // Always, even if seeding fails partway — never leave the review login comped.
+    await resetToFreePlan(admin, userId);
+  }
+}
+
+async function seedData(admin: SupabaseClient, userId: string) {
   const photos = await uploadPhotos(admin, userId);
 
   // --- recipes -------------------------------------------------------------
@@ -558,11 +579,12 @@ async function verify(admin: SupabaseClient, userId: string): Promise<boolean> {
   check(past.length === 5 && past.every(([, v]) => v > 0), "5 past budget months all non-zero", past.map(([k, v]) => `${k}=${v.toFixed(0)}`).join(" "));
   check((byMonth.get(currentKey) ?? 0) < MONTHLY_BUDGET, "current month under the $1,000 budget", `${(byMonth.get(currentKey) ?? 0).toFixed(0)}`);
 
-  // Plan: without this the recipe insert can't even complete, so assert it holds
-  // rather than inferring it from the fact that the rows landed.
+  // Plan: the account is the App Store review login, so it must end on Free with
+  // nothing unlocked for free — App Review rejected it under 3.1.1 while it sat on
+  // a comped Unlimited plan. Unlimited is only used transiently during the insert.
   check(
-    !!sub && sub.is_active === true && sub.recipe_limit < 0,
-    "account is on an unlimited plan (recipe_limit < 0, active)",
+    !!sub && sub.plan === "free" && sub.is_active !== true,
+    "account is left on the Free plan for App Review (not a comped plan)",
     sub ? `${sub.plan} limit=${sub.recipe_limit} active=${sub.is_active}` : "no subscriptions row",
   );
   check((recipes ?? []).length > 25, "recipe count exceeds the Free limit of 25", `${(recipes ?? []).length}`);
@@ -649,7 +671,7 @@ async function main() {
     await preflightPhotos();
     log("DRY RUN — nothing will be written.\n");
     log(`would clear   : ${CLEAR_ORDER.join(", ")}`);
-    log(`would set     : plan ${DEMO_PLAN.plan}, recipe_limit ${DEMO_PLAN.recipe_limit} (unlimited)`);
+    log(`would set     : plan ${DEMO_PLAN.plan} while inserting, then ${DEMO_PLAN_AFTER_SEED.plan} for App Review`);
     log(`would insert  : ${RECIPES.length} recipes, ${INVENTORY.length} inventory items,`);
     log(`                ${WEEK_PLAN.reduce((n, d) => n + 3 + (d.snack ? 1 : 0), 0)} meal plan entries,`);
     log(`                ${MONTHLY_SPEND.reduce((n, m) => n + (m.monthsAgo === 0 ? 2 : 4), 0)} receipts`);

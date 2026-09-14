@@ -37,6 +37,24 @@ export const DEMO_PLAN = {
   price_monthly: 0,
 };
 
+/**
+ * The plan the demo account is LEFT on once seeding finishes.
+ *
+ * DEMO_PLAN is only needed while inserting the 43 recipes past the free limit.
+ * The account is the App Store review login, and leaving it on a free-of-charge
+ * Unlimited plan is what App Review flagged under guideline 3.1.1: the reviewer
+ * signed in to content unlocked with nothing bought in the app, and couldn't
+ * test In-App Purchase. Reviewers must start on Free and upgrade through Apple.
+ */
+export const DEMO_PLAN_AFTER_SEED = {
+  plan: "free" as const,
+  recipe_limit: 25,
+  is_active: false,
+  price_monthly: 0,
+  payment_method: null,
+  next_billing_date: null,
+};
+
 export type MealType = "Breakfast" | "Lunch" | "Dinner" | "Snack";
 export type DishType = "Main" | "Side" | "Soup" | "Salad" | "Dessert" | "Beverage";
 
