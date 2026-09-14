@@ -508,7 +508,7 @@ const AccountSettings = () => {
       </Card>
 
       {/* Subscription */}
-      <Card>
+      <Card id="subscription" className="scroll-mt-4">
         <CardHeader>
           <CardTitle className="text-xl">Subscription</CardTitle>
           <CardDescription>

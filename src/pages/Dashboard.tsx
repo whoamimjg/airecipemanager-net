@@ -94,7 +94,15 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="recipes">
-            <RecipeManager />
+            <RecipeManager
+              onUpgrade={() => {
+                setActiveTab("account");
+                // Land on the plans, not the top of Account: wait for the tab to render.
+                setTimeout(() => {
+                  document.getElementById("subscription")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 50);
+              }}
+            />
           </TabsContent>
           <TabsContent value="ai">
             <AIRecipeGenerator />

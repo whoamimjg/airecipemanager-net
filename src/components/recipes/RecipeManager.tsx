@@ -37,7 +37,12 @@ interface Recipe {
   created_at: string;
 }
 
-const RecipeManager = () => {
+interface RecipeManagerProps {
+  /** Opens the plan picker. Supplied by the Dashboard, which owns the active tab. */
+  onUpgrade?: () => void;
+}
+
+const RecipeManager = ({ onUpgrade }: RecipeManagerProps = {}) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -48,11 +53,10 @@ const RecipeManager = () => {
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const { atLimit, nearLimit, recipeCount, limit, plan, isUnlimited } = useRecipeLimit();
 
-  const handleUpgrade = () => {
-    // Navigate to account tab
-    const tabTrigger = document.querySelector('[value="account"]') as HTMLElement;
-    tabTrigger?.click();
-  };
+  // The old handler looked for an element with value="account" and clicked it.
+  // Radix tab triggers don't render a value attribute, so it found nothing and
+  // the Upgrade button silently did nothing. The Dashboard now passes the action.
+  const handleUpgrade = () => onUpgrade?.();
 
   const tryAddRecipe = (action: () => void) => {
     if (atLimit) {
