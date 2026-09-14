@@ -387,9 +387,20 @@ const GroceryList = () => {
         category: item.category,
       });
       if (error) throw error;
+      // Adding something is an explicit "I want this", so it overrides an earlier
+      // removal of the same food — including any recipe amounts that removal hid.
+      const key = cleanIngredientName(item.name) || normalizeKey(item.name);
+      await supabase.from("grocery_deleted_keys").delete().eq("user_id", user!.id).eq("item_key", key);
+      setSessionHidden(prev => {
+        if (!prev.has(key)) return prev;
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manual-grocery-items"] });
+      queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] });
     },
   });
 
@@ -536,7 +547,11 @@ const GroceryList = () => {
   const allGroceryItems = useMemo(() => {
     const combined = [...groceryItems].filter(i => !isDeleted(i.key, i.plannedAt));
     dbManualItems
-      .filter(m => !isDeleted(cleanIngredientName(m.name) || normalizeKey(m.name)))
+      // A hand-added row is never hidden by a stored removal: removing one deletes
+      // the row itself, so a surviving manual row is one the user wants. Applying
+      // removals here made "Add Butter" silently vanish after butter had been
+      // removed from a recipe list earlier in the week.
+      .filter(m => !sessionHidden.has(cleanIngredientName(m.name) || normalizeKey(m.name)))
       .forEach(manual => {
         const key = cleanIngredientName(manual.name) || normalizeKey(manual.name);
         const existing = combined.find(i => i.key === key);
@@ -760,7 +775,7 @@ const GroceryList = () => {
   const allCheckedItems = [
     ...adjustedItems.filter(i => !i.inInventory && isChecked(i)),
     ...dbCheckedManualItems
-      .filter(mi => !isDeleted(cleanIngredientName(mi.name) || normalizeKey(mi.name)))
+      .filter(mi => !sessionHidden.has(cleanIngredientName(mi.name) || normalizeKey(mi.name)))
       .filter(mi => {
         const k = cleanIngredientName(mi.name) || normalizeKey(mi.name);
         return !checkedItems.has(k) && !adjustedItems.some(ai => ai.key === k);
@@ -769,6 +784,32 @@ const GroceryList = () => {
       .map(mi => ({ ...mi, key: cleanIngredientName(mi.name) || normalizeKey(mi.name) })),
   ];
   const checkedCount = allCheckedItems.length;
+
+  // Nothing removed ever disappears. A removed item is kept here, visible, with a
+  // one-tap way back — the list must never hold something the user can't recover.
+  // (A food that's also on the list by hand is already visible, so skip it here.)
+  const visibleKeys = new Set(adjustedItems.map(i => i.key));
+  const removedItems = groceryItems.filter(
+    i => isDeleted(i.key, i.plannedAt) && !visibleKeys.has(i.key)
+  );
+
+  const restoreItem = (key: string) => {
+    haptics.light();
+    setSessionHidden(prev => {
+      if (!prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+    if (user) {
+      void supabase
+        .from("grocery_deleted_keys")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("item_key", key)
+        .then(() => queryClient.invalidateQueries({ queryKey: ["grocery-deleted-keys"] }));
+    }
+  };
   const totalToBuy = needToBuy.length;
 
   // Build grouped "need to buy" items for print/share, preserving category headings.
@@ -1047,7 +1088,7 @@ const GroceryList = () => {
                 </Button>
               )}
             </div>
-            {(sessionHidden.size > 0 || wantAnyway.size > 0) && (
+            {(sessionHidden.size > 0 || wantAnyway.size > 0 || removedItems.length > 0) && (
               <Button
                 onClick={resetList}
                 size="sm"
@@ -1185,7 +1226,8 @@ const GroceryList = () => {
         </Card>
       </div>
 
-      {allGroceryItems.length === 0 ? (
+      {/* Only truly empty when nothing is removed either — removed items must stay reachable. */}
+      {allGroceryItems.length === 0 && removedItems.length === 0 ? (
         <Card className="border-border">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mb-4" />
@@ -1435,6 +1477,55 @@ const GroceryList = () => {
                             </div>
                           );
                         })}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {removedItems.length > 0 && (
+              <Card className="border-border">
+                <CardHeader className="py-3 px-4">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Undo2 className="h-4 w-4 text-muted-foreground" />
+                    Removed
+                    <Badge variant="secondary" className="text-xs ml-auto">{removedItems.length}</Badge>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={resetList}>
+                      Add all back
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <div className="max-h-[400px] overflow-y-auto pr-1">
+                    <div className="space-y-1">
+                      {removedItems.map(item => (
+                        <div
+                          key={item.key}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground truncate">
+                              {item.name}
+                              {item.quantity && (
+                                <span className="font-normal ml-1">
+                                  — {item.quantity}{item.unit ? ` ${item.unit}` : ""}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground/70 truncate">
+                              {item.recipes.join(", ")}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs flex-shrink-0"
+                            onClick={() => restoreItem(item.key)}
+                          >
+                            Add back
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
