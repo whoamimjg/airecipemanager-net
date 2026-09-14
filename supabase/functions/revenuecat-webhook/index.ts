@@ -5,7 +5,15 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
-const WEBHOOK_AUTH = Deno.env.get("REVENUECAT_WEBHOOK_AUTH")!;
+const WEBHOOK_AUTH = (Deno.env.get("REVENUECAT_WEBHOOK_AUTH") ?? "").trim();
+
+// RevenueCat sends the Authorization field exactly as typed in its dashboard,
+// so accept the secret with or without a "Bearer " prefix.
+const isAuthorized = (header: string | null): boolean => {
+  if (!WEBHOOK_AUTH || !header) return false;
+  const value = header.trim().replace(/^Bearer\s+/i, "").trim();
+  return value === WEBHOOK_AUTH;
+};
 
 // RevenueCat event types that mean the user has (or had) an active subscription.
 const ACTIVE_EVENTS = new Set([
@@ -19,8 +27,8 @@ const ACTIVE_EVENTS = new Set([
 const EXPIRY_EVENTS = new Set(["EXPIRATION", "BILLING_ISSUE"]);
 
 Deno.serve(async (req) => {
-  const auth = req.headers.get("Authorization");
-  if (auth !== `Bearer ${WEBHOOK_AUTH}`) {
+  if (!isAuthorized(req.headers.get("Authorization"))) {
+    console.warn("revenuecat-webhook: Authorization header did not match REVENUECAT_WEBHOOK_AUTH");
     return new Response("Unauthorized", { status: 401 });
   }
 
