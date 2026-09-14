@@ -1,1 +1,17 @@
 project_id = "eiyckfwwytnpzidsypyi"
+# Functions called by something other than a signed-in app user must not use
+# Supabase's JWT gate, or it rejects them with 401 before the function runs.
+# Without these entries every `supabase functions deploy` re-enables the gate —
+# which is how the RevenueCat webhook silently rejected every Apple purchase.
+
+# RevenueCat sends its own shared secret; the function checks it itself.
+[functions.revenuecat-webhook]
+verify_jwt = false
+
+# Calendar apps poll the feed URL with a per-user token in the query string.
+[functions.calendar-feed]
+verify_jwt = false
+
+# Already deployed without the gate; recorded so a deploy doesn't change it.
+[functions.compute-nutrition]
+verify_jwt = false
