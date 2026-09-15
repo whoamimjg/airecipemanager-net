@@ -114,8 +114,7 @@ const Privacy = () => {
               <li><strong>Kroger and Apify:</strong> Retrieve store prices for grocery items you choose to price. Receive the item search term and your postal code.</li>
               <li><strong>Open Food Facts:</strong> Barcode lookup. Receives only the scanned barcode.</li>
               <li><strong>USDA FoodData Central:</strong> Calculates a recipe's nutrition when you ask for it. Receives ingredient names and amounts only.</li>
-              <li><strong>Apple and RevenueCat:</strong> Process subscriptions purchased in the iOS app. Apple handles payment; RevenueCat receives your account identifier and purchase status so your plan is applied to your account. Card details are never shared with us.</li>
-              <li><strong>Accept.blue:</strong> Processes subscription payments made on this website. Card details are handled directly by Accept.blue and never stored on our servers.</li>
+              <li><strong>RevenueCat, Apple and Stripe:</strong> Process subscriptions. In the iOS app, Apple handles payment. On this website, RevenueCat's checkout handles payment and Stripe processes your card; you enter your email and card details there. RevenueCat receives your account identifier and purchase status so your plan applies across the website and apps. Card details are never shared with or stored on our servers.</li>
             </ul>
           </section>
 
