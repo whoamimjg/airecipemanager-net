@@ -6,6 +6,33 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/** Loose food-name match: "boneless chicken breasts" counts as having "chicken breast". */
+const foodWords = (name: string): string[] =>
+  String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.replace(/(ies)$/, "y").replace(/(es|s)$/, ""))
+    .filter((w) => w.length > 2);
+
+function markWhatUserHas(result: any, inventory: any[]): void {
+  const stock = (inventory || []).map((i: any) => foodWords(i?.name).join(" ")).filter(Boolean);
+  for (const recipe of result?.recipes ?? []) {
+    const missing: string[] = [];
+    for (const ing of recipe.ingredients ?? []) {
+      const words = foodWords(ing?.name);
+      // Tap water is never on anyone's inventory list; don't send them to buy it.
+      const isWater = words.length > 0 && words.every((w) => ["water", "cold", "warm", "lukewarm", "hot", "tap", "filtered"].includes(w));
+      const have = isWater || words.length > 0 && stock.some((item) =>
+        words.every((w) => item.includes(w)) || item.split(" ").every((w) => words.includes(w))
+      );
+      ing.available = have;
+      if (!have) missing.push(ing?.name);
+    }
+    recipe.missing_ingredients = missing;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -21,6 +48,22 @@ serve(async (req) => {
             .map((r) => `- ${r}`)
             .join("\n")}\n\nIf an inventory item conflicts with a restriction, DO NOT use it. Allergy entries (e.g. "Peanut Allergy", "Tree Nut Allergy", "Sesame Allergy") mean the user can have a severe reaction — exclude all forms of that ingredient including oils, flours, butters, and cross-contamination risks.`
         : "";
+
+    const isCustom = mode === "custom";
+
+    // A typed request must be answered on its own terms. Feeding the pantry in
+    // (as every mode used to) made custom requests return the same dishes as
+    // "generate from inventory". Availability is filled in below instead, by
+    // comparing the finished recipes against the inventory.
+    const modeRules = isCustom
+      ? `The user is asking for specific recipes. Answer the request itself — do NOT limit the
+recipes to any pantry or inventory, and do not assume what the user has on hand.
+Give well-known, authentic versions of what they asked for, the way a good cookbook or
+recipe site would, including any ingredient the dish genuinely needs.
+Set every ingredient's "available" field to false and leave "missing_ingredients" empty;
+the app fills those in.`
+      : `Mark each ingredient's "available" field as true if it's in the user's inventory, false if not.
+List any ingredients not in the inventory under "missing_ingredients".`;
 
     let systemPrompt = `You are a creative, professional chef AI. You generate delicious, practical recipes.
 Always respond with valid JSON matching this exact structure:
@@ -40,8 +83,7 @@ Always respond with valid JSON matching this exact structure:
     }
   ]
 }
-Mark each ingredient's "available" field as true if it's in the user's inventory, false if not.
-List any ingredients not in the inventory under "missing_ingredients".${restrictionsBlock}`;
+${modeRules}${restrictionsBlock}`;
 
     let userPrompt = "";
 
@@ -53,14 +95,8 @@ List any ingredients not in the inventory under "missing_ingredients".${restrict
       userPrompt = `Here's what I have in my kitchen:\n${inventoryList}\n\n${
         preferences ? `Preferences: ${preferences}\n\n` : ""
       }Generate 3 creative recipes I can make with these ingredients. Minimize missing ingredients. Prioritize items expiring soon if any.`;
-    } else if (mode === "custom") {
-      userPrompt = `${preferences}\n\nGenerate 2-3 recipes based on this request. If I provided inventory, use those ingredients when possible.`;
-      if (inventory?.length) {
-        const inventoryList = (inventory || [])
-          .map((i: any) => `${i.name} (${i.quantity} ${i.unit || "pcs"})`)
-          .join(", ");
-        userPrompt += `\n\nAvailable ingredients: ${inventoryList}`;
-      }
+    } else if (isCustom) {
+      userPrompt = `${preferences}\n\nGenerate 2-3 recipes that match this request as closely as possible.`;
     }
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -156,6 +192,10 @@ List any ingredients not in the inventory under "missing_ingredients".${restrict
     }
 
     const recipes = JSON.parse(toolCall.function.arguments);
+
+    // For a typed request the AI never saw the inventory, so work out here what
+    // the user already has. The recipe itself stays true to what they asked for.
+    if (isCustom) markWhatUserHas(recipes, inventory);
 
     return new Response(JSON.stringify(recipes), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
