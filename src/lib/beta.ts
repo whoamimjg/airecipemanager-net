@@ -9,6 +9,6 @@
  * option until then.
  */
 export const ANDROID_TEST_URL = "https://play.google.com/apps/testing/com.michaelgreene.airecipemanager";
-export const IOS_TESTFLIGHT_URL = "";
+export const IOS_TESTFLIGHT_URL = "https://testflight.apple.com/join/2KDzUARf";
 
 export const hasIosBeta = IOS_TESTFLIGHT_URL.length > 0;
