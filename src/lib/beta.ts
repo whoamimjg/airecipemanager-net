@@ -9,6 +9,6 @@
  * option until then.
  */
 export const ANDROID_TEST_URL = "https://play.google.com/apps/testing/com.michaelgreene.airecipemanager";
-export const IOS_TESTFLIGHT_URL = "https://testflight.apple.com/join/2KDzUARf";
+export const IOS_TESTFLIGHT_URL = ""; // TestFlight public link not serving invites yet — set back to https://testflight.apple.com/join/2KDzUARf once a build is approved for external testing
 
 export const hasIosBeta = IOS_TESTFLIGHT_URL.length > 0;
