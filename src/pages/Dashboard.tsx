@@ -13,6 +13,7 @@ import MealPlanner from "@/components/meal-planner/MealPlanner";
 import GroceryList from "@/components/grocery/GroceryList";
 import BudgetReport from "@/components/budget/BudgetReport";
 import AccountSettings from "@/components/account/AccountSettings";
+import BetaAppsCard from "@/components/BetaAppsCard";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -78,6 +79,7 @@ const Dashboard = () => {
 
       {/* Main content with tabs */}
       <div className="container mx-auto px-4 py-6">
+        <BetaAppsCard />
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start overflow-x-auto flex-nowrap mb-6 bg-muted">
             <TabsTrigger value="recipes" className="gap-1.5 text-xs sm:text-sm">

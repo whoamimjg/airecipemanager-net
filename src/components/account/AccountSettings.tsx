@@ -11,10 +11,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, Calendar, Loader2, MessageSquare, BookOpen, Settings } from "lucide-react";
+import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, Calendar, Loader2, MessageSquare, BookOpen, Settings, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { isSandboxBilling, purchasePlan, webManagementUrl, type PaidPlan } from "@/lib/revenuecat";
+import { ANDROID_TEST_URL, IOS_TESTFLIGHT_URL, hasIosBeta } from "@/lib/beta";
 import CalendarSync from "@/components/account/CalendarSync";
 import FeedbackForm from "@/components/account/FeedbackForm";
 import KnowledgeBase from "@/components/account/KnowledgeBase";
@@ -672,6 +673,33 @@ const AccountSettings = () => {
         </CardContent>
       </Card>
 
+
+      {/* Mobile apps (pre-release) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl flex items-center gap-2">
+            <Smartphone className="h-5 w-5" /> Mobile apps
+          </CardTitle>
+          <CardDescription>
+            Install the test versions and use the same account on your phone — everything syncs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <a href={ANDROID_TEST_URL} target="_blank" rel="noopener noreferrer">Android test</a>
+          </Button>
+          {hasIosBeta ? (
+            <Button variant="outline" asChild>
+              <a href={IOS_TESTFLIGHT_URL} target="_blank" rel="noopener noreferrer">iPhone test (TestFlight)</a>
+            </Button>
+          ) : (
+            <Button variant="outline" disabled>iPhone — coming soon</Button>
+          )}
+          <Button variant="ghost" asChild>
+            <a href="/beta">Install instructions</a>
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Calendar Integration */}
       <CalendarSync />
