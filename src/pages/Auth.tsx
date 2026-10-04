@@ -14,6 +14,10 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const [isSignUp, setIsSignUp] = useState(searchParams.get("mode") === "signup");
   const planParam = searchParams.get("plan");
+  // Where to go after signing in (e.g. the OAuth consent page that sent us
+  // here). Only a same-origin path is accepted, never a full URL.
+  const rawNext = searchParams.get("next");
+  const nextPath = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,8 +27,11 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) navigate("/dashboard", { replace: true });
-  }, [user, navigate]);
+    if (!user) return;
+    const stored = sessionStorage.getItem("postLoginNext");
+    sessionStorage.removeItem("postLoginNext");
+    navigate(nextPath ?? stored ?? "/dashboard", { replace: true });
+  }, [user, navigate, nextPath]);
 
   if (authLoading || user) {
     return (
@@ -55,7 +62,7 @@ const Auth = () => {
         toast.success("Welcome back!");
         const pending = planParam || sessionStorage.getItem("pendingPlan");
         sessionStorage.removeItem("pendingPlan");
-        navigate(pending ? `/account?checkout=${pending}` : "/dashboard", { replace: true });
+        navigate(nextPath ?? (pending ? `/account?checkout=${pending}` : "/dashboard"), { replace: true });
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
@@ -66,6 +73,8 @@ const Auth = () => {
 
   const handleSocialLogin = async (provider: "google" | "apple") => {
     try {
+      // Social sign-in lands on /dashboard; it forwards to this path.
+      if (nextPath) sessionStorage.setItem("postLoginNext", nextPath);
       if (provider === "google") await signInWithGoogle();
       else await signInWithApple();
     } catch {

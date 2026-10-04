@@ -15,3 +15,9 @@ verify_jwt = false
 # Already deployed without the gate; recorded so a deploy doesn't change it.
 [functions.compute-nutrition]
 verify_jwt = false
+
+# The MCP server for AI agents. Unauthenticated requests must reach the function
+# so it can answer 401 + WWW-Authenticate, which is how MCP clients discover the
+# OAuth server; the function validates the bearer token itself.
+[functions.mcp]
+verify_jwt = false

@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { STORES } from "@/lib/stores";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, Calendar, Loader2, MessageSquare, BookOpen, Settings, Smartphone } from "lucide-react";
 import { toast } from "sonner";
@@ -101,6 +103,7 @@ const AccountSettings = () => {
 
   const [displayName, setDisplayName] = useState("");
   const [zipCode, setZipCode] = useState("");
+  const [preferredStore, setPreferredStore] = useState("");
 
   const [dietRestrictions, setDietRestrictions] = useState<string[]>([]);
   const [breakfastTime, setBreakfastTime] = useState("08:00");
@@ -168,6 +171,7 @@ const AccountSettings = () => {
     if (profile) {
       setDisplayName(profile.display_name ?? "");
       setZipCode((profile as any).zip_code ?? "");
+      setPreferredStore((profile as any).preferred_store ?? "");
 
       setDietRestrictions(profile.diet_restrictions ?? []);
       setBreakfastTime(profile.breakfast_time?.slice(0, 5) ?? "08:00");
@@ -302,6 +306,7 @@ const AccountSettings = () => {
       const updates = {
         display_name: displayName || null,
         zip_code: zipCode.trim() || null,
+        preferred_store: preferredStore || null,
         diet_restrictions: dietRestrictions,
 
         breakfast_time: breakfastTime + ":00",
@@ -469,6 +474,22 @@ const AccountSettings = () => {
               className="max-w-[140px]"
             />
             <p className="text-xs text-muted-foreground">Used to fetch prices from your local Kroger, Aldi, Meijer, and Giant Eagle.</p>
+          </div>
+
+          {/* Preferred store: where "Shop my list" sends the user and their AI assistant */}
+          <div className="space-y-1">
+            <Label htmlFor="preferredStore">Preferred grocery store</Label>
+            <Select value={preferredStore} onValueChange={setPreferredStore}>
+              <SelectTrigger id="preferredStore" className="max-w-[240px]">
+                <SelectValue placeholder="Choose a store" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                {STORES.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Where “Shop my list” on the grocery list sends you, or your AI assistant, to fill a cart.</p>
           </div>
 
         </CardContent>

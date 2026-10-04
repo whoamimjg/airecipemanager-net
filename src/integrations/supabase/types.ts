@@ -494,6 +494,7 @@ export type Database = {
           id: string
           lunch_time: string | null
           monthly_grocery_budget: number | null
+          preferred_store: string | null
           snack_time: string | null
           updated_at: string
           user_id: string
@@ -513,6 +514,7 @@ export type Database = {
           id?: string
           lunch_time?: string | null
           monthly_grocery_budget?: number | null
+          preferred_store?: string | null
           snack_time?: string | null
           updated_at?: string
           user_id: string
@@ -532,6 +534,7 @@ export type Database = {
           id?: string
           lunch_time?: string | null
           monthly_grocery_budget?: number | null
+          preferred_store?: string | null
           snack_time?: string | null
           updated_at?: string
           user_id?: string
@@ -688,6 +691,48 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shopping_lists: {
+        Row: {
+          created_at: string
+          id: string
+          item_count: number
+          items: Json
+          range_label: string | null
+          result: Json | null
+          status: string
+          store: string | null
+          updated_at: string
+          user_id: string
+          zip_code: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_count?: number
+          items?: Json
+          range_label?: string | null
+          result?: Json | null
+          status?: string
+          store?: string | null
+          updated_at?: string
+          user_id: string
+          zip_code?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_count?: number
+          items?: Json
+          range_label?: string | null
+          result?: Json | null
+          status?: string
+          store?: string | null
+          updated_at?: string
+          user_id?: string
+          zip_code?: string | null
         }
         Relationships: []
       }

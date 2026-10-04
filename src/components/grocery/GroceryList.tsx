@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { DateRange } from "react-day-picker";
+import ShopMyListDialog from "@/components/grocery/ShopMyListDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -72,6 +73,7 @@ const GroceryList = () => {
   // list at the full recipe amount without touching the inventory row.
   const [wantAnyway, setWantAnyway] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [shopOpen, setShopOpen] = useState(false);
   const [itemOverrides, setItemOverrides] = useState<Record<string, { quantity?: string; unit?: string; category?: string }>>({});
 
   // Store pricing
@@ -1000,8 +1002,23 @@ const GroceryList = () => {
   const hasNativeShare = typeof navigator !== "undefined" && typeof (navigator as any).share === "function";
 
 
+  const rangeLabel = isCustom && !customRange?.from
+    ? "no dates chosen"
+    : rangeEnd
+      ? `${format(rangeStart, "MMM d")} – ${format(rangeEnd, "MMM d")}`
+      : `${format(rangeStart, "MMM d")} onward`;
+
   return (
     <div className="space-y-6">
+      <ShopMyListDialog
+        open={shopOpen}
+        onOpenChange={setShopOpen}
+        items={buildShareGroups().flatMap(([, items]) => items).map(i => ({
+          key: i.key, name: i.name, quantity: i.quantity, unit: i.unit, category: i.category, note: i.note, recipes: i.recipes,
+        }))}
+        rangeLabel={rangeLabel}
+        listText={buildShareText()}
+      />
       {/* Header with date range selection */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1098,6 +1115,9 @@ const GroceryList = () => {
                 <Undo2 className="mr-2 h-4 w-4" /> Reset list
               </Button>
             )}
+            <Button onClick={() => setShopOpen(true)} size="sm" disabled={needToBuy.length === 0} title="Send this list to your store or let Claude fill your cart">
+              <ShoppingCart className="mr-2 h-4 w-4" /> Shop my list
+            </Button>
             <Button onClick={handlePrint} size="sm" variant="outline" disabled={needToBuy.length === 0}>
               <Printer className="mr-2 h-4 w-4" /> Print
             </Button>
@@ -1127,7 +1147,7 @@ const GroceryList = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-            <Button onClick={() => setShowAddForm(true)} size="sm">
+            <Button onClick={() => setShowAddForm(true)} size="sm" variant="outline">
               <Plus className="mr-2 h-4 w-4" /> Add Item
             </Button>
           </div>

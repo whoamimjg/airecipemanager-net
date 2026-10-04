@@ -56,6 +56,12 @@ const Dashboard = () => {
 
   if (!user) return <Navigate to="/auth" replace />;
 
+  const postLoginNext = sessionStorage.getItem("postLoginNext");
+  if (postLoginNext && postLoginNext.startsWith("/") && !postLoginNext.startsWith("//")) {
+    sessionStorage.removeItem("postLoginNext");
+    return <Navigate to={postLoginNext} replace />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top nav */}
