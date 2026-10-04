@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Globe, Loader2, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
+import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
 interface ImportRecipeProps {
   onClose: () => void;
@@ -60,7 +61,7 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
           prep_time: scrapedRecipe.prep_time || null,
           cook_time: scrapedRecipe.cook_time || null,
           servings: scrapedRecipe.servings || null,
-          category: scrapedRecipe.category || null,
+          category: normalizeRecipeCategory(scrapedRecipe.category),
           source_url: scrapedRecipe.source_url || url,
           image_url: scrapedRecipe.image_url || null,
         }}

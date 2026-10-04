@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import RecipeDetailDialog from "@/components/recipes/RecipeDetailDialog";
 import { haptics } from "@/lib/native";
+import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
 type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -281,7 +282,7 @@ const MealPlanner = () => {
   const groupedRecipes = useMemo(() => {
     const groups: Record<string, Recipe[]> = {};
     filteredRecipes.forEach(r => {
-      const cat = r.category || "Uncategorized";
+      const cat = normalizeRecipeCategory(r.category) || "Uncategorized";
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(r);
     });
@@ -297,7 +298,7 @@ const MealPlanner = () => {
     );
     const groups: Record<string, Recipe[]> = {};
     filtered.forEach(r => {
-      const cat = r.category || "Uncategorized";
+      const cat = normalizeRecipeCategory(r.category) || "Uncategorized";
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(r);
     });

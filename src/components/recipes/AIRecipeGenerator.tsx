@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Brain, ChefHat, Clock, Users, Sparkles, Plus, ShoppingCart, Check, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { recipeSaveErrorMessage } from "@/lib/planLimit";
+import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
 interface AIIngredient {
   name: string;
@@ -88,7 +89,7 @@ const AIRecipeGenerator = () => {
         user_id: user!.id,
         title: recipe.title,
         description: recipe.description,
-        category: recipe.category,
+        category: normalizeRecipeCategory(recipe.category),
         prep_time: recipe.prep_time,
         cook_time: recipe.cook_time,
         servings: recipe.servings,
@@ -209,7 +210,7 @@ const AIRecipeGenerator = () => {
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base">{recipe.title}</CardTitle>
                     <Badge variant="secondary" className="text-xs shrink-0">
-                      {recipe.category}
+                      {normalizeRecipeCategory(recipe.category) ?? recipe.category}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{recipe.description}</p>

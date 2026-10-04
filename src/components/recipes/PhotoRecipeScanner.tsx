@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, Camera, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
+import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
 interface PhotoRecipeScannerProps {
   onClose: () => void;
@@ -64,7 +65,7 @@ const PhotoRecipeScanner = ({ onClose }: PhotoRecipeScannerProps) => {
           prep_time: scannedRecipe.prep_time || null,
           cook_time: scannedRecipe.cook_time || null,
           servings: scannedRecipe.servings || null,
-          category: scannedRecipe.category || null,
+          category: normalizeRecipeCategory(scannedRecipe.category),
           source_url: null,
         }}
         isNew

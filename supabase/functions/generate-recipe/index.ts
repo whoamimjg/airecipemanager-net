@@ -72,7 +72,7 @@ Always respond with valid JSON matching this exact structure:
     {
       "title": "Recipe Name",
       "description": "Brief appealing description",
-      "category": "Main Course|Appetizer|Dessert|Breakfast|Snack|Side Dish|Soup|Salad|Beverage",
+      "category": "Breakfast|Lunch|Dinner|Snacks|Special Occasion",
       "prep_time": 15,
       "cook_time": 30,
       "servings": 4,
@@ -127,7 +127,7 @@ ${modeRules}${restrictionsBlock}`;
                       properties: {
                         title: { type: "string" },
                         description: { type: "string" },
-                        category: { type: "string" },
+                        category: { type: "string", enum: ["Breakfast", "Lunch", "Dinner", "Snacks", "Special Occasion"] },
                         prep_time: { type: "number" },
                         cook_time: { type: "number" },
                         servings: { type: "number" },

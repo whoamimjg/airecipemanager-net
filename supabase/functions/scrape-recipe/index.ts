@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
               prep_time: { type: 'number', description: 'Prep time in minutes' },
               cook_time: { type: 'number', description: 'Cook time in minutes' },
               servings: { type: 'number', description: 'Number of servings' },
-              category: { type: 'string', description: 'Recipe category like Dinner, Dessert, Breakfast, etc.' },
+              category: { type: 'string', description: 'One of: Breakfast, Lunch, Dinner, Snacks, Special Occasion (desserts and holiday dishes are Special Occasion)' },
               image_url: { type: 'string', description: 'Main recipe image URL' },
             },
             required: ['title', 'ingredients', 'instructions'],

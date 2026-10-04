@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import StarRating from "@/components/recipes/StarRating";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
 const SharedRecipe = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,7 +72,7 @@ const SharedRecipe = () => {
         {recipe.rating && <StarRating rating={recipe.rating} readonly size="md" />}
 
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-          {recipe.category && <Badge variant="secondary">{recipe.category}</Badge>}
+          {normalizeRecipeCategory(recipe.category) && <Badge variant="secondary">{normalizeRecipeCategory(recipe.category)}</Badge>}
           {totalTime > 0 && (
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" /> {totalTime} min

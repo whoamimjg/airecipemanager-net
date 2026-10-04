@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -125,7 +126,7 @@ const RecipeManager = ({ onUpgrade }: RecipeManagerProps = {}) => {
   const filtered = recipes.filter(
     (r) =>
       r.title.toLowerCase().includes(search.toLowerCase()) ||
-      (r.category?.toLowerCase().includes(search.toLowerCase()) ?? false)
+      (normalizeRecipeCategory(r.category)?.toLowerCase().includes(search.toLowerCase()) ?? false)
   );
 
   if (showImport) {
@@ -240,9 +241,9 @@ const RecipeManager = ({ onUpgrade }: RecipeManagerProps = {}) => {
                 {/* Cards show meal_type. Falls back to the legacy mixed-axis
                     `category` for recipes not yet migrated to the two-axis
                     taxonomy, so unmigrated accounts render exactly as before. */}
-                {(recipe.meal_type || recipe.category) && (
+                {normalizeRecipeCategory(recipe.category) && (
                   <Badge variant="secondary" className="w-fit text-xs">
-                    {recipe.meal_type || recipe.category}
+                    {normalizeRecipeCategory(recipe.category)}
                   </Badge>
                 )}
               </CardHeader>

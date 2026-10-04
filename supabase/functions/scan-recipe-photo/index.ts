@@ -35,7 +35,7 @@ Return a JSON object with this exact structure:
 {
   "title": "Recipe title",
   "description": "Brief description of the dish",
-  "category": "One of: Breakfast, Lunch, Dinner, Snack, Side, Sauce, Dessert, Beverage, Appetizer, Other",
+  "category": "One of: Breakfast, Lunch, Dinner, Snacks, Special Occasion",
   "prep_time": 15,
   "cook_time": 30,
   "servings": 4,

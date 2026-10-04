@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { PlayCircle } from "lucide-react";
 import ShareRecipeButton from "./ShareRecipeButton";
 import NutritionPanel, { type Nutrition } from "./NutritionPanel";
+import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
 interface Recipe {
   id: string;
@@ -87,7 +88,7 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
         )}
 
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-          {recipe.category && <Badge variant="secondary">{recipe.category}</Badge>}
+          {normalizeRecipeCategory(recipe.category) && <Badge variant="secondary">{normalizeRecipeCategory(recipe.category)}</Badge>}
           {totalTime > 0 && (
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />

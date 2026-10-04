@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RECIPE_CATEGORIES, normalizeRecipeCategory } from "@/lib/recipe-categories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Plus, X, Loader2, Save, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -37,7 +39,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
 
   const [title, setTitle] = useState(recipe?.title || "");
   const [description, setDescription] = useState(recipe?.description || "");
-  const [category, setCategory] = useState(recipe?.category || "");
+  const [category, setCategory] = useState<string>(normalizeRecipeCategory(recipe?.category) ?? "");
   const [prepTime, setPrepTime] = useState(recipe?.prep_time?.toString() || "");
   const [cookTime, setCookTime] = useState(recipe?.cook_time?.toString() || "");
   const [servings, setServings] = useState(recipe?.servings?.toString() || "");
@@ -188,7 +190,7 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
       const data = {
         title,
         description: description || null,
-        category: category || null,
+        category: normalizeRecipeCategory(category),
         prep_time: prepTime ? parseInt(prepTime) : null,
         cook_time: cookTime ? parseInt(cookTime) : null,
         servings: servings ? parseInt(servings) : null,
@@ -326,7 +328,14 @@ const RecipeForm = ({ recipe, isNew, onClose }: RecipeFormProps) => {
             </div>
             <div className="space-y-2">
               <Label className="text-card-foreground">Category</Label>
-              <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Dinner, Dessert" />
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger><SelectValue placeholder="Choose a category" /></SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  {RECIPE_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-card-foreground">Source URL</Label>
