@@ -117,6 +117,24 @@ Hard rules:
 - Call mark_items_bought only if the user tells you the order was placed.
 - Do not add items the list does not contain unless the user asks.`;
 
+/** Store-specific playbook lines, learned from real runs. */
+function storeRules(store: string | null | undefined): string[] {
+  switch (store) {
+    case "meijer":
+      return [
+        "Meijer: open Meijer's AI assistant, Ask Joy Dot, and send the full list in ONE message, one of each item.",
+        "Meijer: ignore Joy Dot's reply; it can say it failed even when the items were added.",
+        "Meijer: open the cart and check every list item against it.",
+        "Meijer: add anything missing by hand with a normal site search.",
+        "Meijer: mark any item Joy Dot swapped as 'substituted' with a note saying what it chose.",
+        "Meijer: point out items that were already in the cart before the run so the user can remove them if unwanted.",
+        "Meijer: stop at the cart. Never check out.",
+      ];
+    default:
+      return [];
+  }
+}
+
 function groupByCategory(items: ListItem[]) {
   const groups: Record<string, ListItem[]> = {};
   for (const it of items) {
@@ -200,6 +218,7 @@ function buildServer(shopper: Shopper) {
           "Add items to the cart; never place the order or enter payment details.",
           "Never remove items from the user's list. Report anything you cannot find.",
           "Call report_shopping_result when done.",
+          ...storeRules(store),
         ],
       });
     },

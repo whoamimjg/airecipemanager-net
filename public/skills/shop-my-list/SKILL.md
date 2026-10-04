@@ -62,7 +62,12 @@ The user places the order. You never do.
   at kroger.com; the cart shows an estimated total; pickup/delivery toggle at the top.
 - **Walmart**: use walmart.com/grocery; watch for "press and hold" bot checks and
   stop if one appears. Pickup vs delivery is set from the location banner.
-- **Meijer**: meijer.com; pickup/delivery chosen when the cart is first used.
+- **Meijer**: meijer.com; pickup/delivery chosen when the cart is first used. Fastest path:
+  open Meijer's AI assistant (Ask Joy Dot) and send the whole list in one message, one of
+  each item. Ignore its reply, which can claim failure when it worked. Then open the cart,
+  check every list item against it, add anything missing with a normal search, mark
+  anything it swapped as `substituted` with a note, and point out items that were already
+  in the cart before the run. Stop at the cart.
 - **Giant Eagle**: gianteagle.com; curbside and delivery share one cart.
 - **Aldi**: online ordering on aldi.us is fulfilled through Instacart; the cart may
   hand off to an Instacart page. Still stop before checkout.

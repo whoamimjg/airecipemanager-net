@@ -56,6 +56,65 @@ const STORE_CATEGORIES = [
   "Produce", "Meats", "Dairy", "Beverages", "Cereal", "Dry Goods", "Canned Goods", "Bread", "Frozen", "Snacks", "Condiments & Spices", "Other"
 ];
 
+/**
+ * The iOS/Android apps and the inventory/receipt features use their own aisle
+ * names ("Meat & Seafood", "Grains & Pasta", …). A manual item added on a phone
+ * arrives here with one of those, and the list used to count it but never draw
+ * it — "11 items" in the header, 10 on screen. Map the known aliases onto our
+ * aisles; anything still unknown is shown under its own heading, never dropped.
+ */
+const CATEGORY_ALIASES: Record<string, string> = {
+  "meat & seafood": "Meats",
+  "meat": "Meats",
+  "meats": "Meats",
+  "seafood": "Meats",
+  "poultry": "Meats",
+  "deli": "Meats",
+  "grains & pasta": "Dry Goods",
+  "grains": "Dry Goods",
+  "pasta": "Dry Goods",
+  "rice": "Dry Goods",
+  "baking": "Dry Goods",
+  "spices & seasonings": "Condiments & Spices",
+  "spices": "Condiments & Spices",
+  "condiments": "Condiments & Spices",
+  "oils & vinegars": "Condiments & Spices",
+  "bakery": "Bread",
+  "fruits": "Produce",
+  "vegetables": "Produce",
+  "fruits & vegetables": "Produce",
+  "drinks": "Beverages",
+  "frozen foods": "Frozen",
+  "household": "Other",
+  "misc": "Other",
+  "uncategorized": "Other",
+};
+
+const canonicalCategory = (raw: string | null | undefined): string => {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return "Other";
+  if (STORE_CATEGORIES.includes(trimmed)) return trimmed;
+  return CATEGORY_ALIASES[trimmed.toLowerCase()] ?? trimmed;
+};
+
+/** Known aisles in store order, then any other heading alphabetically, then Other. */
+const orderGroups = (groups: Record<string, GroceryItem[]>): [string, GroceryItem[]][] => {
+  const ordered: [string, GroceryItem[]][] = [];
+  const left = { ...groups };
+  STORE_CATEGORIES.forEach(cat => {
+    if (cat !== "Other" && left[cat]?.length) {
+      ordered.push([cat, left[cat]]);
+      delete left[cat];
+    }
+  });
+  Object.keys(left)
+    .filter(c => c !== "Other")
+    .sort()
+    .forEach(c => ordered.push([c, left[c]]));
+  if (left["Other"]?.length) ordered.push(["Other", left["Other"]]);
+  return ordered;
+};
+
 
 const GroceryList = () => {
   const { user } = useAuth();
@@ -705,13 +764,11 @@ const GroceryList = () => {
   const groupedItems = useMemo(() => {
     const groups: Record<string, GroceryItem[]> = {};
     adjustedItems.forEach(item => {
-      const cat = item.category || "Other";
+      const cat = canonicalCategory(item.category);
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
     });
-    return STORE_CATEGORIES
-      .filter(cat => groups[cat]?.length > 0)
-      .map(cat => [cat, groups[cat]] as [string, GroceryItem[]]);
+    return orderGroups(groups);
   }, [adjustedItems]);
 
   const toggleCheck = (name: string) => {
@@ -820,24 +877,11 @@ const GroceryList = () => {
   const buildShareGroups = () => {
     const groups: Record<string, GroceryItem[]> = {};
     needToBuy.forEach(item => {
-      const raw = (item.category || "").trim();
-      const cat = STORE_CATEGORIES.includes(raw) ? raw : (raw || "Other");
+      const cat = canonicalCategory(item.category);
       if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(item);
+      groups[cat].push({ ...item, category: cat });
     });
-    const ordered: [string, GroceryItem[]][] = [];
-    STORE_CATEGORIES.forEach(cat => {
-      if (cat !== "Other" && groups[cat]?.length) {
-        ordered.push([cat, groups[cat]]);
-        delete groups[cat];
-      }
-    });
-    Object.keys(groups)
-      .filter(c => c !== "Other")
-      .sort()
-      .forEach(c => ordered.push([c, groups[c]]));
-    if (groups["Other"]?.length) ordered.push(["Other", groups["Other"]]);
-    return ordered;
+    return orderGroups(groups);
   };
 
   const formatItemLine = (item: GroceryItem) => {
@@ -1311,14 +1355,17 @@ const GroceryList = () => {
                                     onBlur={e => updateOverride(key, "unit", e.target.value)}
                                   />
                                   <Select
-                                    defaultValue={item.category}
+                                    defaultValue={canonicalCategory(item.category)}
                                     onValueChange={v => updateOverride(key, "category", v)}
                                   >
                                     <SelectTrigger className="h-7 w-32 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {STORE_CATEGORIES.map(cat => (
+                                      {(STORE_CATEGORIES.includes(canonicalCategory(item.category))
+                                        ? STORE_CATEGORIES
+                                        : [...STORE_CATEGORIES, canonicalCategory(item.category)]
+                                      ).map(cat => (
                                         <SelectItem key={cat} value={cat} className="text-xs">{cat}</SelectItem>
                                       ))}
                                     </SelectContent>
