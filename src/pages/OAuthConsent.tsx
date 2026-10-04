@@ -130,7 +130,7 @@ const OAuthConsent = () => {
             </li>
             <li className="flex gap-2">
               <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              Tick items as bought after you confirm an order. It can never delete items.
+              Tick items off your list as it puts them in the cart. It can never delete items.
             </li>
           </ul>
           <p className="text-xs text-muted-foreground">

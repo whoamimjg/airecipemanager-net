@@ -51,8 +51,8 @@ The user places the order. You never do.
   user if one appears.
 - **Never remove or hide items** from the user's list. If an item cannot be bought,
   report it as `not_found`; the user decides.
-- **Only tick items as bought** (`mark_items_bought`) after the user says the order
-  was actually placed, and only the items they confirm.
+- Items you report as `added` or `substituted` are ticked off the user's list
+  automatically. Use `mark_items_bought` only for extra items the user says they bought.
 - Do not add items the list does not contain unless the user asks for them.
 - Do not change account, loyalty, subscription, or notification settings at the store.
 

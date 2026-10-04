@@ -114,7 +114,7 @@ const PLAYBOOK = `You are shopping an AI Recipe Manager grocery list for the use
 
 Hard rules:
 - Never place the order, never press Checkout / Place order / Buy, never enter or confirm payment, address, or login details, and never solve a CAPTCHA. The user completes the purchase.
-- Call mark_items_bought only if the user tells you the order was placed.
+- Everything you report as added or substituted is ticked off the user's list automatically. Use mark_items_bought only for extra items the user says they bought.
 - Do not add items the list does not contain unless the user asks.`;
 
 /** Store-specific playbook lines, learned from real runs. */
@@ -142,6 +142,36 @@ function groupByCategory(items: ListItem[]) {
     (groups[cat] ??= []).push(it);
   }
   return groups;
+}
+
+/**
+ * Tick items off the user's grocery list. Recipe-derived rows are ticked through
+ * grocery_checked_keys (the key the web and apps share); hand-added rows live in
+ * grocery_items and are ticked by name. Ticked items move to "Bought" and stay
+ * visible; nothing is deleted.
+ */
+async function tickItems(shopper: Shopper, items: { key: string; name?: string | null }[]) {
+  const { supabase } = shopper;
+  const keys = Array.from(new Set(items.map((i) => String(i.key ?? "").trim()).filter(Boolean)));
+  if (keys.length === 0) return { ticked_keys: 0, ticked_manual: 0 };
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("grocery_checked_keys")
+    .upsert(keys.map((item_key) => ({ user_id: shopper.id, item_key, created_at: now })), {
+      onConflict: "user_id,item_key",
+    });
+  if (error) throw new Error(error.message);
+
+  const wanted = new Set(
+    items.flatMap((i) => [i.key, i.name ?? ""]).map((n) => String(n).trim().toLowerCase()).filter(Boolean),
+  );
+  const { data: manual } = await supabase.from("grocery_items").select("id, name").eq("is_checked", false);
+  const ids = (manual ?? []).filter((m) => wanted.has(String(m.name).trim().toLowerCase())).map((m) => m.id);
+  if (ids.length > 0) {
+    const { error: e2 } = await supabase.from("grocery_items").update({ is_checked: true }).in("id", ids);
+    if (e2) throw new Error(e2.message);
+  }
+  return { ticked_keys: keys.length, ticked_manual: ids.length };
 }
 
 function buildServer(shopper: Shopper) {
@@ -217,7 +247,7 @@ function buildServer(shopper: Shopper) {
         rules: [
           "Add items to the cart; never place the order or enter payment details.",
           "Never remove items from the user's list. Report anything you cannot find.",
-          "Call report_shopping_result when done.",
+          "Call report_shopping_result when done; items it marks added or substituted are ticked off the list for the user.",
           ...storeRules(store),
         ],
       });
@@ -250,7 +280,8 @@ function buildServer(shopper: Shopper) {
     description:
       "Record the outcome of a shopping run so the user sees it in AI Recipe Manager: which items " +
       "went into the cart, which were substituted or not found, and a link to the cart if there is one. " +
-      "Call once at the end of the run. This does not change the user's grocery list.",
+      "Call once at the end of the run. Items reported as added or substituted are ticked off the user's " +
+      "grocery list automatically (they move to Bought and stay visible); nothing is ever deleted.",
     inputSchema: {
       type: "object",
       required: ["list_id", "status", "items"],
@@ -309,26 +340,37 @@ function buildServer(shopper: Shopper) {
         .from("shopping_lists")
         .update({ status: args.status, result, updated_at: new Date().toISOString() })
         .eq("id", args.list_id)
-        .select("id")
+        .select("id, items")
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data) throw new Error("No saved list with that id for this user");
-      const added = result.items.filter((i) => i.status === "added" || i.status === "substituted").length;
+
+      // What went into the cart is as good as bought for the list: tick it off
+      // so the web and the apps show it under Bought instead of To buy.
+      const snapshot = (Array.isArray(data.items) ? data.items : []) as ListItem[];
+      const nameByKey = new Map(snapshot.map((i) => [i.key, i.name]));
+      const inCart = result.items
+        .filter((i) => i.status === "added" || i.status === "substituted")
+        .map((i) => ({ key: i.key, name: nameByKey.get(i.key) ?? i.key }));
+      const ticked = await tickItems(shopper, inCart);
+
       return text({
         ok: true,
         list_id: data.id,
         status: args.status,
-        in_cart: added,
+        in_cart: inCart.length,
+        ticked_off_list: ticked.ticked_keys,
         not_found: result.items.filter((i) => i.status === "not_found").length,
-        next_step: "Tell the user the cart is ready for them to review and place the order. Do not check out.",
+        next_step: "Tell the user the cart is ready for them to review and place the order, and that those items are now ticked off their list. Do not check out.",
       });
     },
   });
 
   mcp.tool("mark_items_bought", {
     description:
-      "Tick items as bought on the user's grocery list (they move to the Bought section; nothing is " +
-      "deleted). Only call this after the user confirms the order was actually placed.",
+      "Tick extra items off the user's grocery list (they move to Bought; nothing is deleted). " +
+      "report_shopping_result already ticks everything it put in the cart, so use this only when the " +
+      "user says they bought something themselves or asks you to tick items.",
     inputSchema: {
       type: "object",
       required: ["keys"],
@@ -339,14 +381,8 @@ function buildServer(shopper: Shopper) {
     handler: async (args: { keys: string[] }) => {
       const keys = Array.from(new Set((args?.keys ?? []).map((k) => String(k).trim()).filter(Boolean)));
       if (keys.length === 0) throw new Error("keys is required");
-      const now = new Date().toISOString();
-      const { error } = await supabase
-        .from("grocery_checked_keys")
-        .upsert(keys.map((item_key) => ({ user_id: shopper.id, item_key, created_at: now })), {
-          onConflict: "user_id,item_key",
-        });
-      if (error) throw new Error(error.message);
-      return text({ ok: true, marked_bought: keys.length });
+      const ticked = await tickItems(shopper, keys.map((key) => ({ key })));
+      return text({ ok: true, marked_bought: ticked.ticked_keys });
     },
   });
 

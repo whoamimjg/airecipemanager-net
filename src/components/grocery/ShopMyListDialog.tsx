@@ -255,7 +255,8 @@ const ShopMyListDialog = ({ open, onOpenChange, items, rangeLabel, listText }: P
           </p>
           <p className="text-sm text-muted-foreground">
             Claude reads this list, adds each item to your {storeLabel(preferredStore)} cart in your browser, and
-            stops before checkout. You review the cart and place the order yourself.
+            stops before checkout. Items it puts in the cart are ticked off this list. You review the cart and
+            place the order yourself.
           </p>
           <ol className="space-y-3 text-sm">
             <li className="space-y-1.5">
