@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminOverview } from "@/hooks/useAdmin";
-import { Users, CreditCard, ChefHat, TrendingUp } from "lucide-react";
+import { Users, CreditCard, ChefHat, TrendingUp, Bell } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +99,39 @@ export default function AdminOverview() {
           </CardContent>
         </Card>
       )}
+
+      {/* Recent activity: signups and plan changes, written by database triggers */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2"><Bell className="h-4 w-4" /> Recent activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-16 w-full" />
+          ) : (data?.recentActivity as any[] | undefined)?.length ? (
+            <div className="space-y-2">
+              {(data.recentActivity as any[]).map((n: any) => (
+                <div key={n.id} className="flex justify-between items-start py-2 border-b border-border last:border-0 gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{n.title}</p>
+                    {n.body && <p className="text-xs text-muted-foreground">{n.body}</p>}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+                    <Badge variant={n.kind === "paid" ? "default" : n.kind === "cancelled" ? "destructive" : "secondary"} className="text-xs">
+                      {n.kind.replace("_", " ")}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No signups or plan changes recorded yet. New ones appear here and are emailed once an email channel is configured.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent payments */}
       {data?.recentPayments && (data.recentPayments as any[]).length > 0 && (

@@ -53,11 +53,12 @@ Deno.serve(async (req) => {
 
     switch (endpoint) {
       case "overview": {
-        const [profiles, subscriptions, billing, recipes] = await Promise.all([
+        const [profiles, subscriptions, billing, recipes, notifications] = await Promise.all([
           adminClient.from("profiles").select("*"),
           adminClient.from("subscriptions").select("*"),
           adminClient.from("billing_history").select("*").order("date", { ascending: false }),
           adminClient.from("recipes").select("user_id, is_ai_generated, created_at"),
+          adminClient.from("admin_notifications").select("id, kind, title, body, created_at, delivered_at").order("created_at", { ascending: false }).limit(25),
         ]);
 
         const totalUsers = profiles.data?.length ?? 0;
@@ -96,6 +97,7 @@ Deno.serve(async (req) => {
           aiRecipes,
           signupsByDay,
           recentPayments: (billing.data ?? []).slice(0, 10),
+          recentActivity: notifications.data ?? [],
         };
         break;
       }

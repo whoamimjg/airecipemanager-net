@@ -21,3 +21,7 @@ verify_jwt = false
 # OAuth server; the function validates the bearer token itself.
 [functions.mcp]
 verify_jwt = false
+
+# Called by the database (pg_net) with a shared token, not by a signed-in user.
+[functions.notify-admin]
+verify_jwt = false
