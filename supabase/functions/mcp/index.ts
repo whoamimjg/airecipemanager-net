@@ -169,6 +169,7 @@ function buildServer(shopper: Shopper) {
             "No saved list yet. Ask the user to open airecipemanager.com → Grocery List and press " +
             "\"Shop my list\", then call get_shopping_list again.",
           shopper: {
+            account_email: shopper.email,
             preferred_store: profile?.preferred_store ?? null,
             preferred_store_label: storeLabel(profile?.preferred_store),
             zip_code: profile?.zip_code ?? null,
@@ -189,6 +190,7 @@ function buildServer(shopper: Shopper) {
         item_count: items.length,
         items_by_aisle: groupByCategory(items),
         shopper: {
+          account_email: shopper.email,
           first_name: (profile?.display_name ?? "").split(" ")[0] || null,
           diet_restrictions: profile?.diet_restrictions ?? [],
           household_size: profile?.household_size ?? null,
@@ -214,6 +216,7 @@ function buildServer(shopper: Shopper) {
         .maybeSingle();
       if (error) throw new Error(error.message);
       return text({
+        account_email: shopper.email,
         first_name: (data?.display_name ?? "").split(" ")[0] || null,
         preferred_store: data?.preferred_store ?? null,
         preferred_store_label: storeLabel(data?.preferred_store),
