@@ -1,11 +1,14 @@
-import { useAdminUsers } from "@/hooks/useAdmin";
+import { useAdminUsers, setLifetimeUnlimited } from "@/hooks/useAdmin";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { Search, ChevronDown, ChevronUp, Mail, Calendar, CreditCard, ChefHat } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Mail, Calendar, CreditCard, ChefHat, Gift, Loader2 } from "lucide-react";
 
 export default function AdminUsers() {
   const { data, isLoading, error } = useAdminUsers();
@@ -120,6 +123,29 @@ export default function AdminUsers() {
 
 function UserDetail({ user }: { user: any }) {
   const sub = user.subscription;
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const hasLifetime = sub?.payment_method === "lifetime_grant";
+
+  const toggleLifetime = async () => {
+    const grant = !hasLifetime;
+    const who = user.email ?? user.display_name ?? user.user_id;
+    if (!window.confirm(grant
+      ? `Give ${who} Unlimited for life, free? They can save unlimited recipes and will never be billed.`
+      : `Take the lifetime plan away from ${who}? They go back to Free (25 recipes); nothing they saved is deleted.`)) return;
+    setBusy(true);
+    try {
+      await setLifetimeUnlimited(user.user_id, grant);
+      toast.success(grant ? "Lifetime Unlimited granted" : "Lifetime plan removed");
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "overview"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <DetailItem
@@ -179,6 +205,17 @@ function UserDetail({ user }: { user: any }) {
           </Badge>
         }
       />
+      <div className="sm:col-span-2 lg:col-span-3 flex flex-wrap items-center gap-3 pt-2 border-t border-border">
+        <Button size="sm" variant={hasLifetime ? "outline" : "default"} disabled={busy} onClick={(e) => { e.stopPropagation(); void toggleLifetime(); }}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Gift className="mr-2 h-4 w-4" />}
+          {hasLifetime ? "Remove lifetime plan" : "Grant lifetime Unlimited"}
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          {hasLifetime
+            ? "Free Unlimited forever. Store purchases are ignored for this account."
+            : "Free Unlimited plan that never expires. For testers and friends."}
+        </span>
+      </div>
     </div>
   );
 }

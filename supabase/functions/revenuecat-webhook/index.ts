@@ -103,6 +103,11 @@ Deno.serve(async (req) => {
     tier = productId ? tierFromProductId(productId) : "free";
   }
 
+  // A lifetime grant (admin panel) outranks anything a store can report.
+  if (current?.payment_method === "lifetime_grant") {
+    return skip("user has a lifetime grant");
+  }
+
   const isActive = tier !== "free";
   const expirationMs = event.expiration_at_ms as number | null | undefined;
   const nextBillingDate = isActive && expirationMs

@@ -32,6 +32,26 @@ async function fetchAdminData(endpoint: string) {
   return res.json();
 }
 
+async function postAdminData(endpoint: string, body: Record<string, unknown>) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const res = await fetch(`https://${projectId}.supabase.co/functions/v1/admin-data?endpoint=${endpoint}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Request failed");
+  }
+  return res.json();
+}
+
+/** Give (or take back) a free, never-expiring Unlimited plan. */
+export const setLifetimeUnlimited = (userId: string, grant: boolean) =>
+  postAdminData("lifetime", { user_id: userId, action: grant ? "grant" : "revoke" });
+
 export async function callAdminTotp(action: string, code?: string) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");

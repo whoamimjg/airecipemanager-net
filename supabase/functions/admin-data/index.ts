@@ -177,6 +177,39 @@ Deno.serve(async (req) => {
         break;
       }
 
+      // Lifetime Unlimited for testers and friends: no billing, never expires.
+      // Writes the same subscriptions row the plan-limit trigger, the website and
+      // the apps all read, so it unlocks everywhere at once. The RevenueCat
+      // webhook leaves rows marked lifetime_grant alone.
+      case "lifetime": {
+        if (req.method !== "POST") {
+          return new Response(JSON.stringify({ error: "POST required" }), {
+            status: 405,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const body = await req.json().catch(() => ({}));
+        const targetUserId = String(body?.user_id ?? "");
+        const grant = body?.action !== "revoke";
+        if (!targetUserId) {
+          return new Response(JSON.stringify({ error: "user_id required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const row = grant
+          ? { user_id: targetUserId, plan: "unlimited", recipe_limit: -1, price_monthly: 0, is_active: true, payment_method: "lifetime_grant", next_billing_date: null }
+          : { user_id: targetUserId, plan: "free", recipe_limit: 25, price_monthly: 0, is_active: true, payment_method: null, next_billing_date: null };
+        const { data: saved, error: saveError } = await adminClient
+          .from("subscriptions")
+          .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: "user_id" })
+          .select("user_id, plan, recipe_limit, payment_method")
+          .single();
+        if (saveError) throw saveError;
+        data = { ok: true, subscription: saved };
+        break;
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Invalid endpoint" }), {
           status: 400,
