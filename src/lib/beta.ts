@@ -14,7 +14,7 @@ export const ANDROID_TEST_URL = "https://play.google.com/apps/testing/com.michae
  * accounts that are members of this group. Testers join the group first, then
  * opt in on Play, with the same Google account for both.
  */
-export const ANDROID_TESTER_GROUP_URL = "https://groups.google.com/a/airecipemanager.com/g/airecipemanager-testers";
+export const ANDROID_TESTER_GROUP_URL = "https://groups.google.com/a/airecipemanager.com/g/airecipemanager-testers/about";
 export const IOS_TESTFLIGHT_URL = ""; // TestFlight public link not serving invites yet — set back to https://testflight.apple.com/join/2KDzUARf once a build is approved for external testing
 
 export const hasIosBeta = IOS_TESTFLIGHT_URL.length > 0;
