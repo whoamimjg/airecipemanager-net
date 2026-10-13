@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChefHat, Smartphone, Apple } from "lucide-react";
-import { ANDROID_TEST_URL, IOS_TESTFLIGHT_URL, hasIosBeta } from "@/lib/beta";
+import { ANDROID_TEST_URL, ANDROID_TESTER_GROUP_URL, IOS_TESTFLIGHT_URL, hasIosBeta } from "@/lib/beta";
 
 /**
  * Public page people can be pointed at from anywhere (dashboard card, email,
@@ -35,15 +35,28 @@ const Beta = () => (
           </CardHeader>
           <CardContent className="space-y-3">
             <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-              <li>Open the link below on the phone, signed in with your Google account.</li>
-              <li>Tap <strong>Become a tester</strong>.</li>
+              <li>
+                On the phone, signed in with your Google account, open the tester group and tap{" "}
+                <strong>Join group</strong>. Google Play only lets group members install the test.
+              </li>
+              <li>Open the Play link, with the same Google account, and tap <strong>Become a tester</strong>.</li>
               <li>Tap <strong>Download it on Google Play</strong> and install as usual.</li>
             </ol>
-            <Button asChild className="w-full sm:w-auto">
-              <a href={ANDROID_TEST_URL} target="_blank" rel="noopener noreferrer">
-                Join the Android test
-              </a>
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button asChild variant="outline" className="w-full sm:w-auto">
+                <a href={ANDROID_TESTER_GROUP_URL} target="_blank" rel="noopener noreferrer">
+                  1. Join the tester group
+                </a>
+              </Button>
+              <Button asChild className="w-full sm:w-auto">
+                <a href={ANDROID_TEST_URL} target="_blank" rel="noopener noreferrer">
+                  2. Join the Android test
+                </a>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Seeing “App not available” on Play? That means step 1 hasn’t been done with this Google account yet.
+            </p>
             <p className="text-xs text-muted-foreground">
               Please stay in the test for at least two weeks — Google requires it before the app can
               be released publicly.

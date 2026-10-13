@@ -17,7 +17,7 @@ import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, Ca
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { isSandboxBilling, purchasePlan, webManagementUrl, type PaidPlan } from "@/lib/revenuecat";
-import { ANDROID_TEST_URL, IOS_TESTFLIGHT_URL, hasIosBeta } from "@/lib/beta";
+import { ANDROID_TEST_URL, ANDROID_TESTER_GROUP_URL, IOS_TESTFLIGHT_URL, hasIosBeta } from "@/lib/beta";
 import CalendarSync from "@/components/account/CalendarSync";
 import FeedbackForm from "@/components/account/FeedbackForm";
 import KnowledgeBase from "@/components/account/KnowledgeBase";
@@ -707,7 +707,10 @@ const AccountSettings = () => {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>
-            <a href={ANDROID_TEST_URL} target="_blank" rel="noopener noreferrer">Android test</a>
+            <a href={ANDROID_TESTER_GROUP_URL} target="_blank" rel="noopener noreferrer">1. Join Android tester group</a>
+          </Button>
+          <Button variant="outline" asChild>
+            <a href={ANDROID_TEST_URL} target="_blank" rel="noopener noreferrer">2. Android test on Play</a>
           </Button>
           {hasIosBeta ? (
             <Button variant="outline" asChild>
