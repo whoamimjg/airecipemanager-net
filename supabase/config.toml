@@ -25,3 +25,8 @@ verify_jwt = false
 # Called by the database (pg_net) with a shared token, not by a signed-in user.
 [functions.notify-admin]
 verify_jwt = false
+
+# Helper for the Chrome shopping extension. It is called with an OAuth 2.1
+# access token (no apikey header), so it validates the bearer itself.
+[functions.shop-assist]
+verify_jwt = false
