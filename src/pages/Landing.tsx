@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import {
   BookOpen, Brain, Package, CalendarDays, ShoppingCart, Camera,
   Check, ArrowRight, Receipt, Smartphone, Wallet,
-} from "lucide-react";
+ Apple } from "lucide-react";
 import heroImg from "@/assets/hero-kitchen.jpg";
+import { IOS_APP_STORE_URL } from "@/lib/beta";
 import plannerImg from "@/assets/feature-planner.jpg";
 import groceryImg from "@/assets/feature-grocery.jpg";
 import inventoryImg from "@/assets/feature-inventory.jpg";
@@ -180,7 +181,7 @@ const Landing = () => {
         <div className="container mx-auto grid items-center gap-10 px-4 py-16 md:grid-cols-2 md:py-24">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-              Web today · iPhone &amp; Android in testing
+              Web · iPhone on the App Store · Android in testing
             </p>
             <h1 className="mt-4 text-4xl font-bold leading-[1.08] md:text-5xl lg:text-6xl">
               Your kitchen.<br />
@@ -196,9 +197,14 @@ const Landing = () => {
                   Start free <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/beta">
+              <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer">
                 <Button size="lg" variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
-                  <Smartphone className="mr-2 h-4 w-4" /> Get the mobile apps
+                  <Apple className="mr-2 h-4 w-4" /> Download on the App Store
+                </Button>
+              </a>
+              <Link to="/beta">
+                <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
+                  <Smartphone className="mr-2 h-4 w-4" /> Android test
                 </Button>
               </Link>
             </div>
@@ -391,14 +397,16 @@ const Landing = () => {
         <div className="container mx-auto px-4">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-2xl border border-border bg-card p-8 text-center">
             <Smartphone className="h-7 w-7 text-primary" aria-hidden />
-            <h2 className="text-2xl font-bold">Try the mobile apps early</h2>
+            <h2 className="text-2xl font-bold">Get the apps</h2>
             <p className="text-muted-foreground">
-              The iPhone and Android apps are in testing now. Sign up free on the web, then install
-              the test version on your phone — same account, everything syncs.
+              The iPhone app is on the App Store. The Android app is in testing, and you can join the
+              test today. Same account as the website, everything syncs.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <Link to={SIGNUP}><Button size="lg">Start free</Button></Link>
-              <Link to="/beta"><Button size="lg" variant="outline">Get the test apps</Button></Link>
+              <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+                <Button size="lg"><Apple className="mr-2 h-4 w-4" /> Download on the App Store</Button>
+              </a>
+              <Link to="/beta"><Button size="lg" variant="outline">Join the Android test</Button></Link>
             </div>
           </div>
         </div>
@@ -432,11 +440,11 @@ const Landing = () => {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link to={SIGNUP}><Button size="lg">Start free</Button></Link>
-            <Link to="/beta">
+            <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer">
               <Button size="lg" variant="outline" className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
-                Get the mobile apps
+                <Apple className="mr-2 h-4 w-4" /> Download on the App Store
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>

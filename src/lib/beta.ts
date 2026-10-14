@@ -15,6 +15,8 @@ export const ANDROID_TEST_URL = "https://play.google.com/apps/testing/com.michae
  * opt in on Play, with the same Google account for both.
  */
 export const ANDROID_TESTER_GROUP_URL = "https://groups.google.com/a/airecipemanager.com/g/airecipemanager-testers/about";
+/** The iPhone app on the App Store (approved 2026-10-14, App Store id 6770092811). */
+export const IOS_APP_STORE_URL = "https://apps.apple.com/app/id6770092811";
 export const IOS_TESTFLIGHT_URL = ""; // TestFlight public link not serving invites yet — set back to https://testflight.apple.com/join/2KDzUARf once a build is approved for external testing
 
 export const hasIosBeta = IOS_TESTFLIGHT_URL.length > 0;

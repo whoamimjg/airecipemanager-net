@@ -17,7 +17,7 @@ import { Camera, Save, Trash2, LogOut, Lock, Crown, Check, Clock, CreditCard, Ca
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { isSandboxBilling, purchasePlan, webManagementUrl, type PaidPlan } from "@/lib/revenuecat";
-import { ANDROID_TEST_URL, ANDROID_TESTER_GROUP_URL, IOS_TESTFLIGHT_URL, hasIosBeta } from "@/lib/beta";
+import { ANDROID_TEST_URL, ANDROID_TESTER_GROUP_URL, IOS_APP_STORE_URL } from "@/lib/beta";
 import CalendarSync from "@/components/account/CalendarSync";
 import FeedbackForm from "@/components/account/FeedbackForm";
 import KnowledgeBase from "@/components/account/KnowledgeBase";
@@ -712,13 +712,9 @@ const AccountSettings = () => {
           <Button variant="outline" asChild>
             <a href={ANDROID_TEST_URL} target="_blank" rel="noopener noreferrer">2. Android test on Play</a>
           </Button>
-          {hasIosBeta ? (
-            <Button variant="outline" asChild>
-              <a href={IOS_TESTFLIGHT_URL} target="_blank" rel="noopener noreferrer">iPhone test (TestFlight)</a>
-            </Button>
-          ) : (
-            <Button variant="outline" disabled>iPhone — coming soon</Button>
-          )}
+          <Button variant="outline" asChild>
+            <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer">iPhone app (App Store)</a>
+          </Button>
           <Button variant="ghost" asChild>
             <a href="/beta">Install instructions</a>
           </Button>
