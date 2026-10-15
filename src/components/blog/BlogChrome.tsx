@@ -21,7 +21,7 @@ export const BlogChrome = ({ children, width = "max-w-4xl" }: { children: ReactN
     {children}
     <footer className="border-t border-border">
       <div className={`mx-auto ${width} px-4 py-6 text-xs text-muted-foreground`}>
-        AI Recipe Manager, by AI Manager LLC · <Link to="/privacy" className="hover:underline">Privacy</Link> · <Link to="/terms" className="hover:underline">Terms</Link> · <span className="inline-flex items-center gap-1"><Lock className="h-3 w-3" aria-hidden="true" /> Secure connection (HTTPS)</span>
+        AI Recipe Manager, by AI Manager LLC · <Link to="/privacy" className="hover:underline">Privacy</Link> · <Link to="/terms" className="hover:underline">Terms</Link> · <span className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 font-medium text-foreground"><Lock className="h-3 w-3 text-primary" aria-hidden="true" /> Secured with HTTPS</span>
       </div>
     </footer>
   </div>
