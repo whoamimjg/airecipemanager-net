@@ -30,3 +30,8 @@ verify_jwt = false
 # access token (no apikey header), so it validates the bearer itself.
 [functions.shop-assist]
 verify_jwt = false
+
+# Newsletter: sign-up, confirm and unsubscribe are called from the browser or from
+# email links without a session; the digest is guarded by its own shared secret.
+[functions.newsletter]
+verify_jwt = false

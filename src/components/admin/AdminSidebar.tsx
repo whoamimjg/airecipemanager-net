@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, CreditCard, FileText, BarChart3, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, FileText, BarChart3, ArrowLeft, ChefHat } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -20,6 +20,7 @@ const items = [
   { title: "Payments", url: "/admin/payments", icon: CreditCard },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Blog", url: "/admin/blog", icon: FileText },
+  { title: "Recipes", url: "/admin/recipes", icon: ChefHat },
 ];
 
 export function AdminSidebar() {

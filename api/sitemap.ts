@@ -10,6 +10,7 @@ export default async function handler(_req: any, res: any) {
   const staticUrls = [
     { loc: "/", priority: "1.0", changefreq: "weekly" },
     { loc: "/blog", priority: "0.8", changefreq: "daily" },
+    { loc: "/recipes", priority: "0.8", changefreq: "weekly" },
     { loc: "/terms", priority: "0.3", changefreq: "yearly" },
     { loc: "/privacy", priority: "0.3", changefreq: "yearly" },
   ];
@@ -25,11 +26,26 @@ export default async function handler(_req: any, res: any) {
     /* fall back to static urls only */
   }
 
+  let recipes: { slug: string; updated_at?: string; published_at?: string }[] = [];
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/public_recipes?status=eq.published&select=slug,updated_at,published_at&order=published_at.desc`,
+      { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } },
+    );
+    if (r.ok) recipes = await r.json();
+  } catch {
+    /* recipes are optional in the sitemap */
+  }
+
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const urls = [
     ...staticUrls.map(
       (u) => `  <url><loc>${BASE}${u.loc}</loc><changefreq>${u.changefreq}</changefreq><priority>${u.priority}</priority></url>`,
     ),
+    ...recipes.map((r) => {
+      const lastmod = (r.updated_at || r.published_at || "").slice(0, 10);
+      return `  <url><loc>${BASE}/recipes/${esc(r.slug)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<changefreq>monthly</changefreq><priority>0.7</priority></url>`;
+    }),
     ...posts.map((p) => {
       const lastmod = (p.updated_at || p.published_at || "").slice(0, 10);
       return `  <url><loc>${BASE}/blog/${esc(p.slug)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<changefreq>monthly</changefreq><priority>0.7</priority></url>`;

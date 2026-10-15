@@ -1,86 +1,78 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO } from "date-fns";
-import { ChefHat } from "lucide-react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { setSeo } from "@/lib/seo";
-
-interface PostCard {
-  slug: string;
-  title: string;
-  excerpt: string | null;
-  cover_image_url: string | null;
-  published_at: string | null;
-}
+import { archiveMonths, monthLabel } from "@/lib/blog";
+import { BLOG_POSTS_KEY, fetchPublishedPosts } from "@/lib/blog-queries";
+import { BlogChrome, PostGrid } from "@/components/blog/BlogChrome";
+import MonthArchive from "@/components/blog/MonthArchive";
+import NewsletterSignup from "@/components/blog/NewsletterSignup";
 
 const Blog = () => {
   useEffect(() => {
     setSeo({
       title: "Blog | AI Recipe Manager",
-      description: "Recipes, kitchen tips, meal-planning ideas and more from AI Recipe Manager.",
+      description: "Recipes, kitchen tips, and meal-planning ideas from AI Recipe Manager. Browse by month or get the monthly digest.",
       url: "https://airecipemanager.com/blog",
     });
   }, []);
 
-  const { data: posts, isLoading } = useQuery({
-    queryKey: ["blog-posts"],
-    queryFn: async (): Promise<PostCard[]> => {
-      const { data, error } = await supabase
-        .from("blog_posts")
-        .select("slug, title, excerpt, cover_image_url, published_at")
-        .eq("status", "published")
-        .order("published_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as PostCard[];
-    },
-  });
+  const [query, setQuery] = useState("");
+  const { data: posts, isLoading } = useQuery({ queryKey: BLOG_POSTS_KEY, queryFn: fetchPublishedPosts });
+
+  const months = useMemo(() => archiveMonths(posts ?? []), [posts]);
+  const latestMonth = months[0]?.key;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return posts ?? [];
+    return (posts ?? []).filter((p) => `${p.title} ${p.excerpt ?? ""}`.toLowerCase().includes(q));
+  }, [posts, query]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <Link to="/" className="flex items-center gap-2 font-bold text-foreground">
-            <ChefHat className="h-5 w-5 text-primary" /> AI Recipe Manager
-          </Link>
-          <Link to="/dashboard" className="text-sm text-primary hover:underline">Open app</Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-4 py-10">
+    <BlogChrome>
+      <main className="mx-auto max-w-5xl px-4 py-10">
         <h1 className="mb-2 text-3xl font-bold text-foreground">Blog</h1>
-        <p className="mb-8 text-muted-foreground">Recipes, kitchen tips, and meal-planning ideas.</p>
+        <p className="mb-6 text-muted-foreground">Recipes, kitchen tips, and meal-planning ideas.</p>
 
-        {isLoading ? (
-          <p className="text-muted-foreground">Loading…</p>
-        ) : !posts || posts.length === 0 ? (
-          <p className="text-muted-foreground">No posts yet — check back soon.</p>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2">
-            {posts.map((p) => (
-              <Link
-                key={p.slug}
-                to={`/blog/${p.slug}`}
-                className="group overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
-              >
-                {p.cover_image_url && (
-                  <img src={p.cover_image_url} alt={p.title} className="h-44 w-full object-cover" />
-                )}
-                <div className="p-4">
-                  {p.published_at && (
-                    <p className="text-xs text-muted-foreground">
-                      {format(parseISO(p.published_at), "MMM d, yyyy")}
-                    </p>
-                  )}
-                  <h2 className="mt-1 text-lg font-semibold text-foreground group-hover:text-primary">{p.title}</h2>
-                  {p.excerpt && <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{p.excerpt}</p>}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="relative mb-6 max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search posts"
+            aria-label="Search posts"
+            className="pl-9"
+          />
+        </div>
+
+        <div className="grid gap-10 lg:grid-cols-[1fr_15rem]">
+          <section>
+            {isLoading ? (
+              <p className="text-muted-foreground">Loading…</p>
+            ) : filtered.length === 0 ? (
+              <p className="text-muted-foreground">
+                {posts && posts.length > 0 ? "No posts match that search." : "No posts yet. Check back soon."}
+              </p>
+            ) : (
+              <PostGrid posts={filtered} />
+            )}
+            {!query && latestMonth && (
+              <p className="mt-8 text-sm text-muted-foreground">
+                Latest: {monthLabel(latestMonth)}. Browse older months in the archive.
+              </p>
+            )}
+          </section>
+
+          <aside className="space-y-8">
+            <MonthArchive months={months} />
+            <NewsletterSignup source="blog-index" />
+          </aside>
+        </div>
       </main>
-    </div>
+    </BlogChrome>
   );
 };
 

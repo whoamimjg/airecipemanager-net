@@ -19,6 +19,12 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import Beta from "./pages/Beta";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import BlogMonth from "./pages/BlogMonth";
+import Recipes from "./pages/Recipes";
+import PublicRecipe from "./pages/PublicRecipe";
+import NewsletterConfirm from "./pages/NewsletterConfirm";
+import NewsletterUnsubscribe from "./pages/NewsletterUnsubscribe";
+import AdminRecipes from "./pages/admin/AdminRecipes";
 import SharedRecipe from "./pages/SharedRecipe";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -53,11 +59,17 @@ const App = () => (
               <Route path="payments" element={<AdminPayments />} />
               <Route path="feedback" element={<AdminFeedback />} />
               <Route path="blog" element={<AdminBlog />} />
+              <Route path="recipes" element={<AdminRecipes />} />
               <Route path="analytics" element={<AdminAnalytics />} />
             </Route>
             <Route path="/beta" element={<Beta />} />
             <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/month/:month" element={<BlogMonth />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/recipes" element={<Recipes />} />
+            <Route path="/recipes/:slug" element={<PublicRecipe />} />
+            <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
+            <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
             <Route path="/recipe/:id" element={<SharedRecipe />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />

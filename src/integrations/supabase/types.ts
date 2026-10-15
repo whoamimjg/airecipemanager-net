@@ -39,6 +39,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery: Json | null
+          email: string | null
+          id: string
+          kind: string
+          meta: Json
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery?: Json | null
+          email?: string | null
+          id?: string
+          kind: string
+          meta?: Json
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery?: Json | null
+          email?: string | null
+          id?: string
+          kind?: string
+          meta?: Json
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_totp: {
         Row: {
           created_at: string
@@ -99,6 +138,45 @@ export type Database = {
           plan?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      billing_history_backup_20260914: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string | null
+          invoice_number: string | null
+          payment_method: string | null
+          plan: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string | null
+          invoice_number?: string | null
+          payment_method?: string | null
+          plan?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string | null
+          invoice_number?: string | null
+          payment_method?: string | null
+          plan?: string | null
+          status?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -210,6 +288,27 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_checked_keys_backup_20260908: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          item_key: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          item_key?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          item_key?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       grocery_deleted_keys: {
         Row: {
           category: string | null
@@ -243,6 +342,42 @@ export type Database = {
           source?: string
           unit?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      grocery_deleted_keys_backup_20260907: {
+        Row: {
+          category: string | null
+          deleted_at: string | null
+          display_name: string | null
+          id: string | null
+          item_key: string | null
+          quantity: string | null
+          source: string | null
+          unit: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          deleted_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          item_key?: string | null
+          quantity?: string | null
+          source?: string | null
+          unit?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          deleted_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          item_key?: string | null
+          quantity?: string | null
+          source?: string | null
+          unit?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -479,6 +614,66 @@ export type Database = {
           },
         ]
       }
+      newsletter_digests: {
+        Row: {
+          period: string
+          post_slugs: string[]
+          recipient_count: number
+          sent_at: string
+        }
+        Insert: {
+          period: string
+          post_slugs?: string[]
+          recipient_count?: number
+          sent_at?: string
+        }
+        Update: {
+          period?: string
+          post_slugs?: string[]
+          recipient_count?: number
+          sent_at?: string
+        }
+        Relationships: []
+      }
+      newsletter_subscribers: {
+        Row: {
+          confirm_token: string
+          confirmed_at: string | null
+          created_at: string
+          email: string
+          id: string
+          source: string | null
+          status: string
+          unsubscribe_token: string
+          unsubscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          confirm_token?: string
+          confirmed_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          source?: string | null
+          status?: string
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confirm_token?: string
+          confirmed_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          source?: string | null
+          status?: string
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -496,6 +691,7 @@ export type Database = {
           monthly_grocery_budget: number | null
           preferred_store: string | null
           snack_time: string | null
+          timezone: string | null
           updated_at: string
           user_id: string
           zip_code: string | null
@@ -516,6 +712,7 @@ export type Database = {
           monthly_grocery_budget?: number | null
           preferred_store?: string | null
           snack_time?: string | null
+          timezone?: string | null
           updated_at?: string
           user_id: string
           zip_code?: string | null
@@ -536,9 +733,67 @@ export type Database = {
           monthly_grocery_budget?: number | null
           preferred_store?: string | null
           snack_time?: string | null
+          timezone?: string | null
           updated_at?: string
           user_id?: string
           zip_code?: string | null
+        }
+        Relationships: []
+      }
+      public_recipes: {
+        Row: {
+          category: string | null
+          cook_time: number | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          ingredients: Json
+          instructions: Json
+          prep_time: number | null
+          published_at: string | null
+          servings: number | null
+          slug: string
+          status: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          cook_time?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: Json
+          prep_time?: number | null
+          published_at?: string | null
+          servings?: number | null
+          slug: string
+          status?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          cook_time?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: Json
+          prep_time?: number | null
+          published_at?: string | null
+          servings?: number | null
+          slug?: string
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -736,9 +991,43 @@ export type Database = {
         }
         Relationships: []
       }
+      store_adapters: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fail_count: number
+          host: string
+          selectors: Json
+          source: string
+          success_count: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fail_count?: number
+          host: string
+          selectors?: Json
+          source?: string
+          success_count?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fail_count?: number
+          host?: string
+          selectors?: Json
+          source?: string
+          success_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
+          iap_event_at_ms: number | null
           id: string
           is_active: boolean
           next_billing_date: string | null
@@ -751,6 +1040,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          iap_event_at_ms?: number | null
           id?: string
           is_active?: boolean
           next_billing_date?: string | null
@@ -763,6 +1053,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          iap_event_at_ms?: number | null
           id?: string
           is_active?: boolean
           next_billing_date?: string | null
@@ -780,7 +1071,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      enqueue_admin_notification: {
+        Args: {
+          p_body: string
+          p_email: string
+          p_kind: string
+          p_meta?: Json
+          p_title: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       storage_location:
@@ -806,12 +1107,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -835,11 +1136,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -860,11 +1161,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -885,11 +1186,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -902,11 +1203,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

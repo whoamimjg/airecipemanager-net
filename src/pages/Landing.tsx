@@ -164,6 +164,7 @@ const Landing = () => {
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground">Pricing</a>
             <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground">FAQ</a>
             <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground">Blog</Link>
+            <Link to="/recipes" className="text-sm text-muted-foreground hover:text-foreground">Recipes</Link>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/auth" className="hidden sm:block">
@@ -468,6 +469,7 @@ const Landing = () => {
               <li><a href="#pricing" className="hover:text-foreground">Pricing</a></li>
               <li><Link to="/beta" className="hover:text-foreground">Mobile apps</Link></li>
               <li><Link to="/blog" className="hover:text-foreground">Blog</Link></li>
+              <li><Link to="/recipes" className="hover:text-foreground">Recipes</Link></li>
             </ul>
           </div>
           <div>
