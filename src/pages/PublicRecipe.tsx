@@ -9,6 +9,7 @@ import { canonicalRecipeUrl, fetchPublishedRecipe, ingredientText, isHeadingLine
 import { BlogChrome } from "@/components/blog/BlogChrome";
 import AddToRecipesButton from "@/components/recipes/AddToRecipesButton";
 import NewsletterSignup from "@/components/blog/NewsletterSignup";
+import ShareBar from "@/components/share/ShareBar";
 
 const PublicRecipe = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -106,6 +107,8 @@ const PublicRecipe = () => {
         <div className="rounded-xl border border-border bg-card p-4">
           <AddToRecipesButton recipe={recipe} />
         </div>
+
+        <ShareBar url={canonicalRecipeUrl(recipe.slug)} title={recipe.title} />
 
         {recipe.ingredients.length > 0 && (
           <div>

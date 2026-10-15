@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
@@ -8,11 +8,10 @@ import { formatPostDate, monthKey, monthLabel, readingMinutes } from "@/lib/blog
 import { BLOG_POSTS_KEY, fetchPublishedPost, fetchPublishedPosts } from "@/lib/blog-queries";
 import { BlogChrome } from "@/components/blog/BlogChrome";
 import NewsletterSignup from "@/components/blog/NewsletterSignup";
-import { Button } from "@/components/ui/button";
+import ShareBar from "@/components/share/ShareBar";
 
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
-  const [copied, setCopied] = useState(false);
 
   const { data: post, isLoading, error } = useQuery({
     queryKey: ["blog-post", slug],
@@ -43,16 +42,6 @@ const BlogPost = () => {
     }
     return () => { document.title = "AI Recipe Manager"; };
   }, [post, url]);
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked: the share links still work */
-    }
-  };
 
   return (
     <BlogChrome width="max-w-3xl">
@@ -89,13 +78,7 @@ const BlogPost = () => {
               </div>
             </article>
 
-            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-border pt-6 text-sm">
-              <span className="text-muted-foreground">Share:</span>
-              <a className="text-primary hover:underline" href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(post.title)}`} target="_blank" rel="noopener noreferrer">X</a>
-              <a className="text-primary hover:underline" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`} target="_blank" rel="noopener noreferrer">Facebook</a>
-              <a className="text-primary hover:underline" href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(`${post.title}\n\n${url}`)}`}>Email</a>
-              <Button variant="outline" size="sm" onClick={copyLink}>{copied ? "Copied" : "Copy link"}</Button>
-            </div>
+            <ShareBar url={url} title={post.title} className="mt-10 border-t border-border pt-6" />
 
             <nav className="mt-8 grid gap-4 sm:grid-cols-2" aria-label="More posts">
               {older ? (

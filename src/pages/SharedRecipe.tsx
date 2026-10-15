@@ -6,6 +6,7 @@ import { Clock, Users, ExternalLink, ChefHat, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import StarRating from "@/components/recipes/StarRating";
+import ShareBar from "@/components/share/ShareBar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
@@ -16,13 +17,12 @@ const SharedRecipe = () => {
   const { data: recipe, isLoading, error } = useQuery({
     queryKey: ["shared-recipe", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("recipes")
-        .select("*")
-        .eq("id", id!)
-        .single();
+      // Reads one recipe by its id through get_shared_recipe. Anonymous clients can't list recipes.
+      const { data, error } = await supabase.rpc("get_shared_recipe", { p_id: id! });
       if (error) throw error;
-      return data;
+      const row = Array.isArray(data) ? data[0] : null;
+      if (!row) throw new Error("Recipe not found");
+      return row;
     },
     enabled: !!id,
   });
@@ -68,6 +68,8 @@ const SharedRecipe = () => {
 
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{recipe.title}</h1>
         {recipe.description && <p className="text-muted-foreground">{recipe.description}</p>}
+
+        <ShareBar url={`https://airecipemanager.com/recipe/${recipe.id}`} title={recipe.title} />
 
         {recipe.rating && <StarRating rating={recipe.rating} readonly size="md" />}
 

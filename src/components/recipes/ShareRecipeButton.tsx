@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Share2, Mail, Copy, Check, Facebook, Smartphone } from "lucide-react";
+import { Share2, Mail, Copy, Check, Facebook, Linkedin, Instagram, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { isNative, shareContent } from "@/lib/native";
+import { shareLinks, shareToInstagram } from "@/components/share/share-links";
 
 interface ShareRecipeButtonProps {
   recipeId: string;
@@ -51,11 +52,11 @@ const ShareRecipeButton = ({ recipeId, recipeTitle, variant = "icon" }: ShareRec
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, "_blank", "width=600,height=400");
   };
 
-  const shareInstagram = () => {
-    // Instagram doesn't support direct URL sharing; copy link and notify
-    copyLink();
-    toast.info("Link copied! Paste it in your Instagram story or post.");
+  const shareLinkedIn = () => {
+    window.open(shareLinks(shareUrl, recipeTitle).linkedin, "_blank", "noopener,noreferrer,width=640,height=560");
   };
+
+  const shareInstagram = () => shareToInstagram(shareUrl, recipeTitle);
 
   return (
     <DropdownMenu>
@@ -86,13 +87,11 @@ const ShareRecipeButton = ({ recipeId, recipeTitle, variant = "icon" }: ShareRec
         <DropdownMenuItem onClick={shareFacebook}>
           <Facebook className="mr-2 h-4 w-4" /> Facebook
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={shareLinkedIn}>
+          <Linkedin className="mr-2 h-4 w-4" /> LinkedIn
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={shareInstagram}>
-          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-          </svg>
-          Instagram
+          <Instagram className="mr-2 h-4 w-4" /> Instagram
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

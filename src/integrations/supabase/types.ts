@@ -1082,6 +1082,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_shared_recipe: {
+        Args: { p_id: string }
+        Returns: {
+          category: string
+          cook_time: number
+          description: string
+          id: string
+          image_url: string
+          ingredients: Json
+          instructions: Json
+          prep_time: number
+          rating: number
+          servings: number
+          source_url: string
+          title: string
+        }[]
+      }
     }
     Enums: {
       storage_location:
