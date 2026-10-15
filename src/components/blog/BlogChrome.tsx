@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChefHat } from "lucide-react";
+import { ChefHat, Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { formatPostDate, type BlogCard } from "@/lib/blog";
 
@@ -21,7 +21,7 @@ export const BlogChrome = ({ children, width = "max-w-4xl" }: { children: ReactN
     {children}
     <footer className="border-t border-border">
       <div className={`mx-auto ${width} px-4 py-6 text-xs text-muted-foreground`}>
-        AI Recipe Manager, by AI Manager LLC · <Link to="/privacy" className="hover:underline">Privacy</Link> · <Link to="/terms" className="hover:underline">Terms</Link>
+        AI Recipe Manager, by AI Manager LLC · <Link to="/privacy" className="hover:underline">Privacy</Link> · <Link to="/terms" className="hover:underline">Terms</Link> · <span className="inline-flex items-center gap-1"><Lock className="h-3 w-3" aria-hidden="true" /> Secure connection (HTTPS)</span>
       </div>
     </footer>
   </div>

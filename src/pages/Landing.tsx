@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   BookOpen, Brain, Package, CalendarDays, ShoppingCart, Camera,
   Check, ArrowRight, Receipt, Smartphone, Wallet,
- Apple } from "lucide-react";
+ Apple, Lock } from "lucide-react";
 import heroImg from "@/assets/hero-kitchen.jpg";
 import { IOS_APP_STORE_URL } from "@/lib/beta";
 import plannerImg from "@/assets/feature-planner.jpg";
@@ -494,9 +494,12 @@ const Landing = () => {
             </ul>
           </div>
         </div>
-        <p className="container mx-auto mt-10 px-4 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} AI Manager LLC. All rights reserved.
-        </p>
+        <div className="container mx-auto mt-10 flex flex-col gap-2 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} AI Manager LLC. All rights reserved.</p>
+          <p className="flex items-center gap-1.5">
+            <Lock className="h-3.5 w-3.5" aria-hidden="true" /> Secure connection (HTTPS)
+          </p>
+        </div>
       </footer>
     </div>
   );
