@@ -16,8 +16,8 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 // Until airecipemanager.com is verified in Resend, it only delivers to the
 // address on the Resend account. Switch back to michael@airecipemanager.com
 // (and a notify@airecipemanager.com sender) once the domain is verified.
-const EMAIL_TO = Deno.env.get("ADMIN_NOTIFY_EMAIL_TO") ?? "m.greene@revitpay.com";
-const EMAIL_FROM = Deno.env.get("ADMIN_NOTIFY_EMAIL_FROM") ?? "AI Recipe Manager <onboarding@resend.dev>";
+const EMAIL_TO = Deno.env.get("ADMIN_NOTIFY_EMAIL_TO") ?? "michael@airecipemanager.com";
+const EMAIL_FROM = Deno.env.get("ADMIN_NOTIFY_EMAIL_FROM") ?? "AI Recipe Manager <notify@airecipemanager.com>";
 const WEBHOOK_URL = Deno.env.get("ADMIN_NOTIFY_WEBHOOK_URL");
 const NTFY_TOPIC = Deno.env.get("NTFY_TOPIC");
 
