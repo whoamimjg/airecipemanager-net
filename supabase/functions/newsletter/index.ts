@@ -4,20 +4,26 @@
 //   POST /newsletter/subscribe    { email, website?, source? }   → confirmation email
 //   POST /newsletter/confirm      { token }                       → pending → confirmed
 //   POST /newsletter/unsubscribe  { token } or ?token=            → unsubscribed (also RFC 8058 one-click)
-//   POST /newsletter/digest       header x-digest-secret, { period?: "YYYY-MM", dry_run?: true }
+//   POST /newsletter/digest       header x-digest-secret, { period?: "YYYY-MM", dry_run?: true }  (not scheduled)
+//   POST /newsletter/post-info    admin bearer, { slug }          → recipients + whether it was emailed
+//   POST /newsletter/send-post    admin bearer, { slug }          → emails the full post once
 //
-// Sending is refused until the operator has configured the sender domain
-// (NEWSLETTER_FROM), a postal address for the footer (NEWSLETTER_POSTAL_ADDRESS,
-// required by the CAN-SPAM Act for commercial mail), and the digest secret.
-// The digest records each period in newsletter_digests before sending, so a
-// half-finished run is never repeated automatically.
+// Subscribers are blog sign-ups (double opt-in) plus account holders with a confirmed
+// email (added by the newsletter_sync_account trigger). Every email carries the
+// business postal address and a one-click unsubscribe link (CAN-SPAM). Each post is
+// recorded in newsletter_post_sends before sending, so it is never emailed twice.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { marked } from "npm:marked@14.1.4";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const FROM = Deno.env.get("NEWSLETTER_FROM");
-const POSTAL_ADDRESS = Deno.env.get("NEWSLETTER_POSTAL_ADDRESS");
+const FROM = Deno.env.get("NEWSLETTER_FROM") ?? "AI Recipe Manager <news@airecipemanager.com>";
+const POSTAL_ADDRESS =
+  Deno.env.get("NEWSLETTER_POSTAL_ADDRESS") ?? "AI Manager LLC, 3939 Massillon Rd., Suite 801 PMB 1015, Uniontown, OH 44685, USA";
+const ADMIN_EMAIL = "whoamimjg50@gmail.com";
+const TEST_TO = "michael@airecipemanager.com";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const DIGEST_SECRET = Deno.env.get("NEWSLETTER_DIGEST_SECRET");
 const SITE = "https://airecipemanager.com";
 const REPLY_TO = "support@airecipemanager.com";
@@ -52,7 +58,7 @@ async function sendEmails(messages: Record<string, unknown>[]): Promise<void> {
 
 const footer = (unsubscribeUrl: string) =>
   `<p style="font-size:12px;color:#6b7280;margin-top:32px;border-top:1px solid #e5e7eb;padding-top:16px">
-    AI Recipe Manager, ${esc(POSTAL_ADDRESS ?? "")}<br />
+    ${esc(POSTAL_ADDRESS)}<br />
     <a href="${esc(unsubscribeUrl)}" style="color:#6b7280">Unsubscribe</a>
   </p>`;
 
@@ -64,7 +70,7 @@ async function subscribe(body: { email?: string; website?: string; source?: stri
 
   const email = String(body.email ?? "").trim().toLowerCase();
   if (email.length > 254 || !EMAIL_RE.test(email)) return json({ error: "Enter a valid email address." }, 400);
-  if (!RESEND_API_KEY || !FROM || !POSTAL_ADDRESS) {
+  if (!RESEND_API_KEY) {
     return json({ error: "Sign-up is not available yet. Please try again later." }, 503);
   }
 
@@ -107,15 +113,15 @@ async function subscribe(body: { email?: string; website?: string; source?: stri
       from: FROM,
       to: [email],
       reply_to: REPLY_TO,
-      subject: "Confirm your AI Recipe Manager blog digest",
+      subject: "Confirm your AI Recipe Manager blog emails",
       html: `<div style="font-family:system-ui,sans-serif;color:#1f2937;max-width:560px">
-        <p>Thanks for asking for the monthly AI Recipe Manager blog digest.</p>
-        <p>Confirm your address and you'll get one email a month, only in months with new posts.</p>
+        <p>Thanks for signing up for AI Recipe Manager blog emails.</p>
+        <p>Confirm your address and we'll email you each new post when it's published.</p>
         <p><a href="${esc(confirmUrl)}" style="display:inline-block;background:#16a34a;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Confirm my subscription</a></p>
         <p style="font-size:13px;color:#6b7280">If you didn't ask for this, ignore this email and nothing else will be sent.</p>
         ${footer(`${SITE}/newsletter/unsubscribe`)}
       </div>`,
-      text: `Confirm your AI Recipe Manager blog digest: ${confirmUrl}\n\nIf you didn't ask for this, ignore this email.\n\n${POSTAL_ADDRESS}`,
+      text: `Confirm your AI Recipe Manager blog emails: ${confirmUrl}\n\nIf you didn't ask for this, ignore this email.\n\n${POSTAL_ADDRESS}`,
     }]);
   } catch (err) {
     // Don't leave a pending row behind for an address that never got the email.
@@ -256,6 +262,115 @@ async function digest(req: Request, body: { period?: string; dry_run?: boolean }
   return json({ period, sent: recipients.length, posts: posts.length });
 }
 
+
+// ---------- one email per blog post ----------
+
+async function requireAdmin(req: Request): Promise<boolean> {
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
+  const { data, error } = await createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } }).auth.getUser(token);
+  return !error && data.user?.email?.toLowerCase() === ADMIN_EMAIL;
+}
+
+async function loadPost(db: SupabaseClient, slug: string) {
+  const { data, error } = await db
+    .from("blog_posts")
+    .select("slug, title, excerpt, cover_image_url, body, published_at, status")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+function postEmailHtml(post: { slug: string; title: string; excerpt: string | null; cover_image_url: string | null; body: string }, unsubscribeUrl: string) {
+  const url = `${SITE}/blog/${encodeURIComponent(post.slug)}`;
+  const bodyHtml = marked.parse(post.body ?? "", { async: false }) as string;
+  return `<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;line-height:1.6">
+    <p style="color:#6b7280;font-size:13px;margin:0 0 12px">New on the AI Recipe Manager blog</p>
+    <h1 style="font-size:26px;line-height:1.25;margin:0 0 12px"><a href="${url}" style="color:#1f2937;text-decoration:none">${esc(post.title)}</a></h1>
+    ${post.cover_image_url ? `<a href="${url}"><img src="${esc(post.cover_image_url)}" alt="" style="width:100%;border-radius:12px;display:block;margin:0 0 16px" /></a>` : ""}
+    <div style="font-size:16px">${bodyHtml.replace(/<img /g, '<img style="max-width:100%;height:auto;border-radius:8px" ')}</div>
+    <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#16a34a;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Read it on the website</a></p>
+    ${footer(unsubscribeUrl)}
+  </div>`;
+}
+
+
+/** Sends the post only to the site owner, so the email can be checked before the real send. */
+async function sendTest(req: Request, body: { slug?: string }) {
+  if (!(await requireAdmin(req))) return json({ error: "Not allowed." }, 401);
+  const slug = String(body.slug ?? "");
+  if (!RESEND_API_KEY) return json({ error: "Email is not configured (RESEND_API_KEY)." }, 503);
+  const post = await loadPost(admin(), slug);
+  if (!post) return json({ error: "No post with that address." }, 404);
+  await sendEmails([{
+    from: FROM,
+    to: [TEST_TO],
+    reply_to: REPLY_TO,
+    subject: `[Test] ${post.title}`,
+    html: postEmailHtml(post, `${SITE}/newsletter/unsubscribe`),
+  }]);
+  return json({ slug, sent_to: TEST_TO });
+}
+
+async function postInfo(req: Request, body: { slug?: string }) {
+  if (!(await requireAdmin(req))) return json({ error: "Not allowed." }, 401);
+  const slug = String(body.slug ?? "");
+  const db = admin();
+  const [{ count }, { data: sent }] = await Promise.all([
+    db.from("newsletter_subscribers").select("id", { count: "exact", head: true }).eq("status", "confirmed"),
+    db.from("newsletter_post_sends").select("sent_at, recipient_count").eq("slug", slug).maybeSingle(),
+  ]);
+  return json({ slug, recipients: count ?? 0, sent_at: sent?.sent_at ?? null, sent_to: sent?.recipient_count ?? null });
+}
+
+async function sendPost(req: Request, body: { slug?: string }) {
+  if (!(await requireAdmin(req))) return json({ error: "Not allowed." }, 401);
+  const slug = String(body.slug ?? "");
+  if (!slug) return json({ error: "slug is required" }, 400);
+  if (!RESEND_API_KEY) return json({ error: "Email is not configured (RESEND_API_KEY)." }, 503);
+
+  const db = admin();
+  const post = await loadPost(db, slug);
+  if (!post) return json({ error: "No post with that address." }, 404);
+  if (post.status !== "published") return json({ error: "Publish the post before emailing it." }, 400);
+
+  const { data: recipients, error: recErr } = await db
+    .from("newsletter_subscribers")
+    .select("email, unsubscribe_token")
+    .eq("status", "confirmed");
+  if (recErr) throw new Error(recErr.message);
+  if (!recipients || recipients.length === 0) return json({ slug, sent: 0, skipped: "no subscribers" });
+
+  // Claim the post first: a second click, or a retry, can never email it twice.
+  const { error: claimErr } = await db.from("newsletter_post_sends").insert({ slug, recipient_count: recipients.length });
+  if (claimErr) return json({ error: "This post was already emailed." }, 409);
+
+  const messages = recipients.map((r) => {
+    const oneClick = `${FUNCTION_URL}/unsubscribe?token=${r.unsubscribe_token}`;
+    return {
+      from: FROM,
+      to: [r.email],
+      reply_to: REPLY_TO,
+      subject: post.title,
+      html: postEmailHtml(post, `${SITE}/newsletter/unsubscribe?token=${r.unsubscribe_token}`),
+      text: `${post.title}\n\n${post.excerpt ?? ""}\n\nRead it: ${SITE}/blog/${post.slug}\n\nUnsubscribe: ${SITE}/newsletter/unsubscribe?token=${r.unsubscribe_token}\n${POSTAL_ADDRESS}`,
+      headers: {
+        "List-Unsubscribe": `<${oneClick}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    };
+  });
+
+  try {
+    await sendEmails(messages);
+  } catch (err) {
+    console.error("send-post failed", err);
+    return json({ slug, error: "Sending failed partway. Check the Resend logs before trying again.", detail: String((err as Error).message) }, 502);
+  }
+  return json({ slug, sent: recipients.length });
+}
+
 // ---------- router ----------
 
 Deno.serve(async (req) => {
@@ -277,6 +392,9 @@ Deno.serve(async (req) => {
       case "confirm": return await confirm(String(body.token ?? ""));
       case "unsubscribe": return await unsubscribe(String(body.token ?? url.searchParams.get("token") ?? ""));
       case "digest": return await digest(req, body);
+      case "post-info": return await postInfo(req, body);
+      case "send-post": return await sendPost(req, body);
+      case "send-test": return await sendTest(req, body);
       default: return json({ error: "Not found" }, 404);
     }
   } catch (err) {

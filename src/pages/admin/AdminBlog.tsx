@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, ExternalLink, Mail, MailCheck } from "lucide-react";
+import EmailPostDialog from "@/components/admin/EmailPostDialog";
 
 interface Post {
   id: string;
@@ -30,6 +31,17 @@ const blank: Partial<Post> = { title: "", slug: "", excerpt: "", cover_image_url
 const AdminBlog = () => {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Partial<Post> | null>(null);
+  const [emailPost, setEmailPost] = useState<{ slug: string; title: string } | null>(null);
+
+  // Posts already emailed to subscribers (each post can be sent once).
+  const { data: emailed } = useQuery({
+    queryKey: ["admin-blog-emailed"],
+    queryFn: async (): Promise<Set<string>> => {
+      const { data, error } = await supabase.from("newsletter_post_sends").select("slug");
+      if (error) throw error;
+      return new Set((data || []).map((r) => r.slug));
+    },
+  });
 
   const { data: posts, isLoading } = useQuery({
     queryKey: ["admin-blog"],
@@ -65,10 +77,13 @@ const AdminBlog = () => {
         const { error } = await supabase.from("blog_posts").insert(payload);
         if (error) throw error;
       }
+      // Newly published (it had no publish date before): offer to email it.
+      return { slug, title: payload.title as string, becamePublished: payload.status === "published" && !p.published_at };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Saved");
       setEditing(null);
+      if (result?.becamePublished) setEmailPost({ slug: result.slug, title: result.title });
       queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
     },
     onError: (e: any) => toast.error(e.message || "Failed to save"),
@@ -159,6 +174,16 @@ const AdminBlog = () => {
                   </div>
                   <div className="flex shrink-0 gap-1">
                     {p.status === "published" && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        title={emailed?.has(p.slug) ? "Already emailed to subscribers" : "Email to subscribers"}
+                        onClick={() => setEmailPost({ slug: p.slug, title: p.title })}
+                      >
+                        {emailed?.has(p.slug) ? <MailCheck className="h-4 w-4 text-primary" /> : <Mail className="h-4 w-4" />}
+                      </Button>
+                    )}
+                    {p.status === "published" && (
                       <a href={`/blog/${p.slug}`} target="_blank" rel="noreferrer">
                         <Button size="icon" variant="ghost"><ExternalLink className="h-4 w-4" /></Button>
                       </a>
@@ -174,6 +199,12 @@ const AdminBlog = () => {
           )}
         </CardContent>
       </Card>
+
+      <EmailPostDialog
+        post={emailPost}
+        onClose={() => setEmailPost(null)}
+        onSent={() => queryClient.invalidateQueries({ queryKey: ["admin-blog-emailed"] })}
+      />
     </div>
   );
 };

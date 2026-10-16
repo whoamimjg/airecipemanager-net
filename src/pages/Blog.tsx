@@ -13,7 +13,7 @@ const Blog = () => {
   useEffect(() => {
     setSeo({
       title: "Blog | AI Recipe Manager",
-      description: "Recipes, kitchen tips, and meal-planning ideas from AI Recipe Manager. Browse by month or get the monthly digest.",
+      description: "Recipes, kitchen tips, and meal-planning ideas from AI Recipe Manager. Browse by month or get new posts by email.",
       url: "https://airecipemanager.com/blog",
     });
   }, []);

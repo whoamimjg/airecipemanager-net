@@ -21,6 +21,7 @@ import { ANDROID_TEST_URL, ANDROID_TESTER_GROUP_URL, IOS_APP_STORE_URL } from "@
 import CalendarSync from "@/components/account/CalendarSync";
 import FeedbackForm from "@/components/account/FeedbackForm";
 import KnowledgeBase from "@/components/account/KnowledgeBase";
+import BlogEmailsSetting from "@/components/account/BlogEmailsSetting";
 
 const DIET_GROUPS: { label: string; options: string[] }[] = [
   {
@@ -720,6 +721,9 @@ const AccountSettings = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Blog emails on/off */}
+      <BlogEmailsSetting />
 
       {/* Calendar Integration */}
       <CalendarSync />

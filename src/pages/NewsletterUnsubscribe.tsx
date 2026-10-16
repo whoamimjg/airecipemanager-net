@@ -40,8 +40,8 @@ const NewsletterUnsubscribe = () => {
         {!token && <p className="text-muted-foreground">This link is missing its code. Use the unsubscribe link from the email.</p>}
         {token && state !== "done" && (
           <>
-            <h1 className="text-2xl font-bold text-foreground">Unsubscribe from the monthly digest?</h1>
-            <p className="mt-2 text-muted-foreground">You won't get any more digest emails.</p>
+            <h1 className="text-2xl font-bold text-foreground">Unsubscribe from blog emails?</h1>
+            <p className="mt-2 text-muted-foreground">You won't get any more blog emails.</p>
             <Button className="mt-6" onClick={unsubscribe} disabled={state === "working"}>Unsubscribe</Button>
             {state === "error" && <p className="mt-4 text-sm text-destructive">{message}</p>}
           </>
@@ -49,7 +49,7 @@ const NewsletterUnsubscribe = () => {
         {state === "done" && (
           <>
             <h1 className="text-2xl font-bold text-foreground">You're unsubscribed</h1>
-            <p className="mt-2 text-muted-foreground">You won't get any more digest emails.</p>
+            <p className="mt-2 text-muted-foreground">You won't get any more blog emails.</p>
           </>
         )}
         <Link to="/blog" className="mt-8 inline-block text-primary hover:underline">Read the blog</Link>

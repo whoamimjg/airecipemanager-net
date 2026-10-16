@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
+import { COMPANY } from "@/lib/company";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const Privacy = () => {
-  const lastUpdated = "July 20, 2026";
+  const lastUpdated = "October 16, 2026";
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,6 +54,7 @@ const Privacy = () => {
               <li>Generate AI recipes, meal plans, and personalized recommendations.</li>
               <li>Process payments, subscriptions, and invoices.</li>
               <li>Communicate with you about your account, updates, and support requests.</li>
+              <li>Email you when we publish a new blog post, if your account has an email address. Every email has an unsubscribe link, and you can turn these emails off in Account settings.</li>
               <li>Improve and secure the Service, prevent fraud, and enforce our Terms.</li>
               <li>Comply with legal obligations.</li>
             </ul>
@@ -203,6 +205,12 @@ const Privacy = () => {
                 support@airecipemanager.com
               </a>
             </p>
+            <address className="mt-3 not-italic text-muted-foreground leading-relaxed">
+              {COMPANY.legalName}
+              {COMPANY.addressLines.map((line) => (
+                <span key={line} className="block">{line}</span>
+              ))}
+            </address>
           </section>
         </div>
 

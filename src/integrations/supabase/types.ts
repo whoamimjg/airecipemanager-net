@@ -635,6 +635,24 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_post_sends: {
+        Row: {
+          recipient_count: number
+          sent_at: string
+          slug: string
+        }
+        Insert: {
+          recipient_count?: number
+          sent_at?: string
+          slug: string
+        }
+        Update: {
+          recipient_count?: number
+          sent_at?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           confirm_token: string
@@ -647,6 +665,7 @@ export type Database = {
           unsubscribe_token: string
           unsubscribed_at: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           confirm_token?: string
@@ -659,6 +678,7 @@ export type Database = {
           unsubscribe_token?: string
           unsubscribed_at?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           confirm_token?: string
@@ -671,6 +691,7 @@ export type Database = {
           unsubscribe_token?: string
           unsubscribed_at?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1082,6 +1103,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_my_blog_emails: { Args: never; Returns: boolean }
       get_shared_recipe: {
         Args: { p_id: string }
         Returns: {
@@ -1099,6 +1121,7 @@ export type Database = {
           title: string
         }[]
       }
+      set_my_blog_emails: { Args: { p_subscribed: boolean }; Returns: boolean }
     }
     Enums: {
       storage_location:

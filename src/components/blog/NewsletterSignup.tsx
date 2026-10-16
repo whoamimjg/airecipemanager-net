@@ -6,7 +6,7 @@ import { Mail, Loader2, CheckCircle2 } from "lucide-react";
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`;
 
 /**
- * Monthly digest sign-up. Double opt-in: the address gets a confirmation email
+ * Blog email sign-up: one email per new post. Double opt-in: the address gets a confirmation email
  * first, and nothing is sent until it is confirmed. The hidden "website" field
  * is a honeypot for bots.
  */
@@ -41,10 +41,10 @@ const NewsletterSignup = ({ source, className }: { source: string; className?: s
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 text-foreground">
           <Mail className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Get the monthly digest</h2>
+          <h2 className="font-semibold">Get new posts by email</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          One email a month with the new posts. Months without new posts get nothing.
+          We'll email you each new post when it's published.
         </p>
         {state === "sent" ? (
           <p className="mt-4 flex items-start gap-2 text-sm text-foreground">

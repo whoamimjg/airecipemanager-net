@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
+import { COMPANY } from "@/lib/company";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const Terms = () => {
-  const lastUpdated = "April 29, 2026";
+  const lastUpdated = "October 16, 2026";
 
   return (
     <div className="min-h-screen bg-background">
@@ -180,6 +181,12 @@ const Terms = () => {
                 support@airecipemanager.com
               </a>
             </p>
+            <address className="mt-3 not-italic text-muted-foreground leading-relaxed">
+              {COMPANY.legalName}
+              {COMPANY.addressLines.map((line) => (
+                <span key={line} className="block">{line}</span>
+              ))}
+            </address>
           </section>
         </div>
 

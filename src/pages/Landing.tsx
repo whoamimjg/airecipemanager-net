@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { COMPANY_ADDRESS_ONE_LINE } from "@/lib/company";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -495,7 +496,10 @@ const Landing = () => {
           </div>
         </div>
         <div className="container mx-auto mt-10 flex flex-col gap-2 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} AI Manager LLC. All rights reserved.</p>
+          <div>
+            <p>© {new Date().getFullYear()} AI Manager LLC. All rights reserved.</p>
+            <p className="mt-1 text-xs">{COMPANY_ADDRESS_ONE_LINE}</p>
+          </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-foreground">
               <Lock className="h-3.5 w-3.5 text-primary" aria-hidden="true" /> Secured with HTTPS
             </span>

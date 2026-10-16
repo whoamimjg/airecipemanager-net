@@ -43,7 +43,7 @@ const NewsletterConfirm = () => {
           <>
             <CheckCircle2 className="mx-auto h-10 w-10 text-primary" />
             <h1 className="mt-4 text-2xl font-bold text-foreground">You're subscribed</h1>
-            <p className="mt-2 text-muted-foreground">You'll get one email a month, only in months with new posts.</p>
+            <p className="mt-2 text-muted-foreground">You'll get an email each time we publish a new post.</p>
           </>
         )}
         {state === "error" && (
