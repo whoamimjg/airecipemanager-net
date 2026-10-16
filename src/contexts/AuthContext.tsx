@@ -187,12 +187,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUpWithEmail: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
+  signInWithEmail: (email: string, password: string, captchaToken?: string) => Promise<{ error: Error | null }>;
+  signUpWithEmail: (email: string, password: string, fullName?: string, captchaToken?: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  resetPassword: (email: string, captchaToken?: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -262,17 +262,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  // captchaToken comes from the Turnstile widget. Supabase ignores it until bot
+  // protection is switched on in the dashboard, then requires it.
+  const signInWithEmail = useCallback(async (email: string, password: string, captchaToken?: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
     if (data.session) await writeSessionBackup(data.session);
     return { error: error ? new Error(error.message) : null };
   }, []);
 
-  const signUpWithEmail = useCallback(async (email: string, password: string, fullName?: string) => {
+  const signUpWithEmail = useCallback(async (email: string, password: string, fullName?: string, captchaToken?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        captchaToken,
         data: { full_name: fullName },
         emailRedirectTo: window.location.origin,
       },
@@ -304,8 +307,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await clearSessionBackup();
   }, []);
 
-  const resetPassword = useCallback(async (email: string) => {
+  const resetPassword = useCallback(async (email: string, captchaToken?: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      captchaToken,
       redirectTo: `${window.location.origin}/reset-password`,
     });
     return { error: error ? new Error(error.message) : null };

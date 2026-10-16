@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ChefHat, Mail, Lock, User, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import Turnstile, { TURNSTILE_SITE_KEY, type TurnstileHandle } from "@/components/auth/Turnstile";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -23,6 +24,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstile = useRef<TurnstileHandle>(null);
   const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, resetPassword, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -43,21 +46,26 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      toast.error("One moment, we're checking you're human. Try again in a second.");
+      return;
+    }
+    const token = captchaToken ?? undefined;
     setIsLoading(true);
 
     try {
       if (isForgotPassword) {
-        const { error } = await resetPassword(email);
+        const { error } = await resetPassword(email, token);
         if (error) throw error;
         toast.success("Password reset email sent! Check your inbox.");
         setIsForgotPassword(false);
       } else if (isSignUp) {
-        const { error } = await signUpWithEmail(email, password, fullName);
+        const { error } = await signUpWithEmail(email, password, fullName, token);
         if (error) throw error;
         if (planParam) sessionStorage.setItem("pendingPlan", planParam);
         toast.success("Account created! Check your email to confirm.");
       } else {
-        const { error } = await signInWithEmail(email, password);
+        const { error } = await signInWithEmail(email, password, token);
         if (error) throw error;
         toast.success("Welcome back!");
         const pending = planParam || sessionStorage.getItem("pendingPlan");
@@ -68,6 +76,8 @@ const Auth = () => {
       toast.error(err.message || "Something went wrong");
     } finally {
       setIsLoading(false);
+      // Turnstile tokens are single-use; get a fresh one for the next attempt.
+      turnstile.current?.reset();
     }
   };
 
@@ -190,6 +200,8 @@ const Auth = () => {
                 </div>
               </div>
             )}
+
+            <Turnstile ref={turnstile} onToken={setCaptchaToken} action={isForgotPassword ? "reset" : isSignUp ? "signup" : "signin"} className="flex justify-center" />
 
             <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
