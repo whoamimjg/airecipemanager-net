@@ -54,7 +54,7 @@ const Privacy = () => {
               <li>Generate AI recipes, meal plans, and personalized recommendations.</li>
               <li>Process payments, subscriptions, and invoices.</li>
               <li>Communicate with you about your account, updates, and support requests.</li>
-              <li>Email you when we publish a new blog post, if your account has an email address. Every email has an unsubscribe link, and you can turn these emails off in Account settings.</li>
+              <li>Email you when we publish a new blog post, if your account has an email address. Every email has an unsubscribe link, and you can turn these emails off in Account settings. Links in these emails pass through our server so we can count how many people clicked; we use this only to see which posts are useful.</li>
               <li>Improve and secure the Service, prevent fraud, and enforce our Terms.</li>
               <li>Comply with legal obligations.</li>
             </ul>

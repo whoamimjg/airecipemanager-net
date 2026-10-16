@@ -337,7 +337,7 @@ async function sendPost(req: Request, body: { slug?: string }) {
 
   const { data: recipients, error: recErr } = await db
     .from("newsletter_subscribers")
-    .select("email, unsubscribe_token")
+    .select("id, email, unsubscribe_token")
     .eq("status", "confirmed");
   if (recErr) throw new Error(recErr.message);
   if (!recipients || recipients.length === 0) return json({ slug, sent: 0, skipped: "no subscribers" });
@@ -346,6 +346,10 @@ async function sendPost(req: Request, body: { slug?: string }) {
   const { error: claimErr } = await db.from("newsletter_post_sends").insert({ slug, recipient_count: recipients.length });
   if (claimErr) return json({ error: "This post was already emailed." }, 409);
 
+  // Click tracking: every link in the post (not the unsubscribe link) is stored once and
+  // rewritten per recipient to the /c/<link>/<subscriber> redirect.
+  const linkIds = await registerLinks(db, slug, postEmailHtml(post, `${SITE}/newsletter/unsubscribe`));
+
   const messages = recipients.map((r) => {
     const oneClick = `${FUNCTION_URL}/unsubscribe?token=${r.unsubscribe_token}`;
     return {
@@ -353,7 +357,7 @@ async function sendPost(req: Request, body: { slug?: string }) {
       to: [r.email],
       reply_to: REPLY_TO,
       subject: post.title,
-      html: postEmailHtml(post, `${SITE}/newsletter/unsubscribe?token=${r.unsubscribe_token}`),
+      html: trackLinks(postEmailHtml(post, `${SITE}/newsletter/unsubscribe?token=${r.unsubscribe_token}`), linkIds, r.id),
       text: `${post.title}\n\n${post.excerpt ?? ""}\n\nRead it: ${SITE}/blog/${post.slug}\n\nUnsubscribe: ${SITE}/newsletter/unsubscribe?token=${r.unsubscribe_token}\n${POSTAL_ADDRESS}`,
       headers: {
         "List-Unsubscribe": `<${oneClick}>`,
@@ -371,13 +375,68 @@ async function sendPost(req: Request, body: { slug?: string }) {
   return json({ slug, sent: recipients.length });
 }
 
+
+// ---------- click tracking ----------
+
+const HREF_RE = /href="(https?:\/\/[^"]+)"/g;
+const isUnsubscribe = (raw: string) => raw.includes("/newsletter/unsubscribe");
+const decodeHref = (raw: string) => raw.replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+
+/** Stores each link in the email once per post; returns raw href → link id. */
+async function registerLinks(db: SupabaseClient, slug: string, html: string): Promise<Map<string, string>> {
+  const raws = Array.from(new Set(Array.from(html.matchAll(HREF_RE), (m) => m[1]).filter((h) => !isUnsubscribe(h))));
+  const map = new Map<string, string>();
+  if (raws.length === 0) return map;
+  const rows = raws.map((raw) => ({ slug, url: decodeHref(raw) }));
+  const { data, error } = await db.from("newsletter_links").upsert(rows, { onConflict: "slug,url" }).select("id, url");
+  if (error) {
+    console.error("registerLinks failed; sending without click tracking", error);
+    return map;
+  }
+  const byUrl = new Map((data ?? []).map((r) => [r.url, r.id as string]));
+  for (const raw of raws) {
+    const id = byUrl.get(decodeHref(raw));
+    if (id) map.set(raw, id);
+  }
+  return map;
+}
+
+function trackLinks(html: string, linkIds: Map<string, string>, subscriberId: string): string {
+  if (linkIds.size === 0) return html;
+  return html.replace(HREF_RE, (whole, raw) => {
+    const id = linkIds.get(raw);
+    return id ? `href="${FUNCTION_URL}/c/${id}/${subscriberId}"` : whole;
+  });
+}
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const CLICK_PATH = new RegExp(`/c/(${UUID})(?:/(${UUID}))?/?$`, "i");
+
+/** GET /c/<link>/<subscriber>: count the click, then send the reader to the stored URL. */
+async function handleClick(req: Request, match: RegExpMatchArray): Promise<Response> {
+  const [, linkId, subscriberId] = match;
+  const db = admin();
+  const { data: link } = await db.from("newsletter_links").select("url").eq("id", linkId).maybeSingle();
+  const target = link?.url && /^https?:\/\//.test(link.url) ? link.url : SITE;
+  // Link scanners often check with HEAD first; only real GETs count as clicks.
+  if (link && req.method === "GET") {
+    const { error } = await db.from("newsletter_clicks").insert({ link_id: linkId, subscriber_id: subscriberId ?? null });
+    if (error) console.error("click insert failed", error);
+  }
+  return new Response(null, { status: 302, headers: { Location: target, "Cache-Control": "no-store" } });
+}
+
 // ---------- router ----------
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
-  if (req.method !== "POST") return json({ error: "POST only" }, 405);
 
   const url = new URL(req.url);
+  const click = url.pathname.match(CLICK_PATH);
+  if (click && (req.method === "GET" || req.method === "HEAD")) return await handleClick(req, click);
+
+  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+
   const action = url.pathname.split("/").filter(Boolean).pop() ?? "";
   let body: Record<string, any> = {};
   try {

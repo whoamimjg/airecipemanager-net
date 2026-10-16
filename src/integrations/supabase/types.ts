@@ -614,6 +614,42 @@ export type Database = {
           },
         ]
       }
+      newsletter_clicks: {
+        Row: {
+          clicked_at: string
+          id: number
+          link_id: string
+          subscriber_id: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          id?: never
+          link_id: string
+          subscriber_id?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          id?: never
+          link_id?: string
+          subscriber_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_clicks_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_clicks_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_subscribers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletter_digests: {
         Row: {
           period: string
@@ -632,6 +668,27 @@ export type Database = {
           post_slugs?: string[]
           recipient_count?: number
           sent_at?: string
+        }
+        Relationships: []
+      }
+      newsletter_links: {
+        Row: {
+          created_at: string
+          id: string
+          slug: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          slug: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          slug?: string
+          url?: string
         }
         Relationships: []
       }
@@ -1121,6 +1178,7 @@ export type Database = {
           title: string
         }[]
       }
+      newsletter_post_stats: { Args: { p_slug: string }; Returns: Json }
       set_my_blog_emails: { Args: { p_subscribed: boolean }; Returns: boolean }
     }
     Enums: {

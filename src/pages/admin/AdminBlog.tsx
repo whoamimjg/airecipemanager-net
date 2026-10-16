@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, ExternalLink, Mail, MailCheck } from "lucide-react";
 import EmailPostDialog from "@/components/admin/EmailPostDialog";
+import PostEmailResults from "@/components/admin/PostEmailResults";
 
 interface Post {
   id: string;
@@ -171,6 +172,7 @@ const AdminBlog = () => {
                       <Badge variant={p.status === "published" ? "default" : "secondary"}>{p.status}</Badge>
                     </div>
                     <p className="truncate text-xs text-muted-foreground">/blog/{p.slug}</p>
+                    {emailed?.has(p.slug) && <PostEmailResults slug={p.slug} />}
                   </div>
                   <div className="flex shrink-0 gap-1">
                     {p.status === "published" && (
