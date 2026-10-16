@@ -47,15 +47,18 @@ export interface TurnstileHandle {
 
 interface Props {
   onToken: (token: string | null) => void;
+  onError?: () => void;
   action?: string;
   className?: string;
 }
 
-const Turnstile = forwardRef<TurnstileHandle, Props>(({ onToken, action, className }, ref) => {
+const Turnstile = forwardRef<TurnstileHandle, Props>(({ onToken, onError, action, className }, ref) => {
   const container = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const onTokenRef = useRef(onToken);
   onTokenRef.current = onToken;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   useImperativeHandle(ref, () => ({
     reset: () => {
@@ -76,10 +79,16 @@ const Turnstile = forwardRef<TurnstileHandle, Props>(({ onToken, action, classNa
           appearance: "interaction-only",
           callback: (token: string) => onTokenRef.current(token),
           "expired-callback": () => onTokenRef.current(null),
-          "error-callback": () => onTokenRef.current(null),
+          "error-callback": () => {
+            onTokenRef.current(null);
+            onErrorRef.current?.();
+          },
         });
       })
-      .catch(() => onTokenRef.current(null));
+      .catch(() => {
+        onTokenRef.current(null);
+        onErrorRef.current?.();
+      });
     return () => {
       cancelled = true;
       if (widgetId.current && window.turnstile) window.turnstile.remove(widgetId.current);

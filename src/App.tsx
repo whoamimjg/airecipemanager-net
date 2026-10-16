@@ -30,6 +30,7 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import DeleteAccount from "./pages/DeleteAccount";
 import OAuthConsent from "./pages/OAuthConsent";
+import HumanCheck from "./pages/HumanCheck";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +76,7 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/delete-account" element={<DeleteAccount />} />
             <Route path="/oauth/consent" element={<OAuthConsent />} />
+            <Route path="/human-check" element={<HumanCheck />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
