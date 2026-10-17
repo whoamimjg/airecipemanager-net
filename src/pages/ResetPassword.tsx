@@ -7,30 +7,39 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChefHat, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { clearRecovery, isRecoveryMarked, markRecovery, recoveryError } from "@/lib/password-recovery";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isRecovery, setIsRecovery] = useState(false);
+  const [isRecovery, setIsRecovery] = useState(() => isRecoveryMarked() || window.location.hash.includes("type=recovery"));
+  const [linkError] = useState(() => recoveryError());
   const navigate = useNavigate();
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes("type=recovery")) {
-      setIsRecovery(true);
-    }
+    // Also catch the recovery event itself, in case the link was handled after this mounted.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        markRecovery();
+        setIsRecovery(true);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("This reset link has expired. Request a new one from the sign-in page.");
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+      clearRecovery();
       toast.success("Password updated! Redirecting...");
       setTimeout(() => navigate("/dashboard"), 1500);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -40,8 +49,9 @@ const ResetPassword = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            Invalid or expired reset link. Please request a new one.
+          <CardContent className="space-y-4 pt-6 text-center text-muted-foreground">
+            <p>{linkError ?? "This reset link is invalid or has expired."}</p>
+            <Button onClick={() => { clearRecovery(); navigate("/auth?mode=forgot"); }}>Request a new link</Button>
           </CardContent>
         </Card>
       </div>

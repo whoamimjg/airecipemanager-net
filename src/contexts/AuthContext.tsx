@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { markRecovery } from "@/lib/password-recovery";
 import { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { Preferences } from "@capacitor/preferences";
 import { CapacitorCookies } from "@capacitor/core";
@@ -209,6 +210,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener FIRST (do not flip loading until initial session resolves)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, session) => {
+        // A password reset link signed the user in: make sure they land on the page that
+        // lets them choose a new password, wherever the link sent them.
+        if (event === "PASSWORD_RECOVERY") {
+          markRecovery();
+          if (window.location.pathname !== "/reset-password") window.location.replace("/reset-password");
+        }
         if (session) persistSessionBackup(session);
         if (initialized && event === "SIGNED_OUT") void clearSessionBackup();
         if (cancelled) return;
