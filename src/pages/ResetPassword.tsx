@@ -12,7 +12,15 @@ import { clearRecovery, isRecoveryMarked, markRecovery, recoveryError } from "@/
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isRecovery, setIsRecovery] = useState(() => isRecoveryMarked() || window.location.hash.includes("type=recovery"));
+  // New-style links (?token_hash=…&type=recovery) carry a one-time code that is only used
+  // when the user presses Update Password, so email link scanners can't use it up first.
+  const [tokenHash] = useState(() => {
+    const q = new URLSearchParams(window.location.search);
+    return q.get("type") === "recovery" ? q.get("token_hash") : null;
+  });
+  const [isRecovery, setIsRecovery] = useState(
+    () => !!tokenHash || isRecoveryMarked() || window.location.hash.includes("type=recovery"),
+  );
   const [linkError] = useState(() => recoveryError());
   const navigate = useNavigate();
 
@@ -31,6 +39,10 @@ const ResetPassword = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      if (tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+        if (verifyError) throw new Error("This reset link has expired or was already used. Request a new one from the sign-in page.");
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("This reset link has expired. Request a new one from the sign-in page.");
       const { error } = await supabase.auth.updateUser({ password });
