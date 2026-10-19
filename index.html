@@ -36,6 +36,8 @@
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
+    // The apps load /human-check in a hidden web view during sign-in; it isn't a real visit.
+    if (location.pathname.indexOf('/human-check') === 0) window['ga-disable-G-C0BR3P1R1R'] = true;
     gtag('js', new Date());
     gtag('config', 'G-C0BR3P1R1R');
   </script>
