@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Smartphone, X } from "lucide-react";
-import { ANDROID_TEST_URL, hasIosBeta } from "@/lib/beta";
+import { ANDROID_TEST_URL, IOS_APP_STORE_URL } from "@/lib/beta";
 
-const DISMISSED_KEY = "beta_apps_card_dismissed";
+// New key for the iPhone launch, so people who closed the old testing banner see this once.
+const DISMISSED_KEY = "ios_live_card_dismissed";
 
 /**
- * Invites signed-in users to install the pre-release apps. Dismissible, and the
- * links stay available on /beta and in Account settings afterwards.
+ * Tells signed-in users the iPhone app is live on the App Store (Android is still in
+ * testing). Dismissible; the links stay on /beta and in Account settings afterwards.
  */
 const BetaAppsCard = () => {
   const [dismissed, setDismissed] = useState(() => {
@@ -38,18 +39,19 @@ const BetaAppsCard = () => {
           <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
             <p className="text-sm font-medium text-foreground">
-              Try AI Recipe Manager on your phone
+              The iPhone app is now live
             </p>
             <p className="text-sm text-muted-foreground">
-              {hasIosBeta
-                ? "The iPhone and Android apps are in testing. Install them with the same account and everything syncs."
-                : "The Android app is in testing now, with iPhone close behind. Same account, everything syncs."}
+              Download it on the App Store and sign in with this account. Everything syncs. Android is in testing.
             </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button asChild size="sm">
-            <Link to="/beta">Get the apps</Link>
+            <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer">Download on the App Store</a>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/beta">Android</Link>
           </Button>
           <Button
             variant="ghost"
