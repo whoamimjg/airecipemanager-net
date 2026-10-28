@@ -141,45 +141,6 @@ export type Database = {
         }
         Relationships: []
       }
-      billing_history_backup_20260914: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          date: string | null
-          description: string | null
-          id: string | null
-          invoice_number: string | null
-          payment_method: string | null
-          plan: string | null
-          status: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          date?: string | null
-          description?: string | null
-          id?: string | null
-          invoice_number?: string | null
-          payment_method?: string | null
-          plan?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          date?: string | null
-          description?: string | null
-          id?: string | null
-          invoice_number?: string | null
-          payment_method?: string | null
-          plan?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       blog_posts: {
         Row: {
           body: string
@@ -288,27 +249,6 @@ export type Database = {
         }
         Relationships: []
       }
-      grocery_checked_keys_backup_20260908: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          item_key: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          item_key?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          item_key?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       grocery_deleted_keys: {
         Row: {
           category: string | null
@@ -342,42 +282,6 @@ export type Database = {
           source?: string
           unit?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      grocery_deleted_keys_backup_20260907: {
-        Row: {
-          category: string | null
-          deleted_at: string | null
-          display_name: string | null
-          id: string | null
-          item_key: string | null
-          quantity: string | null
-          source: string | null
-          unit: string | null
-          user_id: string | null
-        }
-        Insert: {
-          category?: string | null
-          deleted_at?: string | null
-          display_name?: string | null
-          id?: string | null
-          item_key?: string | null
-          quantity?: string | null
-          source?: string | null
-          unit?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          category?: string | null
-          deleted_at?: string | null
-          display_name?: string | null
-          id?: string | null
-          item_key?: string | null
-          quantity?: string | null
-          source?: string | null
-          unit?: string | null
-          user_id?: string | null
         }
         Relationships: []
       }
@@ -1140,6 +1044,33 @@ export type Database = {
           price_monthly?: number
           recipe_limit?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      welcome_emails: {
+        Row: {
+          created_at: string
+          detail: string | null
+          email: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          email: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          email?: string
+          sent_at?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: []
