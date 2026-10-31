@@ -1,7 +1,7 @@
 import { ErrorCode, Purchases, PurchasesError, type Package } from "@revenuecat/purchases-js";
 
 /**
- * Website subscriptions run on RevenueCat Web Billing (Stripe underneath), the
+ * Website subscriptions run through RevenueCat on the web (Stripe underneath), the
  * same RevenueCat project the iOS app uses. The app user ID is the Supabase user
  * ID on every platform, so a plan bought here unlocks the apps and vice versa;
  * the revenuecat-webhook edge function writes the result to `subscriptions`.
@@ -31,11 +31,22 @@ function purchasesFor(userId: string): Purchases {
   return instance;
 }
 
-/** The web package for a plan. Product identifiers contain basic / pro / unlimited. */
+/**
+ * The web package for a plan. RevenueCat Billing product ids contain basic / pro /
+ * unlimited (`com.michaelgreene.airecipemanager.pro.monthly`); Stripe Billing products
+ * have ids like `prod_…`, so their package id, display name or title is checked too.
+ * "pro" is matched as a whole word so it never picks up "product".
+ */
+function matchesPlan(p: Package, plan: PaidPlan): boolean {
+  const word = new RegExp(`(^|[^a-z])${plan}([^a-z]|$)`, "i");
+  const product = p.webBillingProduct;
+  return [product.identifier, p.identifier, product.displayName, product.title].some((s) => s && word.test(s));
+}
+
 async function packageFor(userId: string, plan: PaidPlan): Promise<Package> {
   const offerings = await purchasesFor(userId).getOfferings();
   const packages = offerings.current?.availablePackages ?? [];
-  const pkg = packages.find((p) => p.webBillingProduct.identifier.toLowerCase().includes(plan));
+  const pkg = packages.find((p) => matchesPlan(p, plan));
   if (!pkg) {
     throw new Error(
       `The ${plan} plan isn't available for web checkout yet. ` +
