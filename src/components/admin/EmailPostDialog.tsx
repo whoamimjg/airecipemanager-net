@@ -10,7 +10,9 @@ import {
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`;
 
 async function call(action: "post-info" | "send-post" | "send-test", slug: string) {
-  const { data } = await supabase.auth.getSession();
+  // A long-open admin tab can hold an expired token, so get a fresh one for each call.
+  const { data: refreshed } = await supabase.auth.refreshSession();
+  const data = refreshed.session ? refreshed : (await supabase.auth.getSession()).data;
   const res = await fetch(`${FUNCTION_URL}/${action}`, {
     method: "POST",
     headers: {

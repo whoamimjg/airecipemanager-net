@@ -269,7 +269,11 @@ async function requireAdmin(req: Request): Promise<boolean> {
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   if (!token) return false;
   const { data, error } = await createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } }).auth.getUser(token);
-  return !error && data.user?.email?.toLowerCase() === ADMIN_EMAIL;
+  if (error || data.user?.email?.toLowerCase() !== ADMIN_EMAIL) {
+    console.warn("newsletter admin check failed", error?.message ?? `signed in as ${data.user?.email}`);
+    return false;
+  }
+  return true;
 }
 
 async function loadPost(db: SupabaseClient, slug: string) {
