@@ -30,3 +30,7 @@ ios/
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Playwright output
+/test-results/
+/playwright-report/

@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Globe, Loader2, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Globe, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
+import { importVideoRecipe, isVideoRecipeUrl } from "@/lib/video-import";
 import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
 interface ImportRecipeProps {
@@ -15,13 +15,12 @@ interface ImportRecipeProps {
 }
 
 const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [url, setUrl] = useState("");
   const [scrapedRecipe, setScrapedRecipe] = useState<any>(null);
 
   const scrapeMutation = useMutation({
     mutationFn: async (recipeUrl: string) => {
+      if (isVideoRecipeUrl(recipeUrl)) return { success: true, recipe: await importVideoRecipe(recipeUrl) };
       const { data, error } = await supabase.functions.invoke("scrape-recipe", {
         body: { url: recipeUrl },
       });
@@ -29,9 +28,9 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
       if (!data.success) throw new Error(data.error || "Failed to scrape recipe");
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, recipeUrl) => {
       if (data.recipe) {
-        setScrapedRecipe({ ...data.recipe, source_url: url });
+        setScrapedRecipe({ ...data.recipe, source_url: data.recipe.source_url || recipeUrl });
         toast.success(`Found recipe: ${data.recipe.title}`);
       } else {
         toast.error("Couldn't auto-extract recipe from this page. Try adding it manually.");
@@ -58,8 +57,8 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
           description: scrapedRecipe.description || null,
           ingredients: scrapedRecipe.ingredients || [],
           instructions: scrapedRecipe.instructions || [],
-          prep_time: scrapedRecipe.prep_time || null,
-          cook_time: scrapedRecipe.cook_time || null,
+          prep_time: scrapedRecipe.prep_time ?? null,
+          cook_time: scrapedRecipe.cook_time ?? null,
           servings: scrapedRecipe.servings || null,
           category: normalizeRecipeCategory(scrapedRecipe.category),
           source_url: scrapedRecipe.source_url || url,
@@ -75,7 +74,7 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
     <Card className="border-border bg-card">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} disabled={scrapeMutation.isPending}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <CardTitle className="text-card-foreground">Import Recipe from URL</CardTitle>
@@ -83,8 +82,14 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
       </CardHeader>
       <CardContent className="space-y-6">
         <p className="text-sm text-muted-foreground">
-          Paste a recipe URL from any website and we'll automatically extract the title, ingredients, instructions, and more.
+          Paste a recipe website URL, TikTok video link, or Instagram reel link. Review and edit the extracted recipe before saving.
         </p>
+
+        {isVideoRecipeUrl(url) && (
+          <p className="text-sm text-muted-foreground">
+            Import sends this public post link to ClipParse to extract its recipe. Video import usage limits apply.
+          </p>
+        )}
 
         <form onSubmit={handleScrape} className="flex gap-3">
           <div className="relative flex-1">
@@ -95,6 +100,7 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://www.allrecipes.com/recipe/..."
               required
+              disabled={scrapeMutation.isPending}
               className="pl-9"
             />
           </div>
@@ -105,7 +111,7 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
           >
             {scrapeMutation.isPending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Scraping...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Extracting...
               </>
             ) : (
               "Import"
@@ -116,8 +122,8 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
         {scrapeMutation.isPending && (
           <div className="flex flex-col items-center py-12 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-            <p className="text-sm text-muted-foreground">Reading recipe from the page...</p>
-            <p className="text-xs text-muted-foreground mt-1">This usually takes 5-10 seconds</p>
+            <p className="text-sm text-muted-foreground">Extracting your recipe...</p>
+            <p className="text-xs text-muted-foreground mt-1">Video imports can take up to 90 seconds. Please keep this screen open.</p>
           </div>
         )}
 
@@ -127,7 +133,7 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
             <div>
               <p className="text-sm font-medium text-destructive">Failed to import</p>
               <p className="text-xs text-muted-foreground mt-1">
-                The recipe couldn't be extracted. Try a different URL or add the recipe manually.
+                {scrapeMutation.error.message}
               </p>
             </div>
           </div>
@@ -136,7 +142,7 @@ const ImportRecipe = ({ onClose }: ImportRecipeProps) => {
         <div className="rounded-lg border border-border bg-muted/30 p-4">
           <h4 className="text-sm font-medium text-foreground mb-2">Supported Sites</h4>
           <p className="text-xs text-muted-foreground">
-            Works with most recipe websites including AllRecipes, Food Network, Simply Recipes, 
+            Supports public TikTok and Instagram posts, plus recipe websites including AllRecipes, Food Network, Simply Recipes,
             Epicurious, Bon Appétit, Tasty, and many more.
           </p>
         </div>
