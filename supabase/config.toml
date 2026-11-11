@@ -1,4 +1,4 @@
-project_id = "eiyckfwwytnpzidsypyi"
+project_id = "puokewpqhparawdcwkbw"
 # Functions called by something other than a signed-in app user must not use
 # Supabase's JWT gate, or it rejects them with 401 before the function runs.
 # Without these entries every `supabase functions deploy` re-enables the gate —
@@ -35,3 +35,7 @@ verify_jwt = false
 # email links without a session; the digest is guarded by its own shared secret.
 [functions.newsletter]
 verify_jwt = false
+
+# Video imports require a user JWT; the handler also validates it with Auth.
+[functions.extract-video-recipe]
+verify_jwt = true
