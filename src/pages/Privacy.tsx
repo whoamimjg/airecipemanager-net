@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const Privacy = () => {
-  const lastUpdated = "October 16, 2026";
+  const lastUpdated = "November 21, 2026";
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,6 +97,20 @@ const Privacy = () => {
             <p className="text-muted-foreground leading-relaxed mt-3">
               We do not access your microphone, contacts, location, calendar, health data, or any
               media on your device beyond the specific images you choose to share with the app.
+            </p>
+
+            <h3 className="text-xl font-semibold mt-6 mb-2">Chrome extension: Shop my list</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              Our optional Chrome extension puts your grocery list into a grocery store's online cart.
+              It signs in to your AI Recipe Manager account with your permission, reads your grocery
+              list, and, only on a store tab you choose, reads product names and prices on the page to
+              pick matching items and press that store's "Add to cart" button. It stops at the cart: it
+              never checks out, never enters passwords or payment details, and never bypasses a store's
+              bot checks. If you turn on the AI switch, the names of the item you are shopping for and the
+              products shown on the page are sent to our AI provider to choose the best match; nothing
+              else from the page is sent. Store page layouts the extension learns are stored without any
+              personal data so other users can shop that store too. The extension stores only your sign-in
+              token and settings in Chrome's extension storage, and does not sell or share your data.
             </p>
           </section>
 

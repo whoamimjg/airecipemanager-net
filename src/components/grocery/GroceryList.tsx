@@ -781,16 +781,16 @@ const GroceryList = () => {
     if (isCheckedManual) {
       checkManualItemMutation.mutate({ name, checked: false });
     }
-    let willBeChecked = false;
+    // Decide from what the user SEES, not from raw Set membership. A key can sit in
+    // the Set while the row renders unticked (a stored tick older than the plan that
+    // needs it), and toggling membership then "unticked" an item that looked unticked —
+    // the click appeared to do nothing. This is also idempotent, so a click that reaches
+    // both the checkbox and its row can't cancel itself out.
+    const shown = adjustedItems.find(i => i.key === name);
+    const willBeChecked = shown ? !isChecked(shown) : !checkedItems.has(name);
     setCheckedItems(prev => {
       const next = new Set(prev);
-      if (next.has(name)) {
-        next.delete(name);
-        willBeChecked = false;
-      } else {
-        next.add(name);
-        willBeChecked = true;
-      }
+      if (willBeChecked) next.add(name); else next.delete(name);
       return next;
     });
     // Persist for recipe-derived items so checks survive logout / refresh
@@ -1333,6 +1333,7 @@ const GroceryList = () => {
                           <Checkbox
                             checked={false}
                             onCheckedChange={() => toggleCheck(key)}
+                            onClick={e => e.stopPropagation()}
                             className="flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
@@ -1526,6 +1527,7 @@ const GroceryList = () => {
                               <Checkbox
                                 checked={true}
                                 onCheckedChange={() => toggleCheck(key)}
+                                onClick={e => e.stopPropagation()}
                                 className="flex-shrink-0 h-3.5 w-3.5"
                               />
                               <div className="flex-1 min-w-0">
