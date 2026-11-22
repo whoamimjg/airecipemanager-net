@@ -1306,7 +1306,9 @@ const GroceryList = () => {
           {/* Main grocery list */}
           <div className="lg:col-span-2 space-y-4">
             {groupedItems.map(([category, items]) => {
-              const toBuyItems = items.filter(i => !i.inInventory && !checkedItems.has(i.name.toLowerCase()));
+              // Ticks are stored by canonical key ("chive"), not display name ("Chives"): filter by
+              // the same isChecked() the checked section uses, or plural items never leave To buy.
+              const toBuyItems = items.filter(i => !i.inInventory && !isChecked(i));
               if (toBuyItems.length === 0) return null;
 
               return (
