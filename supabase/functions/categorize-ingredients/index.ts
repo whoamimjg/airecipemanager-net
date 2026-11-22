@@ -36,6 +36,42 @@ serve(async (req) => {
       );
     }
 
+    // Canonical spelling for the lookup table and the response: lowercased, trimmed, single
+    // spaces. The mobile apps already send their canonical keys; the website sends names.
+    const norm = (n: string) => String(n ?? "").toLowerCase().trim().replace(/\s+/g, " ");
+    const wanted = Array.from(new Set(ingredients.map(norm).filter(Boolean)));
+
+    // 1. Shared table: foods anyone has asked about before are answered without AI.
+    const base = Deno.env.get("SUPABASE_URL") ?? "";
+    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const known: Record<string, string> = {};
+    if (base && service && wanted.length) {
+      try {
+        const q = wanted.map(k => `"${k.replace(/"/g, '\\"')}"`).join(",");
+        const r = await fetch(`${base}/rest/v1/ingredient_aisles?select=item_key,aisle&item_key=in.(${encodeURIComponent(q)})`, {
+          headers: { apikey: service, Authorization: `Bearer ${service}` },
+        });
+        if (r.ok) for (const row of await r.json()) known[row.item_key] = row.aisle;
+      } catch (e) { console.error("ingredient_aisles lookup failed", e); }
+    }
+    const unknown = wanted.filter(k => !known[k]);
+    const hit = Object.keys(known);
+    if (base && service && hit.length) {
+      // fire-and-forget; a failed counter must never slow a list down
+      const q = hit.map(k => `"${k.replace(/"/g, '\\"')}"`).join(",");
+      fetch(`${base}/rest/v1/rpc/bump_ingredient_hits`, {
+        method: "POST", headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ keys: hit }),
+      }).catch(() => {});
+      void q;
+    }
+    if (unknown.length === 0) {
+      return new Response(
+        JSON.stringify({ categories: known }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const apiKey = Deno.env.get("OPENROUTER_API_KEY");
     if (!apiKey) {
       return new Response(
@@ -65,9 +101,14 @@ Rules:
 Important: Spice names that sound like produce (e.g. "cayenne pepper", "garlic powder", "onion powder") are "Condiments & Spices", NOT "Produce".
 
 Ingredients to categorize:
-${ingredients.map((name: string, i: number) => `${i + 1}. ${name}`).join("\n")}
+${unknown.map((name: string, i: number) => `${i + 1}. ${name}`).join("\n")}
 
-Respond with ONLY a JSON array of objects with "name" and "category" fields. No explanation.`;
+Also decide whether each entry is a COMMON GROCERY ITEM: a generic food or household product
+anyone could buy at a supermarket (e.g. "egg", "sharp cheddar cheese", "paper towels").
+It is NOT common if it is a brand or store name, a dish or recipe ("grandma's casserole"),
+a note or instruction, a person's own label, gibberish, or not a purchasable thing.
+
+Respond with ONLY a JSON array of objects with "name", "category" and "common" (true/false) fields. No explanation.`;
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -131,11 +172,34 @@ Respond with ONLY a JSON array of objects with "name" and "category" fields. No 
     }
 
     // Build a map for easy lookup
-    const categoryMap: Record<string, string> = {};
+    const categoryMap: Record<string, string> = { ...known };
+    const learned: { item_key: string; aisle: string; source: string }[] = [];
     for (const item of categorized) {
-      const name = (item.name || "").toLowerCase().trim();
+      const name = norm(item.name || "");
       const cat = CATEGORIES.includes(item.category) ? item.category : "Other";
-      if (name) categoryMap[name] = cat;
+      if (!name) continue;
+      categoryMap[name] = cat;
+      // Guard rail for the shared table: only a common, well-formed grocery item is written,
+      // and only when the model actually placed it ("Other" is the model shrugging).
+      // Everything still gets an answer for THIS request; it just isn't taught to everyone.
+      const wellFormed = /^[a-z][a-z' -]{1,48}$/.test(name) && name.split(" ").length <= 4;
+      if (cat !== "Other" && item.common === true && wellFormed && unknown.includes(name)) {
+        learned.push({ item_key: name, aisle: cat, source: "ai" });
+      }
+    }
+
+    // 2. Remember the new answers in the shared table (service role; clients can't write it).
+    if (base && service && learned.length) {
+      try {
+        await fetch(`${base}/rest/v1/ingredient_aisles?on_conflict=item_key`, {
+          method: "POST",
+          headers: {
+            apikey: service, Authorization: `Bearer ${service}`,
+            "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates",
+          },
+          body: JSON.stringify(learned),
+        });
+      } catch (e) { console.error("ingredient_aisles write failed", e); }
     }
 
     return new Response(
