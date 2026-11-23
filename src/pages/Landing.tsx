@@ -75,9 +75,9 @@ const steps = [
 
 const plans = [
   { key: "free", name: "Free", price: "$0", cadence: "forever", recipes: "Save up to 25 recipes", cta: "Start free" },
-  { key: "basic", name: "Basic", price: "$5.99", cadence: "/month", recipes: "Save up to 100 recipes", cta: "Choose Basic" },
-  { key: "pro", name: "Pro", price: "$12.99", cadence: "/month", recipes: "Save up to 500 recipes", cta: "Choose Pro", popular: true },
-  { key: "unlimited", name: "Unlimited", price: "$24.99", cadence: "/month", recipes: "Save unlimited recipes", cta: "Choose Unlimited" },
+  { key: "basic", name: "Basic", price: "$5.99", cadence: "/month", recipes: "Save up to 100 recipes + AI recipe photos", cta: "Choose Basic" },
+  { key: "pro", name: "Pro", price: "$12.99", cadence: "/month", recipes: "Save up to 500 recipes + AI recipe photos", cta: "Choose Pro", popular: true },
+  { key: "unlimited", name: "Unlimited", price: "$24.99", cadence: "/month", recipes: "Save unlimited recipes + AI recipe photos", cta: "Choose Unlimited" },
 ];
 
 const faqs = [

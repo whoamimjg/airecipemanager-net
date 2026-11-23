@@ -39,3 +39,7 @@ verify_jwt = false
 # Video imports require a user JWT; the handler also validates it with Auth.
 [functions.extract-video-recipe]
 verify_jwt = true
+
+# AI recipe photos: needs a signed-in user (the handler also checks the plan itself).
+[functions.generate-recipe-image]
+verify_jwt = true

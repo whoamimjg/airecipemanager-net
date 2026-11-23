@@ -12,7 +12,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, ExternalLink } from "lucide-react";
+import { Clock, Users, ExternalLink, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CookingTimer from "./CookingTimer";
@@ -58,13 +61,39 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
   const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   const instructions = Array.isArray(recipe.instructions) ? recipe.instructions : [];
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
+  const queryClient = useQueryClient();
+  const [generatingPhoto, setGeneratingPhoto] = useState(false);
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const imageUrl = aiImage ?? recipe.image_url;
+
+  const generatePhoto = async () => {
+    setGeneratingPhoto(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-recipe-image", { body: { recipe_id: recipe.id } });
+      if (error) {
+        // The function answers 403 with a code when the plan doesn't include photos.
+        let detail: any = null;
+        try { detail = await (error as any).context?.json?.(); } catch { /* not JSON */ }
+        if (detail?.code === "plan_required") { toast.info("AI recipe photos are part of paid plans."); return; }
+        throw new Error(detail?.error || error.message);
+      }
+      if (data?.error) throw new Error(data.error);
+      setAiImage(data.image_url);
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      toast.success("Photo added");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't generate a photo");
+    } finally {
+      setGeneratingPhoto(false);
+    }
+  };
 
   const body = (
     <ScrollArea className={isMobile ? "h-[85vh]" : "max-h-[90vh]"}>
-      {recipe.image_url && (
+      {imageUrl && (
         <div className="w-full h-48 sm:h-64 overflow-hidden">
           <img
-            src={recipe.image_url}
+            src={imageUrl}
             alt={recipe.title}
             className="w-full h-full object-cover"
           />
@@ -76,7 +105,15 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
             <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
               {recipe.title}
             </h2>
-            <ShareRecipeButton recipeId={recipe.id} recipeTitle={recipe.title} />
+            <div className="flex items-center gap-1">
+              {!imageUrl && (
+                <Button variant="ghost" size="sm" onClick={generatePhoto} disabled={generatingPhoto} title="Generate an AI photo (paid plans)">
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  {generatingPhoto ? "Generating…" : "Photo"}
+                </Button>
+              )}
+              <ShareRecipeButton recipeId={recipe.id} recipeTitle={recipe.title} />
+            </div>
           </div>
           {recipe.description && (
             <p className="text-sm text-muted-foreground mt-1">{recipe.description}</p>

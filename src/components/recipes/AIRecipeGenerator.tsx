@@ -85,20 +85,31 @@ const AIRecipeGenerator = () => {
 
   const saveMutation = useMutation({
     mutationFn: async (recipe: AIRecipe) => {
-      const { error } = await supabase.from("recipes").insert({
-        user_id: user!.id,
-        title: recipe.title,
-        description: recipe.description,
-        category: normalizeRecipeCategory(recipe.category),
-        prep_time: recipe.prep_time,
-        cook_time: recipe.cook_time,
-        servings: recipe.servings,
-        ingredients: recipe.ingredients.map((i) => `${i.amount} ${i.name}`),
-        instructions: recipe.instructions,
-        tags: recipe.tags,
-        is_ai_generated: true,
-      });
+      const { data: row, error } = await supabase
+        .from("recipes")
+        .insert({
+          user_id: user!.id,
+          title: recipe.title,
+          description: recipe.description,
+          category: normalizeRecipeCategory(recipe.category),
+          prep_time: recipe.prep_time,
+          cook_time: recipe.cook_time,
+          servings: recipe.servings,
+          ingredients: recipe.ingredients.map((i) => `${i.amount} ${i.name}`),
+          instructions: recipe.instructions,
+          tags: recipe.tags,
+          is_ai_generated: true,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      // Paid plans get an AI photo too. Fire and forget: a free account is refused server-side.
+      if (row?.id) {
+        supabase.functions
+          .invoke("generate-recipe-image", { body: { recipe_id: row.id } })
+          .then(() => queryClient.invalidateQueries({ queryKey: ["recipes"] }))
+          .catch(() => {});
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
