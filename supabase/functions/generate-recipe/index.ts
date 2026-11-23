@@ -49,7 +49,10 @@ serve(async (req) => {
             .join("\n")}\n\nIf an inventory item conflicts with a restriction, DO NOT use it. Allergy entries (e.g. "Peanut Allergy", "Tree Nut Allergy", "Sesame Allergy") mean the user can have a severe reaction — exclude all forms of that ingredient including oils, flours, butters, and cross-contamination risks.`
         : "";
 
-    const isCustom = mode === "custom";
+    // "week": seven dinners for the coming week, planned around the user's saved
+    // dietary preferences rather than the pantry. Answered on its own terms like custom.
+    const isWeek = mode === "week";
+    const isCustom = mode === "custom" || isWeek;
 
     // A typed request must be answered on its own terms. Feeding the pantry in
     // (as every mode used to) made custom requests return the same dishes as
@@ -95,6 +98,13 @@ ${modeRules}${restrictionsBlock}`;
       userPrompt = `Here's what I have in my kitchen:\n${inventoryList}\n\n${
         preferences ? `Preferences: ${preferences}\n\n` : ""
       }Generate 3 creative recipes I can make with these ingredients. Minimize missing ingredients. Prioritize items expiring soon if any.`;
+    } else if (isWeek) {
+      userPrompt = `Plan dinners for the next 7 days, one complete main dish per day, in order from day 1 to day 7.
+Vary the cuisines and proteins so no two nights feel alike, keep most of them weeknight-friendly (under 45 minutes),
+and save anything longer for days 6 and 7. Every recipe must be category "Dinner".
+Use plain dish names as titles (no "Day 1:" prefixes).${
+        preferences ? `\n\nThe user adds: ${preferences}` : ""
+      }\n\nReturn exactly 7 recipes.`;
     } else if (isCustom) {
       userPrompt = `${preferences}\n\nGenerate 2-3 recipes that match this request as closely as possible.`;
     }
