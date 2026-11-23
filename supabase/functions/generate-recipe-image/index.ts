@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // each image costs real money, and the apps' paywall copy lists this as a paid feature.
 //
 // POST { recipe_id } with the user's JWT → { image_url } | { error, code }
+// POST { all_missing: true, limit?: 6, include_manual?: false } → fills in photos for the
+//   caller's AI recipes that have none, a few per call: { generated, failed, remaining }.
 //   code "plan_required"  → caller shows the upgrade hint, not an error.
 
 const corsHeaders = {
@@ -33,8 +35,10 @@ Deno.serve(async (req) => {
     if (userError || !user) return json({ error: "Unauthorized" }, 401);
     if (user.is_anonymous) return json({ error: "AI photos are part of paid plans.", code: "plan_required" }, 403);
 
-    const { recipe_id } = await req.json();
-    if (!recipe_id || typeof recipe_id !== "string") return json({ error: "recipe_id is required" }, 400);
+    const body = await req.json();
+    const { recipe_id, all_missing, include_manual } = body;
+    const limit = Math.min(Math.max(Number(body.limit) || 6, 1), 10);
+    if (!all_missing && (!recipe_id || typeof recipe_id !== "string")) return json({ error: "recipe_id is required" }, 400);
 
     const admin = createClient(supabaseUrl, serviceKey);
 
@@ -43,6 +47,86 @@ Deno.serve(async (req) => {
     const paid = !!sub && sub.is_active && sub.plan !== "free";
     if (!paid) return json({ error: "AI photos are part of paid plans.", code: "plan_required" }, 403);
 
+    const generateFor = async (recipe: any): Promise<string> => {
+        const { data: recipe, error: recipeError } = await admin
+          .from("recipes")
+          .select("id, user_id, title, description, category, ingredients")
+          .eq("id", recipe_id)
+          .maybeSingle();
+        if (recipeError || !recipe) return json({ error: "Recipe not found" }, 404);
+        if (recipe.user_id !== user.id) return json({ error: "Not your recipe" }, 403);
+
+        const ingredientNames = (Array.isArray(recipe.ingredients) ? recipe.ingredients : [])
+          .map((i: any) => (typeof i === "string" ? i : i?.name))
+          .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
+          .slice(0, 8)
+          .join(", ");
+        const prompt =
+          `A photograph of the finished dish "${recipe.title}"` +
+          (recipe.description ? `: ${recipe.description}` : "") +
+          (ingredientNames ? `. Key ingredients: ${ingredientNames}.` : ".") +
+          ` Plated and ready to eat, natural light, shallow depth of field, overhead or 45-degree angle, ` +
+          `simple neutral background, appetizing, realistic food photography. No text, no watermark, no people, no hands.`;
+
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: IMAGE_MODEL,
+            messages: [{ role: "user", content: prompt }],
+            modalities: ["image", "text"],
+          }),
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          console.error("OpenRouter error", response.status, text);
+          throw new Error("The image service is unavailable right now");
+        }
+        const data = await response.json();
+        const dataUrl: string | undefined = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        if (!dataUrl || !dataUrl.startsWith("data:")) throw new Error("No image came back");
+
+        const match = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(dataUrl);
+        if (!match) throw new Error("Unexpected image format");
+        const contentType = match[1].toLowerCase();
+        const ext = contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1].replace("+xml", "");
+        const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
+
+        // Same bucket and folder as user-uploaded photos; one file per recipe so a regenerate replaces it.
+        const path = `${user.id}/ai-${recipe.id}.${ext}`;
+        const { error: uploadError } = await admin.storage.from("recipe-images").upload(path, bytes, { contentType, upsert: true });
+        if (uploadError) throw new Error(`Could not store the photo: ${uploadError.message}`);
+        const { data: pub } = admin.storage.from("recipe-images").getPublicUrl(path);
+        // Cache-bust so a regenerated photo shows up instead of the old one.
+        const imageUrl = `${pub.publicUrl}?v=${Date.now()}`;
+
+        const { error: updateError } = await admin
+          .from("recipes")
+          .update({ image_url: imageUrl, image_is_ai: true })
+          .eq("id", recipe.id);
+        if (updateError) throw new Error(updateError.message);
+
+
+      return imageUrl;
+    };
+
+    if (all_missing) {
+      let q = admin
+        .from("recipes")
+        .select("id, user_id, title, description, category, ingredients")
+        .eq("user_id", user.id)
+        .or("image_url.is.null,image_url.eq.");
+      if (!include_manual) q = q.eq("is_ai_generated", true);
+      const { data: rows, error: listError } = await q.order("created_at", { ascending: false });
+      if (listError) throw new Error(listError.message);
+      const todo = rows ?? [];
+      let generated = 0, failed = 0;
+      for (const r of todo.slice(0, limit)) {
+        try { await generateFor(r); generated++; } catch (e) { console.error("backfill", r.id, e); failed++; }
+      }
+      return json({ generated, failed, remaining: Math.max(todo.length - limit, 0) });
+    }
+
     const { data: recipe, error: recipeError } = await admin
       .from("recipes")
       .select("id, user_id, title, description, category, ingredients")
@@ -50,57 +134,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (recipeError || !recipe) return json({ error: "Recipe not found" }, 404);
     if (recipe.user_id !== user.id) return json({ error: "Not your recipe" }, 403);
-
-    const ingredientNames = (Array.isArray(recipe.ingredients) ? recipe.ingredients : [])
-      .map((i: any) => (typeof i === "string" ? i : i?.name))
-      .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
-      .slice(0, 8)
-      .join(", ");
-    const prompt =
-      `A photograph of the finished dish "${recipe.title}"` +
-      (recipe.description ? `: ${recipe.description}` : "") +
-      (ingredientNames ? `. Key ingredients: ${ingredientNames}.` : ".") +
-      ` Plated and ready to eat, natural light, shallow depth of field, overhead or 45-degree angle, ` +
-      `simple neutral background, appetizing, realistic food photography. No text, no watermark, no people, no hands.`;
-
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: IMAGE_MODEL,
-        messages: [{ role: "user", content: prompt }],
-        modalities: ["image", "text"],
-      }),
-    });
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("OpenRouter error", response.status, text);
-      throw new Error("The image service is unavailable right now");
-    }
-    const data = await response.json();
-    const dataUrl: string | undefined = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!dataUrl || !dataUrl.startsWith("data:")) throw new Error("No image came back");
-
-    const match = /^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i.exec(dataUrl);
-    if (!match) throw new Error("Unexpected image format");
-    const contentType = match[1].toLowerCase();
-    const ext = contentType === "image/jpeg" ? "jpg" : contentType.split("/")[1].replace("+xml", "");
-    const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
-
-    // Same bucket and folder as user-uploaded photos; one file per recipe so a regenerate replaces it.
-    const path = `${user.id}/ai-${recipe.id}.${ext}`;
-    const { error: uploadError } = await admin.storage.from("recipe-images").upload(path, bytes, { contentType, upsert: true });
-    if (uploadError) throw new Error(`Could not store the photo: ${uploadError.message}`);
-    const { data: pub } = admin.storage.from("recipe-images").getPublicUrl(path);
-    // Cache-bust so a regenerated photo shows up instead of the old one.
-    const imageUrl = `${pub.publicUrl}?v=${Date.now()}`;
-
-    const { error: updateError } = await admin
-      .from("recipes")
-      .update({ image_url: imageUrl, image_is_ai: true })
-      .eq("id", recipe.id);
-    if (updateError) throw new Error(updateError.message);
-
+    const imageUrl = await generateFor(recipe);
     return json({ image_url: imageUrl });
   } catch (e) {
     console.error("generate-recipe-image", e);
