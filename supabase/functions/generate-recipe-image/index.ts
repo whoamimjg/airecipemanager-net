@@ -48,14 +48,6 @@ Deno.serve(async (req) => {
     if (!paid) return json({ error: "AI photos are part of paid plans.", code: "plan_required" }, 403);
 
     const generateFor = async (recipe: any): Promise<string> => {
-        const { data: recipe, error: recipeError } = await admin
-          .from("recipes")
-          .select("id, user_id, title, description, category, ingredients")
-          .eq("id", recipe_id)
-          .maybeSingle();
-        if (recipeError || !recipe) return json({ error: "Recipe not found" }, 404);
-        if (recipe.user_id !== user.id) return json({ error: "Not your recipe" }, 403);
-
         const ingredientNames = (Array.isArray(recipe.ingredients) ? recipe.ingredients : [])
           .map((i: any) => (typeof i === "string" ? i : i?.name))
           .filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
@@ -105,9 +97,7 @@ Deno.serve(async (req) => {
           .update({ image_url: imageUrl, image_is_ai: true })
           .eq("id", recipe.id);
         if (updateError) throw new Error(updateError.message);
-
-
-      return imageUrl;
+        return imageUrl;
     };
 
     if (all_missing) {
