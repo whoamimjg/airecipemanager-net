@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeRecipeCategory } from "@/lib/recipe-categories";
+import { normalizeRecipeCategory, RECIPE_CATEGORIES } from "@/lib/recipe-categories";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe, Star, CalendarDays, Camera } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search, Clock, Users, Trash2, Edit, ChefHat, Globe, CalendarDays, Camera, LayoutGrid, List } from "lucide-react";
 import PlanRecipeButton from "./PlanRecipeButton";
 import { toast } from "sonner";
 import RecipeForm from "./RecipeForm";
@@ -47,6 +49,8 @@ const RecipeManager = ({ onUpgrade }: RecipeManagerProps = {}) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState("newest");
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showPhotoScan, setShowPhotoScan] = useState(false);
@@ -123,11 +127,25 @@ const RecipeManager = ({ onUpgrade }: RecipeManagerProps = {}) => {
     onError: () => toast.error("Failed to delete recipe"),
   });
 
-  const filtered = recipes.filter(
-    (r) =>
-      r.title.toLowerCase().includes(search.toLowerCase()) ||
-      (normalizeRecipeCategory(r.category)?.toLowerCase().includes(search.toLowerCase()) ?? false)
-  );
+  const isList = view === "list";
+  const searchTerm = search.trim().toLowerCase();
+  const filtered = recipes
+    .map((recipe) => ({ recipe, category: normalizeRecipeCategory(recipe.category) }))
+    .filter(({ recipe, category }) =>
+      recipe.title.toLowerCase().includes(searchTerm) || category?.toLowerCase().includes(searchTerm)
+    );
+
+  // The query already returns newest first. Sort the filtered copy for other views.
+  if (sortBy !== "newest") {
+    filtered.sort((a, b) => {
+      if (sortBy === "type") {
+        const aType = a.category ? RECIPE_CATEGORIES.indexOf(a.category) : RECIPE_CATEGORIES.length;
+        const bType = b.category ? RECIPE_CATEGORIES.indexOf(b.category) : RECIPE_CATEGORIES.length;
+        if (aType !== bType) return aType - bType;
+      }
+      return a.recipe.title.localeCompare(b.recipe.title, undefined, { sensitivity: "base" });
+    });
+  }
 
   if (showImport) {
     return <ImportRecipe onClose={() => setShowImport(false)} />;
@@ -178,21 +196,45 @@ const RecipeManager = ({ onUpgrade }: RecipeManagerProps = {}) => {
         <RecipeLimitBanner recipeCount={recipeCount} limit={limit} plan={plan} type="warning" onUpgrade={handleUpgrade} />
       )}
 
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search recipes..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 basis-full sm:flex-1">
+          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            aria-label="Search recipes"
+            placeholder="Search recipes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+          <label htmlFor="recipe-sort" className="shrink-0 text-sm text-muted-foreground">Sort by</label>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger id="recipe-sort" className="min-w-0 sm:w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest to oldest</SelectItem>
+              <SelectItem value="title">Name A–Z</SelectItem>
+              <SelectItem value="type">Recipe type</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div role="group" aria-label="Recipe view" className="flex shrink-0 items-center gap-0.5 rounded-md border p-0.5">
+          <Button type="button" size="icon" variant={isList ? "ghost" : "secondary"} className="h-8 w-8" aria-label="Grid view" aria-pressed={!isList} onClick={() => setView("grid")}>
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button type="button" size="icon" variant={isList ? "secondary" : "ghost"} className="h-8 w-8" aria-label="List view" aria-pressed={isList} onClick={() => setView("list")}>
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
           <ChefHat className="h-8 w-8 animate-pulse text-primary" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : recipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <ChefHat className="h-16 w-16 text-muted-foreground/30 mb-4" />
           <h3 className="text-lg font-semibold text-foreground">No recipes yet</h3>
@@ -201,90 +243,99 @@ const RecipeManager = ({ onUpgrade }: RecipeManagerProps = {}) => {
             <Plus className="mr-2 h-4 w-4" /> Add Recipe
           </Button>
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="py-12 text-center text-muted-foreground">No recipes match your search.</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((recipe) => (
-            <Card key={recipe.id} className="group border-border bg-card hover:shadow-md transition-shadow overflow-hidden cursor-pointer" onClick={() => setViewingRecipe(recipe)}>
-              {recipe.image_url && (
-                <div className="aspect-video w-full overflow-hidden">
-                  <img
+        <div className={cn("grid", isList ? "gap-2" : "gap-4 sm:grid-cols-2 lg:grid-cols-3")}>
+          {filtered.map(({ recipe, category }) => (
+            <Card key={recipe.id} className={cn("group cursor-pointer overflow-hidden border-border bg-card transition-shadow hover:shadow-md", isList && "flex items-start gap-3 p-3")} onClick={() => setViewingRecipe(recipe)}>
+              {(recipe.image_url || isList) && (
+                <div className={cn("overflow-hidden", isList ? "flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-muted sm:h-20 sm:w-20" : "aspect-video w-full")}>
+                  {recipe.image_url ? <img
                     src={recipe.image_url}
-                    alt={recipe.title}
+                    alt=""
                     className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
-                  />
+                  /> : <ChefHat className="h-5 w-5 text-muted-foreground" />}
                 </div>
               )}
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-base line-clamp-2 text-card-foreground">{recipe.title}</CardTitle>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <PlanRecipeButton recipeId={recipe.id} recipeTitle={recipe.title} />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => { e.stopPropagation(); setEditingRecipe(recipe); }}
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive"
-                      onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(recipe.id); }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+              <div className={isList ? "min-w-0 flex-1" : undefined}>
+                <CardHeader className={cn("pb-2", isList && "p-0 pb-1")}>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="min-w-0 break-words text-base text-card-foreground">
+                      <button type="button" aria-haspopup="dialog" className="line-clamp-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                        {recipe.title}
+                      </button>
+                    </CardTitle>
+                    <div className={cn("flex shrink-0 gap-1", !isList && "transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100")}>
+                      <PlanRecipeButton recipeId={recipe.id} recipeTitle={recipe.title} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        aria-label={`Edit ${recipe.title}`}
+                        onClick={(e) => { e.stopPropagation(); setEditingRecipe(recipe); }}
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive"
+                        aria-label={`Delete ${recipe.title}`}
+                        onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(recipe.id); }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                {/* Cards show meal_type. Falls back to the legacy mixed-axis
-                    `category` for recipes not yet migrated to the two-axis
-                    taxonomy, so unmigrated accounts render exactly as before. */}
-                {normalizeRecipeCategory(recipe.category) && (
-                  <Badge variant="secondary" className="w-fit text-xs">
-                    {normalizeRecipeCategory(recipe.category)}
-                  </Badge>
-                )}
-              </CardHeader>
-              <CardContent>
-                {recipe.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{recipe.description}</p>
-                )}
-                <div className="mb-2" onClick={(e) => e.stopPropagation()}>
-                  <StarRating
-                    rating={recipe.rating}
-                    onChange={(rating) => ratingMutation.mutate({ id: recipe.id, rating })}
-                    size="sm"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  {recipe.prep_time && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> {recipe.prep_time + (recipe.cook_time || 0)} min
-                    </span>
+                  {category && (
+                    <Badge variant="secondary" className="w-fit text-xs">
+                      {category}
+                    </Badge>
                   )}
-                  {recipe.servings && (
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" /> {recipe.servings} servings
-                    </span>
+                </CardHeader>
+                <CardContent className={isList ? "p-0" : undefined}>
+                  {!isList && recipe.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{recipe.description}</p>
                   )}
-                  {lastPlannedMap[recipe.id] && (
-                    <span className="flex items-center gap-1">
-                      <CalendarDays className="h-3 w-3" /> Last planned: {new Date(lastPlannedMap[recipe.id]).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              </CardContent>
+                  <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                    <StarRating
+                      rating={recipe.rating}
+                      onChange={(rating) => ratingMutation.mutate({ id: recipe.id, rating })}
+                      size="sm"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                    {recipe.prep_time && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> {recipe.prep_time + (recipe.cook_time || 0)} min
+                      </span>
+                    )}
+                    {recipe.servings && (
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" /> {recipe.servings} servings
+                      </span>
+                    )}
+                    {lastPlannedMap[recipe.id] && (
+                      <span className="flex items-center gap-1">
+                        <CalendarDays className="h-3 w-3" /> Last planned: {new Date(lastPlannedMap[recipe.id]).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </div>
             </Card>
           ))}
         </div>
       )}
 
       <RecipeDetailDialog
+        key={viewingRecipe?.id}
         recipe={viewingRecipe}
         open={!!viewingRecipe}
         onOpenChange={(open) => { if (!open) setViewingRecipe(null); }}
+        showPlanAction
       />
     </div>
   );

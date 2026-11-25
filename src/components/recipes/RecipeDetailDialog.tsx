@@ -24,6 +24,7 @@ import StarRating from "./StarRating";
 import { Button } from "@/components/ui/button";
 import { PlayCircle } from "lucide-react";
 import ShareRecipeButton from "./ShareRecipeButton";
+import PlanRecipeButton from "./PlanRecipeButton";
 import NutritionPanel, { type Nutrition } from "./NutritionPanel";
 import { normalizeRecipeCategory } from "@/lib/recipe-categories";
 
@@ -50,9 +51,10 @@ interface RecipeDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  showPlanAction?: boolean;
 }
 
-const RecipeDetailDialog = ({ recipe, open, onOpenChange, onCloseAutoFocus }: RecipeDetailDialogProps) => {
+const RecipeDetailDialog = ({ recipe, open, onOpenChange, onCloseAutoFocus, showPlanAction }: RecipeDetailDialogProps) => {
   const [showCookingMode, setShowCookingMode] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const isMobile = useIsMobile();
@@ -152,6 +154,10 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange, onCloseAutoFocus }: Re
             </a>
           )}
         </div>
+
+        {showPlanAction && (
+          <PlanRecipeButton recipeId={recipe.id} recipeTitle={recipe.title} showLabel />
+        )}
 
         {ingredients.length > 0 && (
           <div>

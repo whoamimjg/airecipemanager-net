@@ -14,9 +14,10 @@ import { cn } from "@/lib/utils";
 interface PlanRecipeButtonProps {
   recipeId: string;
   recipeTitle: string;
+  showLabel?: boolean;
 }
 
-const PlanRecipeButton = ({ recipeId, recipeTitle }: PlanRecipeButtonProps) => {
+const PlanRecipeButton = ({ recipeId, recipeTitle, showLabel = false }: PlanRecipeButtonProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -24,20 +25,20 @@ const PlanRecipeButton = ({ recipeId, recipeTitle }: PlanRecipeButtonProps) => {
   const [mealSlot, setMealSlot] = useState("dinner");
 
   const planMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedDate || !user) throw new Error("Missing data");
+    mutationFn: async ({ date, slot }: { date: Date; slot: string }) => {
+      if (!user) throw new Error("Missing data");
       const { error } = await supabase.from("meal_plans").insert({
         user_id: user.id,
         recipe_id: recipeId,
-        date: format(selectedDate, "yyyy-MM-dd"),
-        meal_slot: mealSlot,
+        date: format(date, "yyyy-MM-dd"),
+        meal_slot: slot,
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { date, slot }) => {
       queryClient.invalidateQueries({ queryKey: ["meal-plans"] });
       queryClient.invalidateQueries({ queryKey: ["recipe-last-planned"] });
-      toast.success(`"${recipeTitle}" planned for ${format(selectedDate!, "MMM d, yyyy")} (${mealSlot})`);
+      toast.success(`"${recipeTitle}" planned for ${format(date, "MMM d, yyyy")} (${slot})`);
       setOpen(false);
       setSelectedDate(undefined);
     },
@@ -48,15 +49,18 @@ const PlanRecipeButton = ({ recipeId, recipeTitle }: PlanRecipeButtonProps) => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
+          type="button"
+          aria-label={showLabel ? undefined : `Add ${recipeTitle} to meal plan`}
+          variant={showLabel ? "outline" : "ghost"}
+          size={showLabel ? "sm" : "icon"}
+          className={showLabel ? "gap-2" : "h-7 w-7"}
           onClick={(e) => e.stopPropagation()}
         >
           <CalendarDays className="h-3.5 w-3.5" />
+          {showLabel && "Add to Meal Plan"}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-3 space-y-3" align="end" onClick={(e) => e.stopPropagation()}>
+      <PopoverContent className="max-h-[var(--radix-popover-content-available-height)] w-auto space-y-3 overflow-y-auto p-3" align={showLabel ? "start" : "end"} onClick={(e) => e.stopPropagation()}>
         <p className="text-sm font-medium text-foreground">Plan this recipe</p>
         <Calendar
           mode="single"
@@ -66,7 +70,7 @@ const PlanRecipeButton = ({ recipeId, recipeTitle }: PlanRecipeButtonProps) => {
           className={cn("p-0 pointer-events-auto")}
         />
         <Select value={mealSlot} onValueChange={setMealSlot}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger aria-label="Meal" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -79,7 +83,7 @@ const PlanRecipeButton = ({ recipeId, recipeTitle }: PlanRecipeButtonProps) => {
         <Button
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
           disabled={!selectedDate || planMutation.isPending}
-          onClick={() => planMutation.mutate()}
+          onClick={() => { if (selectedDate) planMutation.mutate({ date: selectedDate, slot: mealSlot }); }}
           size="sm"
         >
           {planMutation.isPending ? "Adding..." : "Add to Meal Plan"}
