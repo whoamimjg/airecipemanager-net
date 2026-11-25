@@ -49,21 +49,22 @@ interface RecipeDetailDialogProps {
   recipe: Recipe | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
-const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogProps) => {
+const RecipeDetailDialog = ({ recipe, open, onOpenChange, onCloseAutoFocus }: RecipeDetailDialogProps) => {
   const [showCookingMode, setShowCookingMode] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+  const [generatingPhoto, setGeneratingPhoto] = useState(false);
+  const [aiImage, setAiImage] = useState<string | null>(null);
 
   if (!recipe) return null;
 
   const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   const instructions = Array.isArray(recipe.instructions) ? recipe.instructions : [];
   const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
-  const queryClient = useQueryClient();
-  const [generatingPhoto, setGeneratingPhoto] = useState(false);
-  const [aiImage, setAiImage] = useState<string | null>(null);
   const imageUrl = aiImage ?? recipe.image_url;
 
   const generatePhoto = async () => {
@@ -258,7 +259,7 @@ const RecipeDetailDialog = ({ recipe, open, onOpenChange }: RecipeDetailDialogPr
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden">
+          <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden" onCloseAutoFocus={onCloseAutoFocus}>
             <DialogHeader className="sr-only">
               <DialogTitle>{recipe.title}</DialogTitle>
             </DialogHeader>

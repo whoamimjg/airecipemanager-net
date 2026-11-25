@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import {
   format, startOfWeek, addDays, addWeeks, subWeeks, isToday, isSameDay,
   startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth
@@ -120,6 +120,7 @@ const MealPlanner = () => {
   const [noteText, setNoteText] = useState("");
   const [noteGrocery, setNoteGrocery] = useState("");
   const [viewingRecipeId, setViewingRecipeId] = useState<string | null>(null);
+  const recipePreviewTrigger = useRef<HTMLButtonElement | null>(null);
 
   const { data: viewingRecipe = null } = useQuery({
     queryKey: ["recipe-detail", viewingRecipeId],
@@ -685,35 +686,38 @@ const MealPlanner = () => {
                 </div>
                 <div className="space-y-0.5">
                   {catRecipes.map(recipe => (
-                    <div
+                    <button
                       key={recipe.id}
+                      type="button"
                       draggable={!isMobile}
                       onDragStart={() => setDraggedRecipe(recipe)}
                       onDragEnd={() => setDraggedRecipe(null)}
-                      onClick={() => {
+                      aria-haspopup={isMobile ? undefined : "dialog"}
+                      onClick={(event) => {
                         if (isMobile) {
                           const dateStr = view === "day" ? format(selectedDay, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
                           addMealPlan.mutate({ recipe_id: recipe.id, date: dateStr, meal_slot: "dinner" });
                           setRecipePanelOpen(false);
+                        } else {
+                          recipePreviewTrigger.current = event.currentTarget;
+                          setViewingRecipeId(recipe.id);
                         }
                       }}
-                      className="flex items-center gap-2 p-1.5 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors text-xs group"
+                      className="group flex w-full cursor-pointer items-center gap-2 rounded-lg border border-transparent p-1.5 text-left text-xs transition-colors hover:border-border hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
-                      {!isMobile && <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground flex-shrink-0" />}
+                      {!isMobile && <GripVertical className="h-3.5 w-3.5 flex-shrink-0 cursor-grab text-muted-foreground/30 group-hover:text-muted-foreground" />}
                       {recipe.image_url ? (
-                        <img src={recipe.image_url} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
+                        <img src={recipe.image_url} alt="" draggable={false} className="h-8 w-8 rounded object-cover flex-shrink-0" />
                       ) : (
-                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                        <span className="h-8 w-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
                           <ChefHat className="h-4 w-4 text-muted-foreground" />
-                        </div>
+                        </span>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate text-foreground">{recipe.title}</p>
-                      </div>
+                      <span className="min-w-0 flex-1 truncate font-medium text-foreground">{recipe.title}</span>
                       {hasIngredients(recipe) && (
                         <Star className="h-3.5 w-3.5 text-warning fill-warning flex-shrink-0" />
                       )}
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -912,9 +916,14 @@ const MealPlanner = () => {
       </Dialog>
 
       <RecipeDetailDialog
+        key={viewingRecipeId}
         recipe={viewingRecipe as any}
         open={!!viewingRecipeId}
         onOpenChange={(open) => { if (!open) setViewingRecipeId(null); }}
+        onCloseAutoFocus={() => {
+          recipePreviewTrigger.current?.focus();
+          recipePreviewTrigger.current = null;
+        }}
       />
     </div>
   );
